@@ -1,0 +1,8 @@
+//
+// Created by Nikita on 12.04.2021.
+//
+
+#ifndef EVOVULKAN_VULKANHELPER_H
+#define EVOVULKAN_VULKANHELPER_H
+
+#endif //EVOVULKAN_VULKANHELPER_H
