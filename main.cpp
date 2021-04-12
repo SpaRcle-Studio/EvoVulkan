@@ -12,7 +12,6 @@
 #define VK_DEBUG_GRAPH(msg)  std::cout << "[Graph] "  << msg << std::endl;
 
 #include <Tools/VulkanTools.h>
-#include <Device.h>
 
 int main() {
 
