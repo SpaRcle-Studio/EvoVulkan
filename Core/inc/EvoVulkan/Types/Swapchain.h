@@ -5,7 +5,10 @@
 #ifndef EVOVULKAN_SWAPCHAIN_H
 #define EVOVULKAN_SWAPCHAIN_H
 
-namespace EvoVulkan::Core {
+#include <vulkan/vulkan.h>
+#include <vector>
+
+namespace EvoVulkan::Types {
     class Swapchain {
 
     };

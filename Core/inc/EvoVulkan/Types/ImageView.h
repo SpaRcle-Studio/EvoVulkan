@@ -5,7 +5,7 @@
 #ifndef EVOVULKAN_IMAGEVIEW_H
 #define EVOVULKAN_IMAGEVIEW_H
 
-namespace EvoVulkan::Core {
+namespace EvoVulkan::Types {
     class ImageView {
 
     };

@@ -5,7 +5,7 @@
 #ifndef EVOVULKAN_FRAMEBUFFER_H
 #define EVOVULKAN_FRAMEBUFFER_H
 
-namespace EvoVulkan::Core {
+namespace EvoVulkan::Types {
     class Framebuffer {
 
     };

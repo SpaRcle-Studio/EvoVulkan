@@ -5,7 +5,7 @@
 #ifndef EVOVULKAN_PIPELINE_H
 #define EVOVULKAN_PIPELINE_H
 
-namespace EvoVulkan::Core {
+namespace EvoVulkan::Types {
     class Pipeline {
 
     };

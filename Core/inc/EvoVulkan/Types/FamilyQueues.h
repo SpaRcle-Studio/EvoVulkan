@@ -5,9 +5,10 @@
 #ifndef EVOVULKAN_FAMILYQUEUES_H
 #define EVOVULKAN_FAMILYQUEUES_H
 
-namespace EvoVulkan::Core {
+namespace EvoVulkan::Types {
     class FamilyQueues {
-
+    public:
+        bool IsComplete() const;
     };
 }
 

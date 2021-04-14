@@ -7,6 +7,8 @@ find_package(Vulkan REQUIRED FATAL_ERROR)
 include_directories(${Vulkan_INCLUDE_DIRS})
 
 add_library(EvoVulkanCore STATIC
+        src/VulkanKernel.cpp
+
         src/Device.cpp
         src/Framebuffer.cpp
         src/ImageView.cpp
@@ -15,6 +17,7 @@ add_library(EvoVulkanCore STATIC
         src/Surface.cpp
         src/Swapchain.cpp
         src/Synchronization.cpp
+
         )
 
 target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})

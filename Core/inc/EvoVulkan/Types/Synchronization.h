@@ -5,7 +5,7 @@
 #ifndef EVOVULKAN_SYNCHRONIZATION_H
 #define EVOVULKAN_SYNCHRONIZATION_H
 
-namespace EvoVulkan::Core {
+namespace EvoVulkan::Types {
     class Synchronization {
 
     };
