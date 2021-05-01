@@ -53,7 +53,8 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 
 bool EvoVulkan::Core::VulkanKernel::Init(
         const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
-        const std::vector<const char*>& deviceExtensions)
+        const std::vector<const char*>& deviceExtensions,
+        const bool& enableSampleShading)
 {
     Tools::VkDebug::Graph("VulkanKernel::Init() : initializing Evo Vulkan kernel...");
 
@@ -65,11 +66,29 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     }
 
     Tools::VkDebug::Graph("VulkanKernel::Init() : create vulkan logical device...");
-    this->m_device = Tools::CreateDevice(m_instance, m_surface, deviceExtensions);
+    this->m_device = Tools::CreateDevice(
+            m_instance,
+            m_surface,
+            deviceExtensions,
+            m_validationEnabled ? m_validationLayers : std::vector<const char*>(),
+            enableSampleShading);
     if (!m_device) {
-        Tools::VkDebug::Error("VulkanKernel::Init() : failed create logical device!");
+        Tools::VkDebug::Error("VulkanKernel::Init() : failed to create logical device!");
         return false;
     }
+
+    if (!m_device->Ready()) {
+        Tools::VkDebug::Error("VulkanKernel::Init() : something went wrong! Device isn't ready...");
+        return false;
+    }
+    Tools::VkDebug::Log("VulkanKernel::Inti() : count MSAA samples is " + std::to_string(m_device->GetMSAASamples()));
+
+    if (!m_surface->Init(m_device)) {
+        Tools::VkDebug::Error("VulkanKernel::Init() : failed to create initialize surface!");
+        return false;
+    }
+
+    Tools::VkDebug::Log("VulkanKernel::Init() : Evo Vulkan successfully initialized!");
 
     return true;
 }
@@ -79,7 +98,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 }
 
 EvoVulkan::Core::VulkanKernel *EvoVulkan::Core::VulkanKernel::Create() {
-    Tools::VkDebug::Graph("VulkanKernel::Create() : create Evo Vulkan kernel...");
+    Tools::VkDebug::Log("VulkanKernel::Create() : create Evo Vulkan kernel...");
 
     auto kernel = new VulkanKernel();
 
@@ -87,9 +106,19 @@ EvoVulkan::Core::VulkanKernel *EvoVulkan::Core::VulkanKernel::Create() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::Free() {
-    Tools::VkDebug::Graph("VulkanKernel::Free() : free Evo Vulkan kernel memory...");
+    Tools::VkDebug::Log("VulkanKernel::Free() : free Evo Vulkan kernel memory...");
+
+    m_surface->Destroy();
+    m_surface->Free();
+    m_surface = nullptr;
+
+    m_device->Destroy();
+    m_device->Free();
+    m_device = nullptr;
 
     Tools::DestroyInstance(&m_instance);
+
+    Tools::VkDebug::Log("VulkanKernel::Free() : all resources has been freed! Free kernel pointer...");
 
     delete this;
     return true;

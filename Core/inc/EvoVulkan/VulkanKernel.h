@@ -59,7 +59,7 @@ namespace EvoVulkan::Core {
 
         bool Init(
                 const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
-                const std::vector<const char*>& deviceExtensions);
+                const std::vector<const char*>& deviceExtensions, const bool& enableSampleShading);
         bool PostInit();
     };
 }

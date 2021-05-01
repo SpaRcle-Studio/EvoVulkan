@@ -24,6 +24,23 @@ namespace EvoVulkan::Tools {
         return VK_FALSE;    // Т.к. мы не хотим чтобы вызывающая функция упала.
     }*/
 
+    static VkSampleCountFlagBits GetMaxUsableSampleCount(const VkPhysicalDevice& physicalDevice) {
+        VkPhysicalDeviceProperties physicalDeviceProperties;
+        vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+
+        VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts
+                & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+
+        if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+        if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+        if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+        if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+        if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+        if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+        return VK_SAMPLE_COUNT_1_BIT;
+    }
+
     static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -33,6 +50,12 @@ namespace EvoVulkan::Tools {
         if (std::string(pCallbackData->pMessage).find("Error") != std::string::npos)
             printf("VkDebugReportCallback: %s\n", pCallbackData->pMessage);
         return VK_FALSE;    // Т.к. мы не хотим чтобы вызывающая функция упала.
+    }
+
+    static VkPhysicalDeviceProperties GetDeviceProperties(const VkPhysicalDevice& physicalDevice) {
+        VkPhysicalDeviceProperties physicalDeviceProperties = {};
+        vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+        return physicalDeviceProperties;
     }
 
     static void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {

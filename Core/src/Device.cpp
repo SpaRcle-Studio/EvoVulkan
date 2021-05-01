@@ -4,14 +4,62 @@
 
 #include "EvoVulkan/Types/Device.h"
 
-EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(VkPhysicalDevice physicalDevice) {
+#include <EvoVulkan/Tools/VulkanDebug.h>
+
+EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
+        const VkPhysicalDevice& physicalDevice,
+        const VkDevice& logicalDevice,
+        FamilyQueues* familyQueues,
+        const bool& enableSampleShading)
+{
+    if (physicalDevice == VK_NULL_HANDLE) {
+        Tools::VkDebug::Error("Device::Create() : physical device is nullptr!");
+        return nullptr;
+    }
+
+    if (logicalDevice == VK_NULL_HANDLE) {
+        Tools::VkDebug::Error("Device::Create() : logical device is nullptr!");
+        return nullptr;
+    }
+
+    if (familyQueues == nullptr) {
+        Tools::VkDebug::Error("Device::Create() : family queues is nullptr!");
+        return nullptr;
+    }
+
     auto* device = new Device();
 
-    device->m_physicalDevice = physicalDevice;
+    device->m_physicalDevice      = physicalDevice;
+    device->m_logicalDevice       = logicalDevice;
+    device->m_familyQueues        = familyQueues;
+    device->m_enableSampleShading = enableSampleShading;
+
+    //device->m_maxCountMSAASamples = calculate...
 
     return device;
 }
 
-bool EvoVulkan::Types::Device::Free() {
-    return false;
+void EvoVulkan::Types::Device::Free() {
+    delete this;
+}
+
+bool EvoVulkan::Types::Device::Ready() const {
+    return m_logicalDevice && m_physicalDevice && m_familyQueues && m_familyQueues->IsReady();
+}
+
+bool EvoVulkan::Types::Device::Destroy() {
+    Tools::VkDebug::Log("Device::Destroy() : destroying vulkan device...");
+
+    if (!this->Ready()) {
+        Tools::VkDebug::Error("Device::Destroy() : device isn't ready!");
+        return false;
+    }
+
+    this->m_familyQueues->Destroy();
+    this->m_familyQueues = nullptr;
+
+    vkDestroyDevice(m_logicalDevice, nullptr);
+    this->m_logicalDevice = VK_NULL_HANDLE;
+
+    return true;
 }

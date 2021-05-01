@@ -96,31 +96,161 @@ namespace EvoVulkan::Tools {
     static Types::Surface* CreateSurface(const VkInstance& instance, const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate) {
         VkSurfaceKHR surfaceKhr = platformCreate(instance);
 
-        Types::Surface* surface = Types::Surface::Create(surfaceKhr);
+        Types::Surface* surface = Types::Surface::Create(
+                surfaceKhr,
+                instance);
 
         return surface;
     }
 
-    static Types::Device* CreateDevice(const VkInstance& instance, const Types::Surface* surface, const std::vector<const char*>& extensions) {
-        Tools::VkDebug::Graph("VulkanTools::CreateDevice() : create vulkan logical device...");
+    static VkDevice CreateLogicalDevice(
+            VkPhysicalDevice physicalDevice,
+            Types::FamilyQueues *pQueues,
+            const std::vector<const char *> &extensions,
+            const std::vector<const char *> &validLayers,
+            VkPhysicalDeviceFeatures deviceFeatures)
+    {
+        Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : create vulkan logical device...");
+
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        std::set<uint32_t> uniqueQueueFamilies = { pQueues->GetGraphicsIndex(), pQueues->GetPresentIndex() };
+
+        float queuePriority = 1.0f;
+        for (uint32_t queueFamily : uniqueQueueFamilies) {
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
+
+        //!=============================================================================================================
+
+        VkDeviceCreateInfo createInfo      = {};
+        createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+        createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
+        createInfo.pQueueCreateInfos       = queueCreateInfos.data();
+
+        createInfo.pEnabledFeatures        = &deviceFeatures;
+
+        createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
+        createInfo.ppEnabledExtensionNames = extensions.data();
+
+        if (validLayers.empty()) {
+            Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : validation layers disabled.");
+            createInfo.enabledLayerCount = 0;
+        } else {
+            Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : validation layers enabled.");
+
+            createInfo.enabledLayerCount   = static_cast<uint32_t>(validLayers.size());
+            createInfo.ppEnabledLayerNames = validLayers.data();
+        }
+
+        VkDevice device = VK_NULL_HANDLE;
+        if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+            Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : failed to create logical device!");
+            return VK_NULL_HANDLE;
+        }
+
+        return device;
+    }
+
+    static Types::Device* CreateDevice(
+            const VkInstance& instance, const Types::Surface* surface,
+            const std::vector<const char*>& extensions,
+            const std::vector<const char*>& validationLayers,
+            const bool& enableSampleShading)
+    {
+        Tools::VkDebug::Graph("VulkanTools::CreateDevice() : create vulkan device...");
+
+        Types::FamilyQueues* queues         = nullptr;
+
+        VkPhysicalDevice     physicalDevice = VK_NULL_HANDLE;
+        VkDevice             logicalDevice  = VK_NULL_HANDLE;
+
+        //!=============================================================================================================
 
         auto devices = Tools::GetAllDevices(instance);
+        if (devices.empty()) {
+            Tools::VkDebug::Error("VulkanTools::CreateDevice() : not found device with vulkan support!");
+            return nullptr;
+        }
+
         for (const auto& device : devices)
             Tools::VkDebug::Log("VulkanTools::CreateDevice() : found device - " + Types::GetDeviceName(device));
 
-        Types::Device* device = nullptr;
-        Types::FamilyQueues* queues = nullptr;
-
         for (auto physDev : devices) {
             if (Types::IsDeviceSuitable(physDev, (*surface), extensions)) {
-                //queues = findQueueFamilies(physicalDevice);
-                //if (!queues->IsComplete())
+                if (physicalDevice == VK_NULL_HANDLE) {
+                    physicalDevice = physDev;
+                    continue;
+                }
 
-                //device = Types::Device::Create(instance);
-            }
+                if (Types::Device::IsBetterThan(physDev, physicalDevice))
+                    physicalDevice = physDev;
+            } else
+                Tools::VkDebug::Warn("VulkanTools::CreateDevice() : device \"" +
+                    Types::GetDeviceName(physDev) + "\" isn't suitable!");
         }
 
-        return nullptr;
+        if (physicalDevice == VK_NULL_HANDLE) {
+            std::string msg = std::string();
+
+            for (auto extension : extensions) {
+                msg += "\n\t";
+                msg += extension;
+            }
+
+            Tools::VkDebug::Error("VulkanTools::CreateDevice() : not found suitable device! \nExtensions: " + msg);
+
+            return nullptr;
+        } else
+            Tools::VkDebug::Log("VulkanTools::CreateDevice() : select \""
+                + Types::GetDeviceName(physicalDevice) + "\" device.");
+
+        queues = Types::FamilyQueues::Find(physicalDevice, surface);
+        if (!queues->IsComplete()) {
+            Tools::VkDebug::Error("VulkanTools::CreateDevice() : family queues isn't complete!");
+            return nullptr;
+        }
+
+        //!=============================================================================================================
+
+        VkPhysicalDeviceFeatures deviceFeatures = {};
+
+        logicalDevice = Tools::CreateLogicalDevice(
+                physicalDevice,
+                queues,
+                extensions,
+                validationLayers,
+                deviceFeatures);
+
+        if (logicalDevice == VK_NULL_HANDLE) {
+            Tools::VkDebug::Error("VulkanTools::CreateDevice() : failed create logical device!");
+            return nullptr;
+        }
+
+        Tools::VkDebug::Graph("VulkanTools::CreateDevice() : set logical device queues...");
+        {
+            VkQueue graphics = VK_NULL_HANDLE;
+            VkQueue present  = VK_NULL_HANDLE;
+
+            vkGetDeviceQueue(logicalDevice, queues->GetGraphicsIndex(), 0, &graphics);
+            vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 0, &present);
+
+            queues->SetQueues(graphics, present);
+        }
+
+        auto finallyDevice = Types::Device::Create(physicalDevice, logicalDevice, queues, enableSampleShading);
+
+        if (finallyDevice)
+            Tools::VkDebug::Log("VulkanTools::CreateDevice() : device successfully created!");
+        else
+            Tools::VkDebug::Error("VulkanTools::CreateDevice() : failed to create device!");
+
+        return finallyDevice;
     }
 }
 

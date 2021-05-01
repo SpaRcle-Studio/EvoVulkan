@@ -8,6 +8,8 @@
 #include <vulkan/vulkan.h>
 
 namespace EvoVulkan::Types {
+    class Device;
+
     class Surface {
     public:
         Surface(const Surface&) = delete;
@@ -15,16 +17,33 @@ namespace EvoVulkan::Types {
         Surface() = default;
         ~Surface() = default;
     private:
-        VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+        bool                m_isInit      = false;
+
+        VkSurfaceKHR        m_surface     = VK_NULL_HANDLE;
+        VkSurfaceFormatKHR* m_surfFormats = nullptr;
+        VkFormat            m_colorFormat = VK_FORMAT_UNDEFINED;
+        VkColorSpaceKHR     m_colorSpace  = VkColorSpaceKHR::VK_COLOR_SPACE_MAX_ENUM_KHR;
+
+        VkInstance          m_instance    = VK_NULL_HANDLE;
     public:
         operator VkSurfaceKHR() const { return m_surface; }
 
-        static Surface* Create(const VkSurfaceKHR& surfaceKhr) {
+        static Surface* Create(const VkSurfaceKHR& surfaceKhr, const VkInstance& instance) {
             auto* surface = new Surface();
-            surface->m_surface = surfaceKhr;
+
+            surface->m_surface  = surfaceKhr;
+            surface->m_instance = instance;
 
             return surface;
         }
+    public:
+        [[nodiscard]] bool IsInit() const noexcept { return m_isInit; }
+        bool Init(const Types::Device* device);
+
+        [[nodiscard]] bool Ready() const;
+
+        void Destroy();
+        void Free();
     };
 }
 

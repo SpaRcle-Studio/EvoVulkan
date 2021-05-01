@@ -21,6 +21,7 @@ namespace EvoVulkan::Tools {
         static inline std::function<void(const std::string &msg)> Error = std::function<void(const std::string &msg)>();
         static inline std::function<void(const std::string &msg)> Log   = std::function<void(const std::string &msg)>();
         static inline std::function<void(const std::string &msg)> Graph = std::function<void(const std::string &msg)>();
+        static inline std::function<void(const std::string &msg)> Warn  = std::function<void(const std::string &msg)>();
     };
 }
 

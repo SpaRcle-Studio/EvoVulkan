@@ -9,7 +9,7 @@
 
 int main() {
     EvoVulkan::Tools::VkDebug::Error = std::function<void(const std::string& msg)>([](const std::string& msg) {
-        std::cout << "\t[Error] "  << msg << std::endl;
+        std::cout << "[Error] "  << msg << std::endl;
     });
 
     EvoVulkan::Tools::VkDebug::Graph = std::function<void(const std::string& msg)>([](const std::string& msg) {
@@ -18,6 +18,10 @@ int main() {
 
     EvoVulkan::Tools::VkDebug::Log = std::function<void(const std::string& msg)>([](const std::string& msg) {
         std::cout << "[Log] "  << msg << std::endl;
+    });
+
+    EvoVulkan::Tools::VkDebug::Warn = std::function<void(const std::string& msg)>([](const std::string& msg) {
+        std::cout << "[Warn] "  << msg << std::endl;
     });
 
     //!=================================================================================================================
@@ -39,7 +43,7 @@ int main() {
         return -1;
     }
 
-    std::function<VkSurfaceKHR(const VkInstance& instance)> fun = [window](const VkInstance& instance) -> VkSurfaceKHR {
+    std::function<VkSurfaceKHR(const VkInstance& instance)> surfCreate = [window](const VkInstance& instance) -> VkSurfaceKHR {
         VkSurfaceKHR surfaceKhr = {};
         if (glfwCreateWindowSurface(instance, window, nullptr, &surfaceKhr) != VK_SUCCESS) {
             EvoVulkan::Tools::VkDebug::Error("VulkanKernel::Init(lambda) : failed to create glfw window surface!");
@@ -48,7 +52,7 @@ int main() {
             return surfaceKhr;
     };
 
-    if (!kernel->Init(fun, { VK_KHR_SWAPCHAIN_EXTENSION_NAME })) {
+    if (!kernel->Init(surfCreate, {  }, true)) { //VK_KHR_SWAPCHAIN_EXTENSION_NAME
         std::cout << "Failed to initialize Evo Vulkan!\n";
         return -1;
     }

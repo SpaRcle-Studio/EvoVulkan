@@ -22,16 +22,34 @@ namespace EvoVulkan::Types {
         VkPhysicalDevice m_physicalDevice      = VK_NULL_HANDLE;
         VkDevice         m_logicalDevice       = VK_NULL_HANDLE;
 
-        FamilyQueues*     m_familyQueues       = nullptr;
+        FamilyQueues*    m_familyQueues        = nullptr;
 
         //! don't use for VkAttachmentDescription
+        //! for multisampling.rasterizationSamples and images
         unsigned __int8  m_maxCountMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
         //! for deviceFeatures and multisampling
         bool             m_enableSampleShading = false;
     public:
-        static Device* Create(VkPhysicalDevice physicalDevice);
-        bool Free();
+        static Device* Create(const VkPhysicalDevice& physicalDevice,
+                              const VkDevice& logicalDevice,
+                              FamilyQueues* familyQueues,
+                              const bool& enableSampleShading);
+        void Free();
+    public:
+        [[nodiscard]] VkSampleCountFlagBits GetMSAASamples() const {
+            return (VkSampleCountFlagBits)m_maxCountMSAASamples;
+        }
+
+        [[nodiscard]] bool Ready() const;
+        bool Destroy();
+    public:
+        static bool IsBetterThan(const VkPhysicalDevice& _new, const VkPhysicalDevice& _old) {
+            auto _newProp = Tools::GetDeviceProperties(_new);
+            auto _oldProp = Tools::GetDeviceProperties(_old);
+
+            return _newProp.limits.maxStorageBufferRange > _oldProp.limits.maxStorageBufferRange;
+        }
     public:
         operator VkDevice()         const { return m_logicalDevice;  }
         operator VkPhysicalDevice() const { return m_physicalDevice; }
@@ -40,6 +58,9 @@ namespace EvoVulkan::Types {
     //!=================================================================================================================
 
     static std::string GetDeviceName(const VkPhysicalDevice& physicalDevice) {
+        if (!physicalDevice)
+            return "Error: Device is nullptr!";
+
         VkPhysicalDeviceProperties physicalDeviceProperties = {};
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
         return physicalDeviceProperties.deviceName;
@@ -50,18 +71,31 @@ namespace EvoVulkan::Types {
             const VkSurfaceKHR& surface,
             const std::vector<const char*>& extensions)
     {
-        bool extensionsSupported = Tools::CheckDeviceExtensionSupport(physicalDevice, extensions);
+        if (!extensions.empty())
+            if (!Tools::CheckDeviceExtensionSupport(physicalDevice, extensions)) {
+                Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : device \"" +
+                    Types::GetDeviceName(physicalDevice) + "\" isn't support extensions!");
+                return false;
+            }
 
-        bool swapChainAdequate = false;
-        if (extensionsSupported) {
-            Types::SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, surface);
-            swapChainAdequate = !swapChainSupport.m_formats.empty() && !swapChainSupport.m_presentModes.empty();
+        Types::SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, surface);
+        bool swapChainAdequate = !swapChainSupport.m_formats.empty() && !swapChainSupport.m_presentModes.empty();
+        if (!swapChainAdequate) {
+            Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : device \"" +
+                Types::GetDeviceName(physicalDevice) + "\" isn't support swapchain!");
+            return false;
         }
 
         VkPhysicalDeviceFeatures supportedFeatures;
         vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 
-        return extensionsSupported && swapChainAdequate  && supportedFeatures.samplerAnisotropy;
+        if (!supportedFeatures.samplerAnisotropy) {
+            Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : device \"" +
+                 Types::GetDeviceName(physicalDevice) + "\" isn't support anisotropy!");
+            return false;
+        }
+
+        return true;
     }
 }
 
