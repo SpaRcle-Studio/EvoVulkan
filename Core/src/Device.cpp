@@ -34,6 +34,15 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
     device->m_familyQueues        = familyQueues;
     device->m_enableSampleShading = enableSampleShading;
 
+    // Gather physical device memory properties
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &device->m_memoryProperties);
+
+    device->m_depthFormat = Tools::GetDepthFormat(physicalDevice);
+    if (device->m_depthFormat == VK_FORMAT_UNDEFINED) {
+        Tools::VkDebug::Error("Device::Create() : could not find a supported depth format!");
+        return nullptr;
+    }
+
     //device->m_maxCountMSAASamples = calculate...
 
     return device;
@@ -62,4 +71,8 @@ bool EvoVulkan::Types::Device::Destroy() {
     this->m_logicalDevice = VK_NULL_HANDLE;
 
     return true;
+}
+
+VkFormat EvoVulkan::Types::Device::GetDepthFormat() const {
+    return m_depthFormat;
 }

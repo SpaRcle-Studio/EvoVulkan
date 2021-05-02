@@ -19,17 +19,20 @@ namespace EvoVulkan::Types {
         ~Device() = default;
         Device()  = default;
     private:
-        VkPhysicalDevice m_physicalDevice      = VK_NULL_HANDLE;
-        VkDevice         m_logicalDevice       = VK_NULL_HANDLE;
+        VkPhysicalDevice                 m_physicalDevice      = VK_NULL_HANDLE;
+        VkDevice                         m_logicalDevice       = VK_NULL_HANDLE;
 
-        FamilyQueues*    m_familyQueues        = nullptr;
+        FamilyQueues*                    m_familyQueues        = nullptr;
+
+        VkPhysicalDeviceMemoryProperties m_memoryProperties    = {};
+        VkFormat                         m_depthFormat         = {};
 
         //! don't use for VkAttachmentDescription
         //! for multisampling.rasterizationSamples and images
-        unsigned __int8  m_maxCountMSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        unsigned __int8                  m_maxCountMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
         //! for deviceFeatures and multisampling
-        bool             m_enableSampleShading = false;
+        bool                             m_enableSampleShading = false;
     public:
         static Device* Create(const VkPhysicalDevice& physicalDevice,
                               const VkDevice& logicalDevice,
@@ -40,6 +43,7 @@ namespace EvoVulkan::Types {
         [[nodiscard]] VkSampleCountFlagBits GetMSAASamples() const {
             return (VkSampleCountFlagBits)m_maxCountMSAASamples;
         }
+        [[nodiscard]] VkFormat GetDepthFormat() const;
 
         [[nodiscard]] bool Ready() const;
         bool Destroy();
@@ -71,6 +75,11 @@ namespace EvoVulkan::Types {
             const VkSurfaceKHR& surface,
             const std::vector<const char*>& extensions)
     {
+        if (!surface) {
+            Tools::VkDebug::Error("Types::IsDeviceSuitable() : surface is nullptr!");
+            return false;
+        }
+
         if (!extensions.empty())
             if (!Tools::CheckDeviceExtensionSupport(physicalDevice, extensions)) {
                 Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : device \"" +
@@ -79,6 +88,11 @@ namespace EvoVulkan::Types {
             }
 
         Types::SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, surface);
+        if (!swapChainSupport.m_complete) {
+            Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : something went wrong! Details isn't complete!");
+            return false;
+        }
+
         bool swapChainAdequate = !swapChainSupport.m_formats.empty() && !swapChainSupport.m_presentModes.empty();
         if (!swapChainAdequate) {
             Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : device \"" +

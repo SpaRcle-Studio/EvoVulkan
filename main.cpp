@@ -1,11 +1,12 @@
 //
 // Created by Nikita on 12.04.2021.
 //
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_INCLUDE_VULKAN
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <GLFW/glfw3.h>
 
 #include <EvoVulkan/VulkanKernel.h>
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 
 int main() {
     EvoVulkan::Tools::VkDebug::Error = std::function<void(const std::string& msg)>([](const std::string& msg) {
@@ -31,14 +32,33 @@ int main() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    auto window = glfwCreateWindow(1280, 820, "Vulkan application", nullptr, nullptr); //1280, 1024
+    unsigned int width     = 1280;
+    unsigned int height    = 820;
+    bool validationEnabled = true;
+
+    auto window = glfwCreateWindow((int)width, (int)height, "Vulkan application", nullptr, nullptr); //1280, 1024
 
     //!=================================================================================================================
 
     EvoVulkan::Core::VulkanKernel* kernel = EvoVulkan::Core::VulkanKernel::Create();
-    kernel->SetValidationLayersEnabled(true);
+    kernel->SetValidationLayersEnabled(validationEnabled);
+    kernel->SetSize(width, height);
 
-    if (!kernel->PreInit("Simple engine", "NoEngine", { "VK_LAYER_KHRONOS_validation" })) {
+    //uint32_t glfwExtensionCount = 0;
+    //const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    //std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+    std::vector<const char*> extensions;
+    extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+    extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+
+    if (validationEnabled)
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+    if (!kernel->PreInit("Simple engine", "NoEngine",
+            { extensions },
+            { "VK_LAYER_KHRONOS_validation" }))
+    {
         std::cout << "Failed to pre-initialize Evo Vulkan!\n";
         return -1;
     }
@@ -52,7 +72,7 @@ int main() {
             return surfaceKhr;
     };
 
-    if (!kernel->Init(surfCreate, {  }, true)) { //VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    if (!kernel->Init(surfCreate, { VK_KHR_SWAPCHAIN_EXTENSION_NAME }, true)) {
         std::cout << "Failed to initialize Evo Vulkan!\n";
         return -1;
     }

@@ -7,22 +7,111 @@
 
 #include <vulkan/vulkan.h>
 
+#include <iostream>
+
 #include <EvoVulkan/Tools/VulkanDebug.h>
 
+/*
+// Macro to get a procedure address based on a vulkan instance
+#define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                        \
+{                                                                       \
+    fp##entrypoint = (PFN_vk##entrypoint) vkGetInstanceProcAddr(inst, "vk"#entrypoint); \
+    if (fp##entrypoint == NULL)                                         \
+	{																    \
+	    std::cerr << "vk"#entrypoint << std::endl;                      \
+        exit(1);                                                        \
+    }                                                                   \
+}
+
+// Macro to get a procedure address based on a vulkan device
+#define GET_DEVICE_PROC_ADDR(dev, entrypoint)                           \
+{                                                                       \
+    fp##entrypoint = (PFN_vk##entrypoint) vkGetDeviceProcAddr(dev, "vk"#entrypoint);   \
+    if (fp##entrypoint == NULL)                                         \
+	{																    \
+	    std::cerr << "vk"#entrypoint << std::endl;                      \
+        exit(1);                                                        \
+    }                                                                   \
+}*/
+
 namespace EvoVulkan::Tools {
-    /*static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
-            VkDebugReportFlagsEXT       flags,
-            VkDebugReportObjectTypeEXT  objectType,
-            uint64_t                    object,
-            size_t                      location,
-            int32_t                     messageCode,
-            const char*                 pLayerPrefix,
-            const char*                 pMessage,
-            void*                       pUserData)
-    {
-        printf("VkDebugReportCallback: %s\n", pMessage);
-        return VK_FALSE;    // Т.к. мы не хотим чтобы вызывающая функция упала.
+    /*// Function pointers
+    static PFN_vkGetPhysicalDeviceSurfaceSupportKHR      fpGetPhysicalDeviceSurfaceSupportKHR;
+    static PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fpGetPhysicalDeviceSurfaceCapabilitiesKHR;
+    static PFN_vkGetPhysicalDeviceSurfaceFormatsKHR      fpGetPhysicalDeviceSurfaceFormatsKHR;
+    static PFN_vkGetPhysicalDeviceSurfacePresentModesKHR fpGetPhysicalDeviceSurfacePresentModesKHR;
+    static PFN_vkCreateSwapchainKHR                      fpCreateSwapchainKHR;
+    static PFN_vkDestroySwapchainKHR                     fpDestroySwapchainKHR;
+    static PFN_vkGetSwapchainImagesKHR                   fpGetSwapchainImagesKHR;
+    static PFN_vkAcquireNextImageKHR                     fpAcquireNextImageKHR;
+    static PFN_vkQueuePresentKHR                         fpQueuePresentKHR;
+
+    static void LoadVulkanFunctionPointers(const VkInstance& instance, const VkDevice& device) {
+        GET_INSTANCE_PROC_ADDR(instance, GetPhysicalDeviceSurfaceSupportKHR);
+        GET_INSTANCE_PROC_ADDR(instance, GetPhysicalDeviceSurfaceCapabilitiesKHR);
+        GET_INSTANCE_PROC_ADDR(instance, GetPhysicalDeviceSurfaceFormatsKHR);
+        GET_INSTANCE_PROC_ADDR(instance, GetPhysicalDeviceSurfacePresentModesKHR);
+        GET_DEVICE_PROC_ADDR(device, CreateSwapchainKHR);
+        GET_DEVICE_PROC_ADDR(device, DestroySwapchainKHR);
+        GET_DEVICE_PROC_ADDR(device, GetSwapchainImagesKHR);
+        GET_DEVICE_PROC_ADDR(device, AcquireNextImageKHR);
+        GET_DEVICE_PROC_ADDR(device, QueuePresentKHR);
+
     }*/
+
+    static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+        if (func != nullptr)
+            func(instance, debugMessenger, pAllocator);
+    }
+
+    static VkPresentModeKHR GetPresentMode(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface) {
+        uint32_t presentModeCount;
+        if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL) != VK_SUCCESS) {
+            Tools::VkDebug::Error("VulkanTools::GetPresentMode() : failed get physical device surface present modes! (count)");
+            return VK_PRESENT_MODE_MAX_ENUM_KHR;
+        }
+
+        std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+        if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, &presentModes[0]) != VK_SUCCESS) {
+            Tools::VkDebug::Error("VulkanTools::GetPresentMode() : failed get physical device surface present modes! (data)");
+            return VK_PRESENT_MODE_MAX_ENUM_KHR;
+        }
+
+        // Try to use mailbox mode
+        // Low latency and non-tearing
+        VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+        for (size_t i = 0; i < presentModeCount; i++) {
+            if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
+                swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                break;
+            }
+
+            if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR))
+                swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+
+        return swapchainPresentMode;
+    }
+
+    static VkFormat GetDepthFormat(const VkPhysicalDevice& physicalDevice) {
+        VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+
+        //! Find supported depth format
+        //! We prefer 24 bits of depth and 8 bits of stencil, but that may not be supported by all implementations
+        std::vector<VkFormat> depthFormats = { VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM };
+        for (auto& format : depthFormats) {
+            VkFormatProperties formatProps;
+            vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
+            //! Format must support depth stencil attachment for optimal tiling
+            if (formatProps.optimalTilingFeatures && VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+                depthFormat = format;
+                break;
+            }
+        }
+
+        return depthFormat;
+    }
 
     static VkSampleCountFlagBits GetMaxUsableSampleCount(const VkPhysicalDevice& physicalDevice) {
         VkPhysicalDeviceProperties physicalDeviceProperties;
@@ -73,12 +162,28 @@ namespace EvoVulkan::Tools {
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-        std::set<const char*> requiredExtensions(extensions.begin(), extensions.end());
+        //std::set<const char*> requiredExtensions(extensions.begin(), extensions.end());
+        std::vector<const char*> requiredExtensions(extensions.begin(), extensions.end());
 
-        for (const auto& extension : availableExtensions)
-            requiredExtensions.erase(extension.extensionName);
+        //for (const auto& extension : availableExtensions)
+        //    requiredExtensions.erase(extension.extensionName);
 
-        return requiredExtensions.empty();
+        for (auto & requiredExtension : requiredExtensions) {
+            bool notFound = false;
+
+            for (auto &availableExtension : availableExtensions) {
+                notFound = true;
+                if (strcmp(requiredExtension, availableExtension.extensionName) == 0) {
+                    notFound = false;
+                    break;
+                }
+            }
+
+            if (notFound)
+                return false;
+        }
+
+        return true;
     }
 
     static std::vector<VkPhysicalDevice> GetAllDevices(const VkInstance& instance) {

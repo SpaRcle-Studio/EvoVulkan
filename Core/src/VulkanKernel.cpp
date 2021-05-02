@@ -12,9 +12,12 @@
 
 #include "EvoVulkan/VulkanKernel.h"
 
+#include <EvoVulkan/Tools/VulkanConverter.h>
+
 bool EvoVulkan::Core::VulkanKernel::PreInit(
         const std::string& appName,
         const std::string& engineName,
+        const std::vector<const char*>& instExtensions,
         const std::vector<const char*>& validationLayers)
 {
     Tools::VkDebug::Graph("VulkanKernel::PreInit() : pre-initializing Evo Vulkan kernel...");
@@ -23,10 +26,12 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
     this->m_engineName       = engineName;
     this->m_validationLayers = validationLayers;
 
-    m_instExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+    this->m_instExtensions   = instExtensions;
+
+    //m_instExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
 #ifdef _WIN32
-    m_instExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+    //m_instExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #else
     // todo : linux/android
 	m_instExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
@@ -42,9 +47,18 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
             m_validationEnabled);
 
     if (m_instance == VK_NULL_HANDLE) {
-        Tools::VkDebug::Error("VulkanKernel::PreInit() : failed create vulkan instance!");
+        Tools::VkDebug::Error("VulkanKernel::PreInit() : failed to create vulkan instance!");
         return false;
     }
+
+    if (m_validationEnabled) {
+        this->m_debugMessenger = Tools::SetupDebugMessenger(m_instance);
+        if (m_debugMessenger == VK_NULL_HANDLE) {
+            Tools::VkDebug::Error("VulkanKernel::PreInit() : failed to setup debug messenger!");
+            return false;
+        }
+    }
+
 
     this->m_isPreInitialized = true;
 
@@ -81,10 +95,30 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         Tools::VkDebug::Error("VulkanKernel::Init() : something went wrong! Device isn't ready...");
         return false;
     }
-    Tools::VkDebug::Log("VulkanKernel::Inti() : count MSAA samples is " + std::to_string(m_device->GetMSAASamples()));
+
+    Tools::VkDebug::Log("VulkanKernel::Init() : count MSAA samples is "
+        + std::to_string(m_device->GetMSAASamples()));
+    Tools::VkDebug::Log("VulkanKernel::Init() : depth format is "
+        + Tools::Convert::format_to_string(m_device->GetDepthFormat()));
+
+    //!=================================================================================================================
+
+    //Tools::LoadVulkanFunctionPointers(m_instance, *m_device);
 
     if (!m_surface->Init(m_device)) {
         Tools::VkDebug::Error("VulkanKernel::Init() : failed to create initialize surface!");
+        return false;
+    }
+
+    Tools::VkDebug::Graph("VulkanKernel::Init() : create vulkan swapchain...");
+    this->m_swapchain = Types::Swapchain::Create(
+            m_instance,
+            m_surface,
+            m_device,
+            m_width,
+            m_height);
+    if (!this->m_swapchain) {
+        Tools::VkDebug::Error("VulkanKernel::Init() : failed to create swapchain!");
         return false;
     }
 
@@ -97,7 +131,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     return false;
 }
 
-EvoVulkan::Core::VulkanKernel *EvoVulkan::Core::VulkanKernel::Create() {
+EvoVulkan::Core::VulkanKernel* EvoVulkan::Core::VulkanKernel::Create() {
     Tools::VkDebug::Log("VulkanKernel::Create() : create Evo Vulkan kernel...");
 
     auto kernel = new VulkanKernel();
@@ -108,6 +142,10 @@ EvoVulkan::Core::VulkanKernel *EvoVulkan::Core::VulkanKernel::Create() {
 bool EvoVulkan::Core::VulkanKernel::Free() {
     Tools::VkDebug::Log("VulkanKernel::Free() : free Evo Vulkan kernel memory...");
 
+    m_swapchain->Destroy();
+    m_swapchain->Free();
+    m_swapchain = nullptr;
+
     m_surface->Destroy();
     m_surface->Free();
     m_surface = nullptr;
@@ -115,6 +153,11 @@ bool EvoVulkan::Core::VulkanKernel::Free() {
     m_device->Destroy();
     m_device->Free();
     m_device = nullptr;
+
+    if (m_validationEnabled) {
+        Tools::DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
+        this->m_debugMessenger = VK_NULL_HANDLE;
+    }
 
     Tools::DestroyInstance(&m_instance);
 

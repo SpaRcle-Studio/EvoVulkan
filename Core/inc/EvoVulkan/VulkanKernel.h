@@ -31,12 +31,18 @@ namespace EvoVulkan::Core {
         VkInstance               m_instance          = VK_NULL_HANDLE;
         Types::Device*           m_device            = nullptr;
         Types::Surface*          m_surface           = nullptr;
+        Types::Swapchain*        m_swapchain         = nullptr;
+
+        VkDebugUtilsMessengerEXT m_debugMessenger    = VK_NULL_HANDLE;
 
         bool                     m_validationEnabled = false;
 
         bool                     m_isPreInitialized  = false;
         bool                     m_isInitialized     = false;
         bool                     m_isPostInitialized = false;
+
+        unsigned int             m_width             = 0;
+        unsigned int             m_height            = 0;
     public:
         inline bool SetValidationLayersEnabled(const bool& value) {
             if (m_isPreInitialized) {
@@ -48,6 +54,10 @@ namespace EvoVulkan::Core {
 
             return true;
         }
+        inline void SetSize(unsigned int width, unsigned int height) {
+            this->m_width  = width;
+            this->m_height = height;
+        }
     public:
         static VulkanKernel* Create();
         bool Free();
@@ -55,7 +65,9 @@ namespace EvoVulkan::Core {
         bool PreInit(
                 const std::string& appName,
                 const std::string& engineName,
-                const std::vector<const char*>& validationLayers);
+                const std::vector<const char*>& instExtensions,
+                const std::vector<const char*>& validationLayers
+                );
 
         bool Init(
                 const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,

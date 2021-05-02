@@ -37,6 +37,9 @@ namespace EvoVulkan::Types {
             return surface;
         }
     public:
+        [[nodiscard]] VkFormat GetColorFormat()       const { return m_colorFormat; }
+        [[nodiscard]] VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;  }
+    public:
         [[nodiscard]] bool IsInit() const noexcept { return m_isInit; }
         bool Init(const Types::Device* device);
 

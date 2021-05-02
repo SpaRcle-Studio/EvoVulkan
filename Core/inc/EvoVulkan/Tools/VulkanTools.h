@@ -7,12 +7,15 @@
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Surface.h>
+#include <EvoVulkan/Types/Swapchain.h>
 
 #include <EvoVulkan/Tools/VulkanHelper.h>
 
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
+
+#include <EvoVulkan/Tools/VulkanConverter.h>
 
 #include <functional>
 
@@ -26,9 +29,26 @@ namespace EvoVulkan::Tools {
         }
     }
 
+    static VkDebugUtilsMessengerEXT SetupDebugMessenger(const VkInstance& instance) {
+        Tools::VkDebug::Graph("VulkanTools::SetupDebugMessenger() : setup vulkan debug messenger...");
+
+        VkDebugUtilsMessengerCreateInfoEXT createInfo;
+        Tools::PopulateDebugMessengerCreateInfo(createInfo);
+
+        VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+        auto result = CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger);
+        if (result != VK_SUCCESS) {
+            Tools::VkDebug::Error("VulkanTools::SetupDebugMessenger() : failed to set up debug messenger! Reason: "
+                + Tools::Convert::result_to_description(result));
+            return VK_NULL_HANDLE;
+        }
+
+        return debugMessenger;
+    }
+
     static VkInstance CreateInstance(
             const std::string& appName, const std::string& engineName,
-            const std::vector<const char*>& extensions,
+            std::vector<const char*> extensions,
             const std::vector<const char*>& layers, const bool& validationEnabled)
     {
         Tools::VkDebug::Graph("VulkanTools::CreateInstance() : create vulkan instance...");
@@ -46,17 +66,22 @@ namespace EvoVulkan::Tools {
             return VK_NULL_HANDLE;
         }
 
-        VkApplicationInfo appInfo = {};
-        appInfo.sType             = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName  = appName.c_str();
-        appInfo.engineVersion     = 1;
-        appInfo.apiVersion        = VK_API_VERSION_1_0;
+        if (validationEnabled)
+            extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+
+        VkApplicationInfo appInfo  = {};
+        appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pApplicationName   = appName.c_str();
+        appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
+        appInfo.engineVersion      = 1;
+        //appInfo.apiVersion         = VK_API_VERSION_1_0;
+        appInfo.apiVersion         = VK_MAKE_VERSION(1, 0, 2);
 
         VkInstanceCreateInfo instInfo = {};
         instInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         instInfo.pApplicationInfo = &appInfo;
 
-        instInfo.enabledExtensionCount   = extensions.size();
+        instInfo.enabledExtensionCount   = (uint32_t)extensions.size();
         instInfo.ppEnabledExtensionNames = extensions.data();
 
         if (validationEnabled) {
@@ -67,7 +92,7 @@ namespace EvoVulkan::Tools {
                 return VK_NULL_HANDLE;
             }
 
-            instInfo.enabledLayerCount   = layers.size();
+            instInfo.enabledLayerCount   = (uint32_t)layers.size();
             instInfo.ppEnabledLayerNames = layers.data();
 
             Tools::PopulateDebugMessengerCreateInfo(debugCreateInfo);
@@ -78,8 +103,9 @@ namespace EvoVulkan::Tools {
         }
 
         VkInstance instance = VK_NULL_HANDLE;
-        if (vkCreateInstance(&instInfo, NULL, &instance) != VK_SUCCESS) {
-            VkDebug::Error("VulkanTools::CreateInstance() : failed create vulkan instance!");
+        VkResult result = vkCreateInstance(&instInfo, NULL, &instance);
+        if (result != VK_SUCCESS) {
+            VkDebug::Error("VulkanTools::CreateInstance() : failed create vulkan instance! Reason: " + Tools::Convert::result_to_description(result));
             return VK_NULL_HANDLE;
         }
 
@@ -95,6 +121,10 @@ namespace EvoVulkan::Tools {
 
     static Types::Surface* CreateSurface(const VkInstance& instance, const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate) {
         VkSurfaceKHR surfaceKhr = platformCreate(instance);
+        if (surfaceKhr == VK_NULL_HANDLE) {
+            Tools::VkDebug::Error("VulkanTools::CreateSurface() : failed platform-create vulkan surface!");
+            return nullptr;
+        }
 
         Types::Surface* surface = Types::Surface::Create(
                 surfaceKhr,
