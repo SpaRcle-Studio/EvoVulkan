@@ -77,6 +77,11 @@ int main() {
         return -1;
     }
 
+    if (!kernel->PostInit()) {
+        std::cout << "Failed to post-initialize Evo Vulkan!\n";
+        return -1;
+    }
+
     //!=================================================================================================================
 
     while (!glfwWindowShouldClose(window)) {

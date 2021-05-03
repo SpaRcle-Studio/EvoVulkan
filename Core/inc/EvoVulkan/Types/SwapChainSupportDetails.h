@@ -30,7 +30,7 @@ namespace EvoVulkan::Types {
             return {};
         }
 
-        uint32_t formatCount;
+        uint32_t formatCount = 0;
         result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
         if (result != VK_SUCCESS) {
             Tools::VkDebug::Error("Types::QuerySwapChainSupport() : failed. Reason: "

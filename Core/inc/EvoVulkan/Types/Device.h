@@ -25,7 +25,6 @@ namespace EvoVulkan::Types {
         FamilyQueues*                    m_familyQueues        = nullptr;
 
         VkPhysicalDeviceMemoryProperties m_memoryProperties    = {};
-        VkFormat                         m_depthFormat         = {};
 
         //! don't use for VkAttachmentDescription
         //! for multisampling.rasterizationSamples and images
@@ -43,9 +42,14 @@ namespace EvoVulkan::Types {
         [[nodiscard]] VkSampleCountFlagBits GetMSAASamples() const {
             return (VkSampleCountFlagBits)m_maxCountMSAASamples;
         }
-        [[nodiscard]] VkFormat GetDepthFormat() const;
 
-        [[nodiscard]] bool Ready() const;
+        [[nodiscard]] VkPhysicalDeviceMemoryProperties GetMemoryProperties() const {
+            return m_memoryProperties;
+        }
+
+        [[nodiscard]] FamilyQueues* GetQueues() const;
+
+        [[nodiscard]] bool IsReady() const;
         bool Destroy();
     public:
         static bool IsBetterThan(const VkPhysicalDevice& _new, const VkPhysicalDevice& _old) {

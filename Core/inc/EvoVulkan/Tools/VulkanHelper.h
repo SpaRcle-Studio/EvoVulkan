@@ -35,30 +35,6 @@
 }*/
 
 namespace EvoVulkan::Tools {
-    /*// Function pointers
-    static PFN_vkGetPhysicalDeviceSurfaceSupportKHR      fpGetPhysicalDeviceSurfaceSupportKHR;
-    static PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fpGetPhysicalDeviceSurfaceCapabilitiesKHR;
-    static PFN_vkGetPhysicalDeviceSurfaceFormatsKHR      fpGetPhysicalDeviceSurfaceFormatsKHR;
-    static PFN_vkGetPhysicalDeviceSurfacePresentModesKHR fpGetPhysicalDeviceSurfacePresentModesKHR;
-    static PFN_vkCreateSwapchainKHR                      fpCreateSwapchainKHR;
-    static PFN_vkDestroySwapchainKHR                     fpDestroySwapchainKHR;
-    static PFN_vkGetSwapchainImagesKHR                   fpGetSwapchainImagesKHR;
-    static PFN_vkAcquireNextImageKHR                     fpAcquireNextImageKHR;
-    static PFN_vkQueuePresentKHR                         fpQueuePresentKHR;
-
-    static void LoadVulkanFunctionPointers(const VkInstance& instance, const VkDevice& device) {
-        GET_INSTANCE_PROC_ADDR(instance, GetPhysicalDeviceSurfaceSupportKHR);
-        GET_INSTANCE_PROC_ADDR(instance, GetPhysicalDeviceSurfaceCapabilitiesKHR);
-        GET_INSTANCE_PROC_ADDR(instance, GetPhysicalDeviceSurfaceFormatsKHR);
-        GET_INSTANCE_PROC_ADDR(instance, GetPhysicalDeviceSurfacePresentModesKHR);
-        GET_DEVICE_PROC_ADDR(device, CreateSwapchainKHR);
-        GET_DEVICE_PROC_ADDR(device, DestroySwapchainKHR);
-        GET_DEVICE_PROC_ADDR(device, GetSwapchainImagesKHR);
-        GET_DEVICE_PROC_ADDR(device, AcquireNextImageKHR);
-        GET_DEVICE_PROC_ADDR(device, QueuePresentKHR);
-
-    }*/
-
     static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr)

@@ -12,6 +12,7 @@
 
 #include "EvoVulkan/VulkanKernel.h"
 
+#include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
 bool EvoVulkan::Core::VulkanKernel::PreInit(
@@ -70,16 +71,20 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         const std::vector<const char*>& deviceExtensions,
         const bool& enableSampleShading)
 {
-    Tools::VkDebug::Graph("VulkanKernel::Init() : initializing Evo Vulkan kernel...");
+    VK_GRAPH("VulkanKernel::Init() : initializing Evo Vulkan kernel...");
 
-    Tools::VkDebug::Graph("VulkanKernel::Init() : create vulkan surface...");
+    //!=================================================================================================================
+
+    VK_GRAPH("VulkanKernel::Init() : create vulkan surface...");
     this->m_surface = Tools::CreateSurface(m_instance, platformCreate);
     if (!m_surface) {
-        Tools::VkDebug::Error("VulkanKernel::Init() : failed create vulkan surface!");
+        VK_ERROR("VulkanKernel::Init() : failed create vulkan surface!");
         return false;
     }
 
-    Tools::VkDebug::Graph("VulkanKernel::Init() : create vulkan logical device...");
+    //!=================================================================================================================
+
+    VK_GRAPH("VulkanKernel::Init() : create vulkan logical device...");
     this->m_device = Tools::CreateDevice(
             m_instance,
             m_surface,
@@ -87,48 +92,83 @@ bool EvoVulkan::Core::VulkanKernel::Init(
             m_validationEnabled ? m_validationLayers : std::vector<const char*>(),
             enableSampleShading);
     if (!m_device) {
-        Tools::VkDebug::Error("VulkanKernel::Init() : failed to create logical device!");
+        VK_ERROR("VulkanKernel::Init() : failed to create logical device!");
         return false;
     }
 
-    if (!m_device->Ready()) {
-        Tools::VkDebug::Error("VulkanKernel::Init() : something went wrong! Device isn't ready...");
+    if (!m_device->IsReady()) {
+        VK_ERROR("VulkanKernel::Init() : something went wrong! Device isn't ready...");
         return false;
     }
 
-    Tools::VkDebug::Log("VulkanKernel::Init() : count MSAA samples is "
+    VK_LOG("VulkanKernel::Init() : count MSAA samples is "
         + std::to_string(m_device->GetMSAASamples()));
-    Tools::VkDebug::Log("VulkanKernel::Init() : depth format is "
-        + Tools::Convert::format_to_string(m_device->GetDepthFormat()));
 
     //!=================================================================================================================
-
-    //Tools::LoadVulkanFunctionPointers(m_instance, *m_device);
 
     if (!m_surface->Init(m_device)) {
         Tools::VkDebug::Error("VulkanKernel::Init() : failed to create initialize surface!");
         return false;
     }
 
-    Tools::VkDebug::Graph("VulkanKernel::Init() : create vulkan swapchain...");
+    //!=================================================================================================================
+
+    m_cmdPool = Types::CmdPool::Create(m_device);
+    if (!m_cmdPool) {
+        VK_ERROR("VulkanKernel::Init() : failed to create command pool!");
+        return false;
+    }
+
+    //!=================================================================================================================
+
+    VK_GRAPH("VulkanKernel::Init() : create setup command buffer...");
+    this->m_setupCmdBuff = Types::CmdBuffer::Create(
+            m_device, m_cmdPool,
+            Tools::Initializers::CommandBufferAllocateInfo(
+                    *m_cmdPool,
+                    VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1));
+    if (!m_setupCmdBuff) {
+        VK_ERROR("VulkanKernel::Init() : failed to create setup command buffer!");
+        return false;
+    }
+
+    //!=================================================================================================================
+
+    VK_GRAPH("VulkanKernel::Init() : create vulkan swapchain...");
     this->m_swapchain = Types::Swapchain::Create(
             m_instance,
             m_surface,
             m_device,
+            m_setupCmdBuff,
             m_width,
             m_height);
+
     if (!this->m_swapchain) {
-        Tools::VkDebug::Error("VulkanKernel::Init() : failed to create swapchain!");
+        VK_ERROR("VulkanKernel::Init() : failed to create swapchain!");
         return false;
     }
 
-    Tools::VkDebug::Log("VulkanKernel::Init() : Evo Vulkan successfully initialized!");
+    if (!this->m_swapchain->IsReady()) {
+        VK_ERROR("VulkanKernel::Init() : swapchain isn't ready!");
+        return false;
+    }
+
+    //!=================================================================================================================
+
+    this->m_isInitialized = true;
+
+    VK_INFO("VulkanKernel::Init() : Evo Vulkan successfully initialized!");
 
     return true;
 }
 
 bool EvoVulkan::Core::VulkanKernel::PostInit() {
-    return false;
+    //Tools::VkDebug::Log("VulkanKernel::PostInit() : depth format is "
+    //                    + Tools::Convert::format_to_string(m_swapchain->GetDepthFormat()));
+
+    this->m_isPostInitialized = true;
+
+    return true;
 }
 
 EvoVulkan::Core::VulkanKernel* EvoVulkan::Core::VulkanKernel::Create() {
@@ -142,17 +182,35 @@ EvoVulkan::Core::VulkanKernel* EvoVulkan::Core::VulkanKernel::Create() {
 bool EvoVulkan::Core::VulkanKernel::Free() {
     Tools::VkDebug::Log("VulkanKernel::Free() : free Evo Vulkan kernel memory...");
 
-    m_swapchain->Destroy();
-    m_swapchain->Free();
-    m_swapchain = nullptr;
+    if (m_setupCmdBuff) {
+        m_setupCmdBuff->Destroy();
+        m_setupCmdBuff->Free();
+        m_setupCmdBuff = nullptr;
+    }
 
-    m_surface->Destroy();
-    m_surface->Free();
-    m_surface = nullptr;
+    if (m_swapchain) {
+        m_swapchain->Destroy();
+        m_swapchain->Free();
+        m_swapchain = nullptr;
+    }
 
-    m_device->Destroy();
-    m_device->Free();
-    m_device = nullptr;
+    if (m_surface) {
+        m_surface->Destroy();
+        m_surface->Free();
+        m_surface = nullptr;
+    }
+
+    if (m_cmdPool) {
+        m_cmdPool->Destroy();
+        m_cmdPool->Free();
+        m_cmdPool = nullptr;
+    }
+
+    if (m_device) {
+        m_device->Destroy();
+        m_device->Free();
+        m_device = nullptr;
+    }
 
     if (m_validationEnabled) {
         Tools::DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);

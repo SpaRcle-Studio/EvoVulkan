@@ -60,3 +60,9 @@ void EvoVulkan::Types::FamilyQueues::Destroy() {
     m_iPresent  = -2;
     m_iGraphics = -2;
 }
+
+void EvoVulkan::Types::FamilyQueues::Free() {
+    Tools::VkDebug::Log("FamilyQueues::Free() : free family queues pointer...");
+
+    delete this;
+}

@@ -37,34 +37,34 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
     // Gather physical device memory properties
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &device->m_memoryProperties);
 
-    device->m_depthFormat = Tools::GetDepthFormat(physicalDevice);
-    if (device->m_depthFormat == VK_FORMAT_UNDEFINED) {
-        Tools::VkDebug::Error("Device::Create() : could not find a supported depth format!");
-        return nullptr;
-    }
-
     //device->m_maxCountMSAASamples = calculate...
 
     return device;
 }
 
 void EvoVulkan::Types::Device::Free() {
+    Tools::VkDebug::Log("Device::Free() : free device pointer...");
+
     delete this;
 }
 
-bool EvoVulkan::Types::Device::Ready() const {
-    return m_logicalDevice && m_physicalDevice && m_familyQueues && m_familyQueues->IsReady();
+bool EvoVulkan::Types::Device::IsReady() const {
+    return  m_logicalDevice &&
+            m_physicalDevice &&
+            m_familyQueues &&
+            m_familyQueues->IsReady();
 }
 
 bool EvoVulkan::Types::Device::Destroy() {
     Tools::VkDebug::Log("Device::Destroy() : destroying vulkan device...");
 
-    if (!this->Ready()) {
+    if (!this->IsReady()) {
         Tools::VkDebug::Error("Device::Destroy() : device isn't ready!");
         return false;
     }
 
     this->m_familyQueues->Destroy();
+    this->m_familyQueues->Free();
     this->m_familyQueues = nullptr;
 
     vkDestroyDevice(m_logicalDevice, nullptr);
@@ -73,6 +73,6 @@ bool EvoVulkan::Types::Device::Destroy() {
     return true;
 }
 
-VkFormat EvoVulkan::Types::Device::GetDepthFormat() const {
-    return m_depthFormat;
+EvoVulkan::Types::FamilyQueues *EvoVulkan::Types::Device::GetQueues() const {
+    return m_familyQueues;
 }

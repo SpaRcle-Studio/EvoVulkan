@@ -17,14 +17,14 @@ namespace EvoVulkan::Types {
         Surface() = default;
         ~Surface() = default;
     private:
-        bool                m_isInit      = false;
+        bool                m_isInit              = false;
 
-        VkSurfaceKHR        m_surface     = VK_NULL_HANDLE;
-        VkSurfaceFormatKHR* m_surfFormats = nullptr;
-        VkFormat            m_colorFormat = VK_FORMAT_UNDEFINED;
-        VkColorSpaceKHR     m_colorSpace  = VkColorSpaceKHR::VK_COLOR_SPACE_MAX_ENUM_KHR;
+        VkSurfaceKHR        m_surface             = VK_NULL_HANDLE;
 
-        VkInstance          m_instance    = VK_NULL_HANDLE;
+        uint32_t            m_countSurfaceFormats = 0;
+        VkSurfaceFormatKHR* m_surfFormats         = nullptr;
+
+        VkInstance          m_instance            = VK_NULL_HANDLE;
     public:
         operator VkSurfaceKHR() const { return m_surface; }
 
@@ -37,13 +37,13 @@ namespace EvoVulkan::Types {
             return surface;
         }
     public:
-        [[nodiscard]] VkFormat GetColorFormat()       const { return m_colorFormat; }
-        [[nodiscard]] VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;  }
-    public:
         [[nodiscard]] bool IsInit() const noexcept { return m_isInit; }
         bool Init(const Types::Device* device);
 
         [[nodiscard]] bool Ready() const;
+
+        [[nodiscard]] VkSurfaceFormatKHR* GetSurfaceFormats() const { return m_surfFormats;         }
+        [[nodiscard]] uint32_t            GetCountSurfFmts()  const { return m_countSurfaceFormats; }
 
         void Destroy();
         void Free();

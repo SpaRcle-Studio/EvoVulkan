@@ -8,6 +8,8 @@
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Surface.h>
 #include <EvoVulkan/Types/Swapchain.h>
+#include <EvoVulkan/Types/CmdPool.h>
+#include <EvoVulkan/Types/CmdBuffer.h>
 
 #include <EvoVulkan/Tools/VulkanHelper.h>
 

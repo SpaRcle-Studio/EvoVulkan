@@ -17,6 +17,8 @@ add_library(EvoVulkanCore STATIC
         src/Surface.cpp
         src/Swapchain.cpp
         src/Synchronization.cpp
+        src/CmdPool.cpp
+        src/CmdBuffer.cpp
 
         )
 

@@ -7,10 +7,12 @@
 
 #include <vulkan/vulkan.h>
 
+#include <EvoVulkan/Types/Base/VulkanObject.h>
+
 namespace EvoVulkan::Types {
     class Surface;
 
-    class FamilyQueues {
+    class FamilyQueues : public IVkObject {
     private:
         FamilyQueues()  = default;
         ~FamilyQueues() = default;
@@ -23,8 +25,8 @@ namespace EvoVulkan::Types {
         VkQueue m_graphicsQueue = VK_NULL_HANDLE;
         VkQueue m_presentQueue  = VK_NULL_HANDLE;
     public:
-        [[nodiscard]] bool IsComplete() const;
-        [[nodiscard]] bool IsReady()    const;
+        [[nodiscard]] bool IsComplete() const override;
+        [[nodiscard]] bool IsReady()    const override;
 
         void SetQueues(const VkQueue& graphics, const VkQueue& present) {
             this->m_graphicsQueue = graphics;
@@ -36,7 +38,8 @@ namespace EvoVulkan::Types {
     public:
         static FamilyQueues* Find(const VkPhysicalDevice& device, const Surface* surface);
 
-        void Destroy();
+        void Destroy() override;
+        void Free()    override;
     };
 }
 

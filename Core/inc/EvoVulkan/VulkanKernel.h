@@ -22,27 +22,35 @@ namespace EvoVulkan::Core {
         VulkanKernel()  = default;
         ~VulkanKernel() = default;
     private:
-        std::vector<const char*> m_instExtensions    = {};
-        std::vector<const char*> m_validationLayers  = {};
+        std::vector<const char*> m_instExtensions     = {};
+        std::vector<const char*> m_validationLayers   = {};
 
-        std::string              m_appName           = "Unknown";
-        std::string              m_engineName        = "NoEngine";
+        std::string              m_appName            = "Unknown";
+        std::string              m_engineName         = "NoEngine";
 
-        VkInstance               m_instance          = VK_NULL_HANDLE;
-        Types::Device*           m_device            = nullptr;
-        Types::Surface*          m_surface           = nullptr;
-        Types::Swapchain*        m_swapchain         = nullptr;
+        VkInstance               m_instance           = VK_NULL_HANDLE;
 
-        VkDebugUtilsMessengerEXT m_debugMessenger    = VK_NULL_HANDLE;
+        Types::Device*           m_device             = nullptr;
+        Types::Surface*          m_surface            = nullptr;
+        Types::Swapchain*        m_swapchain          = nullptr;
+        Types::CmdPool*          m_cmdPool            = nullptr;
 
-        bool                     m_validationEnabled = false;
+        unsigned __int8          m_countDCB           = 0;
+        Types::CmdBuffer**       m_drawCmdBuffs       = nullptr;
 
-        bool                     m_isPreInitialized  = false;
-        bool                     m_isInitialized     = false;
-        bool                     m_isPostInitialized = false;
+        Types::CmdBuffer*        m_setupCmdBuff       = nullptr;
+        Types::CmdBuffer*        m_postPresentCmdBuff = nullptr;
 
-        unsigned int             m_width             = 0;
-        unsigned int             m_height            = 0;
+        VkDebugUtilsMessengerEXT m_debugMessenger      = VK_NULL_HANDLE;
+
+        bool                     m_validationEnabled   = false;
+
+        bool                     m_isPreInitialized    = false;
+        bool                     m_isInitialized       = false;
+        bool                     m_isPostInitialized   = false;
+
+        unsigned int             m_width               = 0;
+        unsigned int             m_height              = 0;
     public:
         inline bool SetValidationLayersEnabled(const bool& value) {
             if (m_isPreInitialized) {
