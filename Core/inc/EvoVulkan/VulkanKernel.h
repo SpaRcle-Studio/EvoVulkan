@@ -22,35 +22,44 @@ namespace EvoVulkan::Core {
         VulkanKernel()  = default;
         ~VulkanKernel() = default;
     private:
-        std::vector<const char*> m_instExtensions     = {};
-        std::vector<const char*> m_validationLayers   = {};
+        std::vector<const char*>   m_instExtensions       = {};
+        std::vector<const char*>   m_validationLayers     = {};
 
-        std::string              m_appName            = "Unknown";
-        std::string              m_engineName         = "NoEngine";
+        std::string                m_appName              = "Unknown";
+        std::string                m_engineName           = "NoEngine";
 
-        VkInstance               m_instance           = VK_NULL_HANDLE;
+        VkInstance                 m_instance             = VK_NULL_HANDLE;
+        VkRenderPass               m_renderPass           = VK_NULL_HANDLE;
+        VkPipelineCache            m_pipelineCache        = VK_NULL_HANDLE;
 
-        Types::Device*           m_device             = nullptr;
-        Types::Surface*          m_surface            = nullptr;
-        Types::Swapchain*        m_swapchain          = nullptr;
-        Types::CmdPool*          m_cmdPool            = nullptr;
+        Types::Device*             m_device               = nullptr;
+        Types::Surface*            m_surface              = nullptr;
+        Types::Swapchain*          m_swapchain            = nullptr;
+        Types::CmdPool*            m_cmdPool              = nullptr;
+        Types::DepthStencil*       m_depthStencil         = nullptr;
 
-        unsigned __int8          m_countDCB           = 0;
-        Types::CmdBuffer**       m_drawCmdBuffs       = nullptr;
+        Types::Synchronization     m_syncs                = {};
 
-        Types::CmdBuffer*        m_setupCmdBuff       = nullptr;
-        Types::CmdBuffer*        m_postPresentCmdBuff = nullptr;
+        unsigned __int8            m_countDCB             = 0;
+        Types::CmdBuffer**         m_drawCmdBuffs         = nullptr;
+        std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
+        std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
 
-        VkDebugUtilsMessengerEXT m_debugMessenger      = VK_NULL_HANDLE;
+        VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-        bool                     m_validationEnabled   = false;
+        VkDebugUtilsMessengerEXT   m_debugMessenger       = VK_NULL_HANDLE;
 
-        bool                     m_isPreInitialized    = false;
-        bool                     m_isInitialized       = false;
-        bool                     m_isPostInitialized   = false;
+        bool                       m_validationEnabled    = false;
 
-        unsigned int             m_width               = 0;
-        unsigned int             m_height              = 0;
+        bool                       m_isPreInitialized     = false;
+        bool                       m_isInitialized        = false;
+        bool                       m_isPostInitialized    = false;
+
+        unsigned int               m_width                = 0;
+        unsigned int               m_height               = 0;
+    private:
+        bool ReCreateFrameBuffers();
+        void DestroyFrameBuffers();
     public:
         inline bool SetValidationLayersEnabled(const bool& value) {
             if (m_isPreInitialized) {
@@ -79,7 +88,9 @@ namespace EvoVulkan::Core {
 
         bool Init(
                 const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
-                const std::vector<const char*>& deviceExtensions, const bool& enableSampleShading);
+                const std::vector<const char*>& deviceExtensions, const bool& enableSampleShading,
+                bool vsync
+                );
         bool PostInit();
     };
 }

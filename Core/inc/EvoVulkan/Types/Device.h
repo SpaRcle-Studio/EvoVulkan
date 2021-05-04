@@ -51,6 +51,8 @@ namespace EvoVulkan::Types {
 
         [[nodiscard]] bool IsReady() const;
         bool Destroy();
+
+        uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;
     public:
         static bool IsBetterThan(const VkPhysicalDevice& _new, const VkPhysicalDevice& _old) {
             auto _newProp = Tools::GetDeviceProperties(_new);

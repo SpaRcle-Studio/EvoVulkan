@@ -76,3 +76,28 @@ bool EvoVulkan::Types::Device::Destroy() {
 EvoVulkan::Types::FamilyQueues *EvoVulkan::Types::Device::GetQueues() const {
     return m_familyQueues;
 }
+
+uint32_t EvoVulkan::Types::Device::GetMemoryType(
+        uint32_t typeBits,
+        VkMemoryPropertyFlags properties,
+        VkBool32 *memTypeFound) const {
+    for (uint32_t i = 0; i < m_memoryProperties.memoryTypeCount; i++) {
+        if ((typeBits & 1) == 1) {
+            if ((m_memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                if (memTypeFound) {
+                    *memTypeFound = true;
+                }
+                return i;
+            }
+        }
+        typeBits >>= 1;
+    }
+
+    if (memTypeFound) {
+        *memTypeFound = false;
+        return 0;
+    } else {
+        VK_ERROR("Device::GetMemoryType() : Could not find a matching memory type");
+        return UINT32_MAX;
+    }
+}

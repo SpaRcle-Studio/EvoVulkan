@@ -26,7 +26,7 @@ namespace EvoVulkan::Tools {
 }
 
 #define VK_LOG(msg)   EvoVulkan::Tools::VkDebug::Log(msg)
-#define VK_INFO(msg)   EvoVulkan::Tools::VkDebug::Log(msg) // todo!
+#define VK_INFO(msg)  EvoVulkan::Tools::VkDebug::Log(msg) // todo!
 #define VK_WARN(msg)  EvoVulkan::Tools::VkDebug::Warn(msg)
 #define VK_ERROR(msg) EvoVulkan::Tools::VkDebug::Error(msg)
 #define VK_GRAPH(msg) EvoVulkan::Tools::VkDebug::Graph(msg)

@@ -72,7 +72,12 @@ int main() {
             return surfaceKhr;
     };
 
-    if (!kernel->Init(surfCreate, { VK_KHR_SWAPCHAIN_EXTENSION_NAME }, true)) {
+    if (!kernel->Init(
+            surfCreate,
+            { VK_KHR_SWAPCHAIN_EXTENSION_NAME },
+            true, // sample shading
+            true  // vsync
+    )) {
         std::cout << "Failed to initialize Evo Vulkan!\n";
         return -1;
     }

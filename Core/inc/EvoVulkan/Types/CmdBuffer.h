@@ -23,6 +23,8 @@ namespace EvoVulkan::Types {
         const Device*               m_device        = nullptr;
         const CmdPool*              m_cmdPool       = nullptr;
         VkCommandBufferAllocateInfo m_buffAllocInfo = {};
+
+        bool                        m_isBegin       = false;
     public:
         operator VkCommandBuffer() const { return m_buffer; }
     public:
@@ -31,7 +33,11 @@ namespace EvoVulkan::Types {
                 const CmdPool* cmdPool,
                 VkCommandBufferAllocateInfo cmdBufAllocateInfo);
 
+        bool Begin();
+
         bool ReAlloc();
+
+        [[nodiscard]] bool IsBegin()    const { return m_isBegin; }
 
         [[nodiscard]] bool IsComplete() const override;
         [[nodiscard]] bool IsReady()    const override;

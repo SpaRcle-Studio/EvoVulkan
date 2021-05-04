@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(EvoVulkan)
 
 set(CMAKE_CXX_STANDARD 20)
+#set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
 add_subdirectory(Core)
 add_subdirectory(Depends/glfw)

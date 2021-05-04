@@ -4,16 +4,20 @@
 
 #include "EvoVulkan/Types/Swapchain.h"
 
+#include <EvoVulkan/Tools/VulkanHelper.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Surface.h>
+#include <EvoVulkan/Types/CmdBuffer.h>
+
+#include <EvoVulkan/Tools/VulkanInitializers.h>
 
 EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
         VkInstance const &instance,
         EvoVulkan::Types::Surface *surface,
         EvoVulkan::Types::Device *device,
-        const CmdBuffer* cmdBuff,
+        bool vsync,
         unsigned int width,
         unsigned int height)
 {
@@ -26,11 +30,12 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
 
     auto* swapchain = new Swapchain();
     {
-        swapchain->m_instance = instance;
-        swapchain->m_device = device;
-        swapchain->m_surface = surface;
+        swapchain->m_instance  = instance;
+        swapchain->m_device    = device;
+        swapchain->m_surface   = surface;
 
         swapchain->m_swapchain = VK_NULL_HANDLE;
+        swapchain->m_vsync     = vsync;
     }
 
     if (!swapchain->InitFormats()) {
@@ -38,7 +43,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
         return nullptr;
     }
 
-    if (!swapchain->ReSetup(width, height, cmdBuff)) {
+    if (!swapchain->ReSetup(width, height)) {
         Tools::VkDebug::Error("Swapchain::Create() : failed to setup swapchain!");
         return nullptr;
     }
@@ -48,7 +53,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
     return swapchain;
 }
 
-bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int height, const CmdBuffer* cmdBuff) {
+bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int height) {
     Tools::VkDebug::Graph("Swapchain::ReSetup() : re-setup vulkan swapchain...");
 
     VkSwapchainKHR oldSwapchain = m_swapchain;
@@ -67,22 +72,40 @@ bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int heigh
     }
 
     VK_GRAPH("Swapchain::ReSetup() : get present mode...");
-    this->m_presentMode = Tools::GetPresentMode(*m_device, *m_surface);
+    this->m_presentMode = Tools::GetPresentMode(*m_device, *m_surface, m_vsync);
 
     // Determine the number of images
     uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
-    if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
-        desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
+    VkSurfaceTransformFlagsKHR preTransform;
+    {
+        if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
+            desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
 
-    VkSurfaceTransformFlagsKHR preTransform = {};
-    if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-        preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    else
-        preTransform = surfCaps.currentTransform;
+        // Find the transformation of the surface
+        if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+            preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; // We prefer a non-rotated transform
+        else
+            preTransform = surfCaps.currentTransform;
+    }
+
+    // Find a supported composite alpha format (not all devices support alpha opaque)
+    VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    // Simply select the first composite alpha format available
+    std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
+            VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+            VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+            VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+    };
+    for (auto& compositeAlphaFlag : compositeAlphaFlags) {
+        if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag) {
+            compositeAlpha = compositeAlphaFlag;
+            break;
+        };
+    }
 
     VkSwapchainCreateInfoKHR swapchainCI = {};
     swapchainCI.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchainCI.pNext                    = NULL;
     swapchainCI.surface                  = *m_surface;
     swapchainCI.minImageCount            = desiredNumberOfSwapchainImages;
     swapchainCI.imageFormat              = m_colorFormat;
@@ -91,13 +114,24 @@ bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int heigh
     swapchainCI.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapchainCI.preTransform             = (VkSurfaceTransformFlagBitsKHR)preTransform;
     swapchainCI.imageArrayLayers         = 1;
-    swapchainCI.queueFamilyIndexCount    = VK_SHARING_MODE_EXCLUSIVE;
+    swapchainCI.imageSharingMode         = VK_SHARING_MODE_EXCLUSIVE;
     swapchainCI.queueFamilyIndexCount    = 0;
-    swapchainCI.pQueueFamilyIndices      = NULL;
     swapchainCI.presentMode              = m_presentMode;
+    // Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
     swapchainCI.oldSwapchain             = oldSwapchain;
-    swapchainCI.clipped                  = true;
-    swapchainCI.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    // Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
+    swapchainCI.clipped                  = VK_TRUE;
+    swapchainCI.compositeAlpha           = compositeAlpha;
+
+    // Enable transfer source on swap chain images if supported
+    if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+        swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    // Enable transfer destination on swap chain images if supported
+    if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+        swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
 
     Tools::VkDebug::Graph("Swapchain::ReSetup() : create swapchain struct...");
 
@@ -113,7 +147,20 @@ bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int heigh
     if (oldSwapchain != VK_NULL_HANDLE)
         vkDestroySwapchainKHR(*m_device, oldSwapchain, nullptr);
 
-    //todo: images and buffers creation
+    //!=================================================================================================================
+
+    Tools::VkDebug::Graph("Swapchain::ReSetup() : create images...");
+    if (m_swapchainImages) { // images data automatic destroy after destroying swapchain
+        free(m_swapchainImages);
+        this->m_countImages = 0;
+        m_swapchainImages   = nullptr;
+    }
+    this->CreateImages();
+
+    Tools::VkDebug::Graph("Swapchain::ReSetup() : create buffers...");
+    if (m_buffers)
+        this->DestroyBuffers();
+    this->CreateBuffers();
 
     Tools::VkDebug::Graph("Swapchain::ReSetup() : swapchain successfully re-configured!");
 
@@ -132,6 +179,8 @@ void EvoVulkan::Types::Swapchain::Destroy() {
         Tools::VkDebug::Error("Swapchain::Destroy() : swapchain isn't ready!");
         return;
     }
+
+    this->DestroyBuffers();
 
     vkDestroySwapchainKHR(*m_device, m_swapchain, nullptr);
     this->m_swapchain = VK_NULL_HANDLE;
@@ -194,10 +243,13 @@ void EvoVulkan::Types::Swapchain::DestroyBuffers() {
 
         free(m_buffers);
         m_buffers = nullptr;
-    }
+    } else
+        VK_WARN("Swapchain::DestroyBuffers() : failed to destroy swapchain buffers!");
 }
 
 bool EvoVulkan::Types::Swapchain::CreateImages() {
+    this->m_countImages = 0;
+
     vkGetSwapchainImagesKHR(*m_device, m_swapchain, &m_countImages, NULL);
 
     if (m_countImages == 0) {
@@ -227,10 +279,11 @@ bool EvoVulkan::Types::Swapchain::CreateBuffers() {
         return false;
     }
 
-    for (uint32_t i = 0; i < m_countImages; i++) {
+    for (uint32_t i = 0; i < m_countImages; i++)
+    {
         VkImageViewCreateInfo colorAttachmentView = {};
-        colorAttachmentView.sType  = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        colorAttachmentView.pNext  = NULL;
+        colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        colorAttachmentView.pNext = NULL;
         colorAttachmentView.format = m_colorFormat;
         colorAttachmentView.components = {
                 VK_COMPONENT_SWIZZLE_R,
@@ -238,27 +291,26 @@ bool EvoVulkan::Types::Swapchain::CreateBuffers() {
                 VK_COMPONENT_SWIZZLE_B,
                 VK_COMPONENT_SWIZZLE_A
         };
-        colorAttachmentView.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-        colorAttachmentView.subresourceRange.baseMipLevel   = 0;
-        colorAttachmentView.subresourceRange.levelCount     = 1;
+        colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        colorAttachmentView.subresourceRange.baseMipLevel = 0;
+        colorAttachmentView.subresourceRange.levelCount = 1;
         colorAttachmentView.subresourceRange.baseArrayLayer = 0;
-        colorAttachmentView.subresourceRange.layerCount     = 1;
-        colorAttachmentView.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-        colorAttachmentView.flags                           = 0;
+        colorAttachmentView.subresourceRange.layerCount = 1;
+        colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        colorAttachmentView.flags = 0;
 
         m_buffers[i].m_image = m_swapchainImages[i];
 
-        /*vkTools::setImageLayout(
-                cmdBuffer,
-                buffers[i].image,
-                VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        colorAttachmentView.image = m_buffers[i].m_image;
 
-        colorAttachmentView.image = buffers[i].image;
-
-        err = vkCreateImageView(device, &colorAttachmentView, nullptr, &buffers[i].view);
-        assert(!err);*/
+        auto result = vkCreateImageView(*m_device, &colorAttachmentView, nullptr, &m_buffers[i].m_view);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Swapchain::CreateBuffers() : failed to create images view! Reason: "
+                + Tools::Convert::result_to_description(result));
+            return false;
+        }
     }
 
     return true;
 }
+

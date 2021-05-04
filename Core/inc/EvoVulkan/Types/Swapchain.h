@@ -40,6 +40,8 @@ namespace EvoVulkan::Types {
         uint32_t         m_countImages     = 0;
 
         SwapChainBuffer* m_buffers         = nullptr;
+
+        bool             m_vsync           = false;
     private:
         bool InitFormats();
 
@@ -55,18 +57,19 @@ namespace EvoVulkan::Types {
 
         bool ReSetup(
             unsigned int width,
-            unsigned int height,
-            const CmdBuffer* cmdBuff);
+            unsigned int height);
 
+        [[nodiscard]] SwapChainBuffer* GetBuffers()   const { return m_buffers;     }
         [[nodiscard]] VkFormat GetDepthFormat()       const { return m_depthFormat; }
         [[nodiscard]] VkFormat GetColorFormat()       const { return m_colorFormat; }
         [[nodiscard]] VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;  }
+        [[nodiscard]] uint32_t GetCountImages()       const { return m_countImages; }
     public:
         static Swapchain* Create(
                 const VkInstance& instance,
                 Surface* surface,
                 Device* device,
-                const CmdBuffer* cmdBuff,
+                bool vsync,
                 unsigned int width,
                 unsigned int height);
 

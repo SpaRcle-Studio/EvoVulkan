@@ -19,6 +19,7 @@ add_library(EvoVulkanCore STATIC
         src/Synchronization.cpp
         src/CmdPool.cpp
         src/CmdBuffer.cpp
+        src/DepthStencil.cpp
 
         )
 

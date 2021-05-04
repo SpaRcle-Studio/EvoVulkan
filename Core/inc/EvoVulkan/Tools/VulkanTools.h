@@ -7,21 +7,104 @@
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Surface.h>
-#include <EvoVulkan/Types/Swapchain.h>
 #include <EvoVulkan/Types/CmdPool.h>
 #include <EvoVulkan/Types/CmdBuffer.h>
+#include <EvoVulkan/Types/Swapchain.h>
+#include <EvoVulkan/Types/DepthStencil.h>
+#include <EvoVulkan/Types/Synchronization.h>
 
+#include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanHelper.h>
 
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
+#include <array>
 
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
 #include <functional>
 
 namespace EvoVulkan::Tools {
+    static void DestroyPipelineCache(const VkDevice& device, VkPipelineCache* cache) {
+        if (!cache || *cache == VK_NULL_HANDLE) {
+            VK_ERROR("Tools::DestroyPipelineCache() : cache is nullptr!");
+            return;
+        }
+
+        vkDestroyPipelineCache(device, *cache, nullptr);
+        *cache = VK_NULL_HANDLE;
+    }
+
+    static VkPipelineCache CreatePipelineCache(const VkDevice& device) {
+        VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
+        pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+
+        VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+        auto result = vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache);
+
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Tools::CreatePipelineCache() : failed to create pipeline cache! Reason:" +
+                Convert::result_to_description(result));
+            return VK_NULL_HANDLE;
+        }
+
+        return pipelineCache;
+    }
+
+    static void DestroySynchronization(const VkDevice& device, Types::Synchronization* sync) {
+        VK_LOG("Tools::DestroySynchronization() : destroy vulkan synchronizations...");
+
+        if (!sync->IsReady()) {
+            VK_ERROR("Tools::DestroySynchronization() : synchronizations isn't ready!");
+            return;
+        }
+
+        vkDestroySemaphore(device, sync->m_presentComplete, nullptr);
+        vkDestroySemaphore(device, sync->m_renderComplete, nullptr);
+
+        sync->m_presentComplete = VK_NULL_HANDLE;
+        sync->m_renderComplete  = VK_NULL_HANDLE;
+        sync->m_submitInfo      = {};
+    }
+
+    static Types::Synchronization CreateSynchronization(const VkDevice& device, VkPipelineStageFlags submitPipelineStages) {
+        VK_GRAPH("Tools::CreateSynchronization() : create vulkan synchronizations...");
+
+        Types::Synchronization sync = {};
+
+        // Create synchronization objects
+        VkSemaphoreCreateInfo semaphoreCreateInfo = Initializers::SemaphoreCreateInfo();
+        // Create a semaphore used to synchronize image presentation
+        // Ensures that the image is displayed before we start submitting new commands to the queue
+        auto result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sync.m_presentComplete);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateSynchronization() : failed to create present semaphore!");
+            return {};
+        }
+        // Create a semaphore used to synchronize command submission
+        // Ensures that the image is not presented until all commands have been submitted and executed
+        result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sync.m_renderComplete);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateSynchronization() : failed to create render semaphore!");
+            return {};
+        }
+
+
+        // Set up submit info structure
+        // Semaphores will stay the same during application lifetime
+        // Command buffer submission info is set by each example
+        sync.m_submitInfo = Initializers::SubmitInfo();
+        sync.m_submitInfo.pWaitDstStageMask = &submitPipelineStages;
+        sync.m_submitInfo.waitSemaphoreCount = 1;
+        sync.m_submitInfo.pWaitSemaphores = &sync.m_presentComplete;
+        sync.m_submitInfo.signalSemaphoreCount = 1;
+        sync.m_submitInfo.pSignalSemaphores = &sync.m_renderComplete;
+
+        return sync;
+    }
+
+
     static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
         if (func != nullptr) {
@@ -77,7 +160,7 @@ namespace EvoVulkan::Tools {
         appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
         appInfo.engineVersion      = 1;
         //appInfo.apiVersion         = VK_API_VERSION_1_0;
-        appInfo.apiVersion         = VK_MAKE_VERSION(1, 0, 2);
+        appInfo.apiVersion         = VK_API_VERSION_1_2;//VK_MAKE_VERSION(1, 0, 2);
 
         VkInstanceCreateInfo instInfo = {};
         instInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -283,6 +366,97 @@ namespace EvoVulkan::Tools {
             Tools::VkDebug::Error("VulkanTools::CreateDevice() : failed to create device!");
 
         return finallyDevice;
+    }
+
+    static void DestroyRenderPass(const Types::Device* device, VkRenderPass* renderPass) {
+        VK_LOG("Tools::DestroyRenderPass() : destroy vulkan render pass...");
+
+        if (renderPass && *renderPass != VK_NULL_HANDLE) {
+            vkDestroyRenderPass(*device, *renderPass, nullptr);
+            *renderPass = VK_NULL_HANDLE;
+        } else
+            VK_ERROR("Tools::DestroyRenderPass() : render pass is nullptr!");
+    }
+
+    static VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain) {
+        VK_GRAPH("Tools::CreateRenderPass() : create vulkan render pass...");
+
+        std::array<VkAttachmentDescription, 2> attachments = {};
+        // Color attachment
+        attachments[0].format         = swapchain->GetColorFormat();
+        attachments[0].samples        = VK_SAMPLE_COUNT_1_BIT;
+        attachments[0].loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachments[0].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+        attachments[0].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments[0].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachments[0].finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        // Depth attachment
+        attachments[1].format         = swapchain->GetDepthFormat();
+        attachments[1].samples        = VK_SAMPLE_COUNT_1_BIT;
+        attachments[1].loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachments[1].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+        attachments[1].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments[1].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachments[1].finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference colorReference = {};
+        colorReference.attachment            = 0;
+        colorReference.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depthReference = {};
+        depthReference.attachment            = 1;
+        depthReference.layout                = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpassDescription    = {};
+        subpassDescription.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpassDescription.colorAttachmentCount    = 1;
+        subpassDescription.pColorAttachments       = &colorReference;
+        subpassDescription.pDepthStencilAttachment = &depthReference;
+        subpassDescription.inputAttachmentCount    = 0;
+        subpassDescription.pInputAttachments       = nullptr;
+        subpassDescription.preserveAttachmentCount = 0;
+        subpassDescription.pPreserveAttachments    = nullptr;
+        subpassDescription.pResolveAttachments     = nullptr;
+
+        // Subpass dependencies for layout transitions
+        std::array<VkSubpassDependency, 2> dependencies = {};
+
+        dependencies[0].srcSubpass      = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass      = 0;
+        dependencies[0].srcStageMask    = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        dependencies[0].dstStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[0].srcAccessMask   = VK_ACCESS_MEMORY_READ_BIT;
+        dependencies[0].dstAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies[1].srcSubpass      = 0;
+        dependencies[1].dstSubpass      = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[1].dstStageMask    = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        dependencies[1].srcAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dstAccessMask   = VK_ACCESS_MEMORY_READ_BIT;
+        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        VkRenderPassCreateInfo renderPassInfo = {};
+        renderPassInfo.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount        = static_cast<uint32_t>(attachments.size());
+        renderPassInfo.pAttachments           = attachments.data();
+        renderPassInfo.subpassCount           = 1;
+        renderPassInfo.pSubpasses             = &subpassDescription;
+        renderPassInfo.dependencyCount        = static_cast<uint32_t>(dependencies.size());
+        renderPassInfo.pDependencies          = dependencies.data();
+
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+        auto result = vkCreateRenderPass(*device, &renderPassInfo, nullptr, &renderPass);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateRenderPass() : failed to create vulkan render pass! Reason: " +
+                Convert::result_to_description(result));
+            return VK_NULL_HANDLE;
+        }
+
+        return renderPass;
     }
 }
 

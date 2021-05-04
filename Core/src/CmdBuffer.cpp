@@ -58,8 +58,10 @@ void EvoVulkan::Types::CmdBuffer::Destroy() {
     vkFreeCommandBuffers(*m_device, *m_cmdPool, 1, &m_buffer);
     m_buffer = VK_NULL_HANDLE;
 
-    this->m_device = nullptr;
+    this->m_device  = nullptr;
     this->m_cmdPool = nullptr;
+
+    this->m_isBegin = false;
 }
 
 void EvoVulkan::Types::CmdBuffer::Free() {
@@ -74,5 +76,26 @@ bool EvoVulkan::Types::CmdBuffer::IsComplete() const{
 }
 
 [[nodiscard]] bool EvoVulkan::Types::CmdBuffer::IsReady() const {
-    return m_buffer != VK_NULL_HANDLE && m_cmdPool && m_device;
+    return m_buffer != VK_NULL_HANDLE && IsComplete();
+}
+
+bool EvoVulkan::Types::CmdBuffer::Begin() {
+    if (!IsReady()) {
+        VK_ERROR("CmdBuffer::Begin() : command buffer isn't ready!");
+        return false;
+    }
+
+    VkCommandBufferBeginInfo cmdBufInfo = {};
+    cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    // todo : check null handles, flags?
+
+    auto result = vkBeginCommandBuffer(m_buffer, &cmdBufInfo);
+    if (result != VK_SUCCESS) {
+        VK_ERROR("CmdBuffer::Begin() : failed to begin command buffer!");
+        return false;
+    }
+
+    this->m_isBegin = true;
+
+    return true;
 }
