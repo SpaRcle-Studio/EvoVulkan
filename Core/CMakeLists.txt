@@ -9,17 +9,19 @@ include_directories(${Vulkan_INCLUDE_DIRS})
 add_library(EvoVulkanCore STATIC
         src/VulkanKernel.cpp
 
-        src/Device.cpp
-        src/Framebuffer.cpp
-        src/ImageView.cpp
-        src/Pipeline.cpp
-        src/FamilyQueues.cpp
-        src/Surface.cpp
-        src/Swapchain.cpp
-        src/Synchronization.cpp
-        src/CmdPool.cpp
-        src/CmdBuffer.cpp
-        src/DepthStencil.cpp
+        src/EvoVulkan/Types/Device.cpp
+        src/EvoVulkan/Types/Framebuffer.cpp
+        src/EvoVulkan/Types/ImageView.cpp
+        src/EvoVulkan/Types/Pipeline.cpp
+        src/EvoVulkan/Types/FamilyQueues.cpp
+        src/EvoVulkan/Types/Surface.cpp
+        src/EvoVulkan/Types/Swapchain.cpp
+        src/EvoVulkan/Types/Synchronization.cpp
+        src/EvoVulkan/Types/CmdPool.cpp
+        src/EvoVulkan/Types/CmdBuffer.cpp
+        src/EvoVulkan/Types/DepthStencil.cpp
+
+        src/EvoVulkan/Tools/VulkanTools.cpp
 
         )
 

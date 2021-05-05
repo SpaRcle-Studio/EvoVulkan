@@ -26,84 +26,35 @@
 #include <functional>
 
 namespace EvoVulkan::Tools {
-    static void DestroyPipelineCache(const VkDevice& device, VkPipelineCache* cache) {
-        if (!cache || *cache == VK_NULL_HANDLE) {
-            VK_ERROR("Tools::DestroyPipelineCache() : cache is nullptr!");
-            return;
-        }
+    static VkCommandBuffer* AllocateCommandBuffers(const VkDevice& device, VkCommandBufferAllocateInfo allocInfo) {
+        auto cmdBuffs = (VkCommandBuffer*)malloc(sizeof(VkCommandBuffer) * allocInfo.commandBufferCount);
 
-        vkDestroyPipelineCache(device, *cache, nullptr);
-        *cache = VK_NULL_HANDLE;
-    }
-
-    static VkPipelineCache CreatePipelineCache(const VkDevice& device) {
-        VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-        pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-
-        VkPipelineCache pipelineCache = VK_NULL_HANDLE;
-        auto result = vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache);
-
+        auto result = vkAllocateCommandBuffers(device, &allocInfo, cmdBuffs);
         if (result != VK_SUCCESS) {
-            VK_ERROR("Tools::CreatePipelineCache() : failed to create pipeline cache! Reason:" +
-                Convert::result_to_description(result));
-            return VK_NULL_HANDLE;
+            VK_ERROR("Tools::AllocateCommandBuffers() : failed to allocate vulkan command buffer!");
+            return nullptr;
         }
 
-        return pipelineCache;
+        return cmdBuffs;
     }
 
-    static void DestroySynchronization(const VkDevice& device, Types::Synchronization* sync) {
-        VK_LOG("Tools::DestroySynchronization() : destroy vulkan synchronizations...");
+    static void FreeCommandBuffers(const VkDevice& device, const VkCommandPool& cmdPool, VkCommandBuffer** cmdBuffs, uint32_t count) {
+        if (cmdBuffs && *cmdBuffs) {
+            vkFreeCommandBuffers(device, cmdPool, count, *cmdBuffs);
 
-        if (!sync->IsReady()) {
-            VK_ERROR("Tools::DestroySynchronization() : synchronizations isn't ready!");
-            return;
-        }
-
-        vkDestroySemaphore(device, sync->m_presentComplete, nullptr);
-        vkDestroySemaphore(device, sync->m_renderComplete, nullptr);
-
-        sync->m_presentComplete = VK_NULL_HANDLE;
-        sync->m_renderComplete  = VK_NULL_HANDLE;
-        sync->m_submitInfo      = {};
+            free(*cmdBuffs);
+            *cmdBuffs = nullptr;
+        } else
+            VK_ERROR("Tools::FreeCommandBuffers() : command buffers in nullptr!");
     }
 
-    static Types::Synchronization CreateSynchronization(const VkDevice& device, VkPipelineStageFlags submitPipelineStages) {
-        VK_GRAPH("Tools::CreateSynchronization() : create vulkan synchronizations...");
+    void DestroyPipelineCache(const VkDevice& device, VkPipelineCache* cache);
 
-        Types::Synchronization sync = {};
+    VkPipelineCache CreatePipelineCache(const VkDevice& device);
 
-        // Create synchronization objects
-        VkSemaphoreCreateInfo semaphoreCreateInfo = Initializers::SemaphoreCreateInfo();
-        // Create a semaphore used to synchronize image presentation
-        // Ensures that the image is displayed before we start submitting new commands to the queue
-        auto result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sync.m_presentComplete);
-        if (result != VK_SUCCESS) {
-            VK_ERROR("Tools::CreateSynchronization() : failed to create present semaphore!");
-            return {};
-        }
-        // Create a semaphore used to synchronize command submission
-        // Ensures that the image is not presented until all commands have been submitted and executed
-        result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sync.m_renderComplete);
-        if (result != VK_SUCCESS) {
-            VK_ERROR("Tools::CreateSynchronization() : failed to create render semaphore!");
-            return {};
-        }
+    void DestroySynchronization(const VkDevice& device, Types::Synchronization* sync);
 
-
-        // Set up submit info structure
-        // Semaphores will stay the same during application lifetime
-        // Command buffer submission info is set by each example
-        sync.m_submitInfo = Initializers::SubmitInfo();
-        sync.m_submitInfo.pWaitDstStageMask = &submitPipelineStages;
-        sync.m_submitInfo.waitSemaphoreCount = 1;
-        sync.m_submitInfo.pWaitSemaphores = &sync.m_presentComplete;
-        sync.m_submitInfo.signalSemaphoreCount = 1;
-        sync.m_submitInfo.pSignalSemaphores = &sync.m_renderComplete;
-
-        return sync;
-    }
-
+    Types::Synchronization CreateSynchronization(const VkDevice& device);
 
     static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -350,12 +301,13 @@ namespace EvoVulkan::Tools {
         Tools::VkDebug::Graph("VulkanTools::CreateDevice() : set logical device queues...");
         {
             VkQueue graphics = VK_NULL_HANDLE;
-            VkQueue present  = VK_NULL_HANDLE;
+            //VkQueue present  = VK_NULL_HANDLE;
 
             vkGetDeviceQueue(logicalDevice, queues->GetGraphicsIndex(), 0, &graphics);
-            vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 0, &present);
+            //vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 0, &present);
 
-            queues->SetQueues(graphics, present);
+            //queues->SetQueues(graphics, present);
+            queues->SetQueue(graphics);
         }
 
         auto finallyDevice = Types::Device::Create(physicalDevice, logicalDevice, queues, enableSampleShading);

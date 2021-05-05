@@ -238,7 +238,8 @@ namespace EvoVulkan::Tools {
             void* pUserData)
     {
         if (std::string(pCallbackData->pMessage).find("Error") != std::string::npos)
-            printf("VkDebugReportCallback: %s\n", pCallbackData->pMessage);
+            VK_ERROR(pCallbackData->pMessage);
+            //printf("VkDebugReportCallback: %s\n", pCallbackData->pMessage);
         return VK_FALSE;    // Т.к. мы не хотим чтобы вызывающая функция упала.
     }
 

@@ -314,3 +314,9 @@ bool EvoVulkan::Types::Swapchain::CreateBuffers() {
     return true;
 }
 
+VkResult EvoVulkan::Types::Swapchain::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex) const {
+    // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
+    // With that we don't have to handle VK_NOT_READY
+    return vkAcquireNextImageKHR(*m_device, m_swapchain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
+}
+

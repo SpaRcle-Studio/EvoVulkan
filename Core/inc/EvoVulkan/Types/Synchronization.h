@@ -14,8 +14,6 @@ namespace EvoVulkan::Types {
         // Command buffer submission and execution
         VkSemaphore  m_renderComplete;
 
-        VkSubmitInfo m_submitInfo;
-
         [[nodiscard]] inline bool IsReady() const {
             return m_presentComplete != VK_NULL_HANDLE && m_renderComplete != VK_NULL_HANDLE;
         }

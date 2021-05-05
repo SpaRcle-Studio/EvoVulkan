@@ -11,8 +11,10 @@
 
 namespace EvoVulkan::Types {
     class Surface;
+    class Device;
 
     class FamilyQueues : public IVkObject {
+        friend class Device;
     private:
         FamilyQueues()  = default;
         ~FamilyQueues() = default;
@@ -23,14 +25,15 @@ namespace EvoVulkan::Types {
         int m_iPresent  = -1;
 
         VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-        VkQueue m_presentQueue  = VK_NULL_HANDLE;
+        //VkQueue m_presentQueue  = VK_NULL_HANDLE;
     public:
         [[nodiscard]] bool IsComplete() const override;
         [[nodiscard]] bool IsReady()    const override;
 
-        void SetQueues(const VkQueue& graphics, const VkQueue& present) {
+        //void SetQueues(const VkQueue& graphics, const VkQueue& present) {
+        void SetQueue(const VkQueue& graphics) {
             this->m_graphicsQueue = graphics;
-            this->m_presentQueue  = present;
+            //this->m_presentQueue  = present;
         }
 
         [[nodiscard]] unsigned int GetGraphicsIndex() const noexcept { return (unsigned int)m_iGraphics; }

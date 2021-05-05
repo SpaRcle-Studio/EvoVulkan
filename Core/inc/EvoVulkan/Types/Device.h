@@ -39,6 +39,9 @@ namespace EvoVulkan::Types {
                               const bool& enableSampleShading);
         void Free();
     public:
+        [[nodiscard]] inline VkQueue GetGraphicsQueue()  const noexcept { return m_familyQueues->m_graphicsQueue;  }
+        //[[nodiscard]] inline VkQueue GetPresentQueue() const noexcept { return m_familyQueues->m_presentQueue; }
+
         [[nodiscard]] VkSampleCountFlagBits GetMSAASamples() const {
             return (VkSampleCountFlagBits)m_maxCountMSAASamples;
         }

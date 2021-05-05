@@ -13,7 +13,8 @@
 }
 
 bool EvoVulkan::Types::FamilyQueues::IsReady() const {
-    return IsComplete() && (m_presentQueue != VK_NULL_HANDLE && m_graphicsQueue != VK_NULL_HANDLE);
+    //return IsComplete() && (m_presentQueue != VK_NULL_HANDLE && m_graphicsQueue != VK_NULL_HANDLE);
+    return IsComplete() && (m_graphicsQueue != VK_NULL_HANDLE);
 }
 
 EvoVulkan::Types::FamilyQueues* EvoVulkan::Types::FamilyQueues::Find(
@@ -55,7 +56,7 @@ void EvoVulkan::Types::FamilyQueues::Destroy() {
         return;
 
     m_graphicsQueue = VK_NULL_HANDLE;
-    m_presentQueue  = VK_NULL_HANDLE;
+    //m_presentQueue  = VK_NULL_HANDLE;
 
     m_iPresent  = -2;
     m_iGraphics = -2;

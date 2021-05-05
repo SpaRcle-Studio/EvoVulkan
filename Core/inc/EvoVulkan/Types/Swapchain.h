@@ -65,6 +65,42 @@ namespace EvoVulkan::Types {
         [[nodiscard]] VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;  }
         [[nodiscard]] uint32_t GetCountImages()       const { return m_countImages; }
     public:
+        /**
+        * Acquires the next image in the swap chain
+        *
+        * @param presentCompleteSemaphore (Optional) Semaphore that is signaled when the image is ready for use
+        * @param imageIndex Pointer to the image index that will be increased if the next image could be acquired
+        *
+        * @note The function will always wait until the next image has been acquired by setting timeout to UINT64_MAX
+        *
+        * @return VkResult of the image acquisition
+        */
+        VkResult AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex) const;
+
+        /**
+        * Queue an image for presentation
+        *
+        * @param queue Presentation queue for presenting the image
+        * @param imageIndex Index of the swapchain image to queue for presentation
+        * @param waitSemaphore (Optional) Semaphore that is waited on before the image is presented (only used if != VK_NULL_HANDLE)
+        *
+        * @return VkResult of the queue presentation
+        */
+        inline VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore) const {
+            VkPresentInfoKHR presentInfo = {};
+            presentInfo.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+            presentInfo.pNext            = NULL;
+            presentInfo.swapchainCount   = 1;
+            presentInfo.pSwapchains      = &m_swapchain;
+            presentInfo.pImageIndices    = &imageIndex;
+            // Check if a wait semaphore has been specified to wait for before presenting the image
+            if (waitSemaphore != VK_NULL_HANDLE) {
+                presentInfo.pWaitSemaphores    = &waitSemaphore;
+                presentInfo.waitSemaphoreCount = 1;
+            }
+            return vkQueuePresentKHR(queue, &presentInfo);
+        }
+    public:
         static Swapchain* Create(
                 const VkInstance& instance,
                 Surface* surface,

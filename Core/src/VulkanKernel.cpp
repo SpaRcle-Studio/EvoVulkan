@@ -158,9 +158,20 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     //!=================================================================================================================
 
-    VK_GRAPH("VulkanKernel::PostInit() : create draw command buffers...");
+    VK_GRAPH("VulkanKernel::PostInit() : allocate draw command buffers...");
     this->m_countDCB = m_swapchain->GetCountImages();
-    this->m_drawCmdBuffs = (Types::CmdBuffer**)malloc(sizeof(Types::CmdBuffer) * m_countDCB);
+    this->m_drawCmdBuffs = Tools::AllocateCommandBuffers(
+            *m_device,
+            Tools::Initializers::CommandBufferAllocateInfo(
+                *m_cmdPool,
+                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                m_countDCB));
+    if (!m_drawCmdBuffs) {
+        VK_ERROR("Vulkan::PostInit() : failed to allocate draw command buffers!");
+        return false;
+    }
+
+    /*this->m_drawCmdBuffs = (Types::CmdBuffer**)malloc(sizeof(Types::CmdBuffer) * m_countDCB);
 
     for (uint32_t i = 0; i < m_countDCB; i++) {
         this->m_drawCmdBuffs[i] = Types::CmdBuffer::Create(
@@ -176,7 +187,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
             VK_ERROR("VulkanKernel::PostInit() : command buffer isn't ready!");
             return false;
         }
-    }
+    }*/
 
     //!=================================================================================================================
 
@@ -208,11 +219,21 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create synchronizations...");
-    this->m_syncs = Tools::CreateSynchronization(*m_device, m_submitPipelineStages);
+    this->m_syncs = Tools::CreateSynchronization(*m_device);
     if (!m_syncs.IsReady()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create synchronizations!");
         return false;
     }
+
+    // Set up submit info structure
+    // Semaphores will stay the same during application lifetime
+    // Command buffer submission info is set by each example
+    m_submitInfo = Tools::Initializers::SubmitInfo();
+    m_submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
+    m_submitInfo.waitSemaphoreCount   = 1;
+    m_submitInfo.pWaitSemaphores      = &m_syncs.m_presentComplete;
+    m_submitInfo.signalSemaphoreCount = 1;
+    m_submitInfo.pSignalSemaphores    = &m_syncs.m_renderComplete;
 
     //!=================================================================================================================
 
@@ -236,16 +257,14 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     return true;
 }
 
-EvoVulkan::Core::VulkanKernel* EvoVulkan::Core::VulkanKernel::Create() {
-    Tools::VkDebug::Log("VulkanKernel::Create() : create Evo Vulkan kernel...");
+//EvoVulkan::Core::VulkanKernel* EvoVulkan::Core::VulkanKernel::Create() {
+//    Tools::VkDebug::Log("VulkanKernel::Create() : create Evo Vulkan kernel...");
+//    auto kernel = new VulkanKernel();
+//    return kernel;
+//}
 
-    auto kernel = new VulkanKernel();
-
-    return kernel;
-}
-
-bool EvoVulkan::Core::VulkanKernel::Free() {
-    Tools::VkDebug::Log("VulkanKernel::Free() : free Evo Vulkan kernel memory...");
+bool EvoVulkan::Core::VulkanKernel::Destroy() {
+    Tools::VkDebug::Log("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
 
     this->DestroyFrameBuffers();
 
@@ -266,14 +285,17 @@ bool EvoVulkan::Core::VulkanKernel::Free() {
         m_waitFences.clear();
     }
 
-    if (m_drawCmdBuffs) {
+    if (m_drawCmdBuffs)
+        Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
+
+    /*if (m_drawCmdBuffs) {
         for (uint32_t i = 0; i < m_countDCB; i++) {
             m_drawCmdBuffs[i]->Destroy();
             m_drawCmdBuffs[i]->Free();
             m_drawCmdBuffs[i] = nullptr;
         }
         free(m_drawCmdBuffs);
-    }
+    }*/
 
     if (m_swapchain) {
         m_swapchain->Destroy();
@@ -306,9 +328,8 @@ bool EvoVulkan::Core::VulkanKernel::Free() {
 
     Tools::DestroyInstance(&m_instance);
 
-    Tools::VkDebug::Log("VulkanKernel::Free() : all resources has been freed! Free kernel pointer...");
+    //Tools::VkDebug::Log("VulkanKernel::Destroy() : all resources has been freed!");
 
-    delete this;
     return true;
 }
 
@@ -356,4 +377,54 @@ void EvoVulkan::Core::VulkanKernel::DestroyFrameBuffers() {
     for (auto & m_frameBuffer : m_frameBuffers)
         vkDestroyFramebuffer(*m_device, m_frameBuffer, nullptr);
     m_frameBuffers.clear();
+}
+
+void EvoVulkan::Core::VulkanKernel::NextFrame() {
+    //if (viewUpdated) {
+    //    viewUpdated = false;
+    //    viewChanged();
+    //}
+
+    this->Render();
+
+    //camera.update(frameTimer);
+    //if (camera.moving())
+    //    viewUpdated = true;
+}
+
+void EvoVulkan::Core::VulkanKernel::PrepareFrame() {
+    // Acquire the next image from the swap chain
+    VkResult result = m_swapchain->AcquireNextImage(m_syncs.m_presentComplete, &m_currentBuffer);
+    // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+    if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+        //windowResize();
+        VK_LOG("VulkanKernel::PrepareFrame() : window has been resized!");
+    }
+    else if (result != VK_SUCCESS) {
+        VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " +
+            Tools::Convert::result_to_description(result));
+    }
+
+    //vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
+    //vkResetFences(*m_device, 1, &m_waitFences[m_currentBuffer]);
+}
+
+void EvoVulkan::Core::VulkanKernel::SubmitFrame() {
+    VkResult result = m_swapchain->QueuePresent(m_device->GetGraphicsQueue(), m_currentBuffer, m_syncs.m_renderComplete);
+    if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            // Swap chain is no longer compatible with the surface and needs to be recreated
+            //windowResize();
+            VK_LOG("VulkanKernel::SubmitFrame() : window has been resized!");
+            return;
+        } else {
+            VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue present! Reason: " +
+                     Tools::Convert::result_to_description(result));
+        }
+    }
+    result = vkQueueWaitIdle(m_device->GetGraphicsQueue());
+    if (result != VK_SUCCESS) {
+        VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue wait idle! Reason: " +
+                 Tools::Convert::result_to_description(result));
+    }
 }

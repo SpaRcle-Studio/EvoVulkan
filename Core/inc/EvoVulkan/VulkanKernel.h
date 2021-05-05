@@ -15,10 +15,22 @@
 #include <EvoVulkan/Tools/VulkanTools.h>
 
 namespace EvoVulkan::Core {
+    class VulkanKernel;
+
+    /*typedef void (__stdcall *KernelRenderFunction)(
+            EvoVulkan::Core::VulkanKernel* kernel,
+            //EvoVulkan::Types::Swapchain* swapchain,
+            EvoVulkan::Types::Device* device,
+            VkFence* waitFences,
+            VkCommandBuffer* drawBuffers,
+            VkSubmitInfo& submitInfo, // copy
+            uint32_t currentBuffer
+            );*/
+
     class VulkanKernel {
     public:
         VulkanKernel(const VulkanKernel&) = delete;
-    private:
+    protected:
         VulkanKernel()  = default;
         ~VulkanKernel() = default;
     private:
@@ -29,6 +41,23 @@ namespace EvoVulkan::Core {
         std::string                m_engineName           = "NoEngine";
 
         VkInstance                 m_instance             = VK_NULL_HANDLE;
+
+        VkDebugUtilsMessengerEXT   m_debugMessenger       = VK_NULL_HANDLE;
+
+        bool                       m_validationEnabled    = false;
+
+        bool                       m_isPreInitialized     = false;
+        bool                       m_isInitialized        = false;
+        bool                       m_isPostInitialized    = false;
+    protected:
+        VkClearValue m_clearValues[2] {
+                { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
+                { .depthStencil = { 1.0f, 0 } }
+        };
+    protected:
+        unsigned int               m_width                = 0;
+        unsigned int               m_height               = 0;
+
         VkRenderPass               m_renderPass           = VK_NULL_HANDLE;
         VkPipelineCache            m_pipelineCache        = VK_NULL_HANDLE;
 
@@ -39,28 +68,39 @@ namespace EvoVulkan::Core {
         Types::DepthStencil*       m_depthStencil         = nullptr;
 
         Types::Synchronization     m_syncs                = {};
+        VkSubmitInfo               m_submitInfo           = {};
 
         unsigned __int8            m_countDCB             = 0;
-        Types::CmdBuffer**         m_drawCmdBuffs         = nullptr;
+        //Types::CmdBuffer**         m_drawCmdBuffs         = nullptr;
+        VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
         std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
         std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
+        uint32_t                   m_currentBuffer        = 0;
 
         VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-        VkDebugUtilsMessengerEXT   m_debugMessenger       = VK_NULL_HANDLE;
-
-        bool                       m_validationEnabled    = false;
-
-        bool                       m_isPreInitialized     = false;
-        bool                       m_isInitialized        = false;
-        bool                       m_isPostInitialized    = false;
-
-        unsigned int               m_width                = 0;
-        unsigned int               m_height               = 0;
+    private:
+        //KernelRenderFunction       m_renderFunction       = nullptr;
     private:
         bool ReCreateFrameBuffers();
         void DestroyFrameBuffers();
     public:
+        void PrepareFrame();
+        void NextFrame();
+        void SubmitFrame();
+    public:
+        virtual void Render() { /* nothing */ }
+        virtual bool BuildCmdBuffers() = 0;
+    public:
+        [[nodiscard]] inline VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
+        [[nodiscard]] inline Types::Device* GetDevice() const { return m_device; }
+
+        inline void SetCurrentBufferID(uint32_t id) { this->m_currentBuffer = id; }
+
+        //inline bool SetRenderFunction(KernelRenderFunction drawFunction) {
+        //    this->m_renderFunction = drawFunction;
+        //    return true;
+        //}
+
         inline bool SetValidationLayersEnabled(const bool& value) {
             if (m_isPreInitialized) {
                 Tools::VkDebug::Error("VulkanKernel::SetValidationLayersEnabled() : at this stage it is not possible to set this parameter!");
@@ -76,8 +116,8 @@ namespace EvoVulkan::Core {
             this->m_height = height;
         }
     public:
-        static VulkanKernel* Create();
-        bool Free();
+        //static VulkanKernel* Create();
+        bool Destroy();
     public:
         bool PreInit(
                 const std::string& appName,
@@ -92,6 +132,9 @@ namespace EvoVulkan::Core {
                 bool vsync
                 );
         bool PostInit();
+
+        [[nodiscard]] inline VkRenderPass GetRenderPass() const { return m_renderPass; }
+        [[nodiscard]] inline VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
     };
 }
 

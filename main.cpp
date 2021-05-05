@@ -1,12 +1,8 @@
 //
 // Created by Nikita on 12.04.2021.
 //
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_INCLUDE_VULKAN
-#define VK_USE_PLATFORM_WIN32_KHR
-#include <GLFW/glfw3.h>
 
-#include <EvoVulkan/VulkanKernel.h>
+#include "Example.h"
 
 int main() {
     EvoVulkan::Tools::VkDebug::Error = std::function<void(const std::string& msg)>([](const std::string& msg) {
@@ -32,21 +28,17 @@ int main() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    unsigned int width     = 1280;
-    unsigned int height    = 820;
+    unsigned int width     = 200; //1280
+    unsigned int height    = 200; //820
     bool validationEnabled = true;
 
     auto window = glfwCreateWindow((int)width, (int)height, "Vulkan application", nullptr, nullptr); //1280, 1024
 
     //!=================================================================================================================
 
-    EvoVulkan::Core::VulkanKernel* kernel = EvoVulkan::Core::VulkanKernel::Create();
+    auto* kernel = new VulkanExample();
     kernel->SetValidationLayersEnabled(validationEnabled);
     kernel->SetSize(width, height);
-
-    //uint32_t glfwExtensionCount = 0;
-    //const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    //std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     std::vector<const char*> extensions;
     extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
@@ -89,11 +81,17 @@ int main() {
 
     //!=================================================================================================================
 
+    kernel->BuildCmdBuffers();
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+
+        kernel->NextFrame();
     }
 
-    kernel->Free();
+    kernel->Destroy();
+
+    delete kernel;
 
     glfwDestroyWindow(window);
     glfwTerminate();
