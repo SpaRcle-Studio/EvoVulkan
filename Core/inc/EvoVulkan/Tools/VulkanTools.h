@@ -139,6 +139,7 @@ namespace EvoVulkan::Tools {
         appInfo.pApplicationName   = appName.c_str();
         appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
         appInfo.engineVersion      = 1;
+        appInfo.pEngineName        = engineName.c_str();
         //appInfo.apiVersion         = VK_API_VERSION_1_0;
         appInfo.apiVersion         = VK_API_VERSION_1_2;//VK_MAKE_VERSION(1, 0, 2);
 

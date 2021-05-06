@@ -131,7 +131,12 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     //!=============================================[Create swapchain]==================================================
 
-    VK_GRAPH("VulkanKernel::Init() : create vulkan swapchain...");
+    VK_GRAPH("VulkanKernel::Init() : create vulkan swapchain with sizes: width = " +
+             std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
+
+    this->m_width  = m_newWidth;
+    this->m_height = m_newHeight;
+
     this->m_swapchain = Types::Swapchain::Create(
             m_instance,
             m_surface,
@@ -352,6 +357,10 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
         return false;
     }
 
+    for (auto & m_frameBuffer : m_frameBuffers)
+        vkDestroyFramebuffer(*m_device, m_frameBuffer, nullptr);
+    m_frameBuffers.clear();
+
     VkImageView attachments[2];
 
     // Depth/Stencil attachment is the same for all frame buffers
@@ -403,39 +412,85 @@ void EvoVulkan::Core::VulkanKernel::NextFrame() {
     //    viewUpdated = true;
 }
 
-void EvoVulkan::Core::VulkanKernel::PrepareFrame() {
+EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     // Acquire the next image from the swap chain
     VkResult result = m_swapchain->AcquireNextImage(m_syncs.m_presentComplete, &m_currentBuffer);
     // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
     if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
         //windowResize();
         VK_LOG("VulkanKernel::PrepareFrame() : window has been resized!");
+        return FrameResult::OutOfDate;
     }
     else if (result != VK_SUCCESS) {
         VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " +
             Tools::Convert::result_to_description(result));
+
+        //this->m_hasErrors = true;
+
+        return FrameResult::Error;
     }
 
+    return FrameResult::Success;
     //vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
     //vkResetFences(*m_device, 1, &m_waitFences[m_currentBuffer]);
 }
 
-void EvoVulkan::Core::VulkanKernel::SubmitFrame() {
+EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
     VkResult result = m_swapchain->QueuePresent(m_device->GetGraphicsQueue(), m_currentBuffer, m_syncs.m_renderComplete);
     if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
             //windowResize();
             VK_LOG("VulkanKernel::SubmitFrame() : window has been resized!");
-            return;
+            return FrameResult::OutOfDate;
         } else {
             VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue present! Reason: " +
                      Tools::Convert::result_to_description(result));
+
+            return FrameResult::Error;
         }
     }
     result = vkQueueWaitIdle(m_device->GetGraphicsQueue());
     if (result != VK_SUCCESS) {
         VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue wait idle! Reason: " +
                  Tools::Convert::result_to_description(result));
+
+        return FrameResult::Error;
     }
+
+    return FrameResult::Success;
+}
+
+bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
+    VK_LOG("VulkanKernel::ResizeWindow() : set new sizes: width = " +
+        std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
+
+    if (!m_isPostInitialized) {
+        VK_ERROR("VulkanKernel::ResizeWindow() : kernel is not complete!");
+        return false;
+    }
+
+    vkDeviceWaitIdle(*m_device);
+
+    this->m_width  = m_newWidth;
+    this->m_height = m_newHeight;
+
+    if (!m_swapchain->ReSetup(m_width, m_height)) {
+        VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-setup swapchain!");
+        return false;
+    }
+
+    if (!m_depthStencil->ReCreate(m_width, m_height)) {
+        VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create depth stencil!");
+        return false;
+    }
+
+    if (!this->ReCreateFrameBuffers()) {
+        VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create frame buffers!");
+        return false;
+    }
+
+    this->BuildCmdBuffers();
+
+    return true;
 }

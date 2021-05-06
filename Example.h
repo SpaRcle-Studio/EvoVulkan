@@ -29,7 +29,8 @@ private:
     } m_vertices;
 public:
     void Render() override {
-        this->PrepareFrame();
+        if (this->PrepareFrame() == Core::FrameResult::OutOfDate)
+            this->m_hasErrors = !this->ResizeWindow();
 
         // Command buffer to be submitted to the queue
         m_submitInfo.commandBufferCount = 1;
@@ -42,7 +43,8 @@ public:
             return;
         }
 
-        this->SubmitFrame();
+        if (this->SubmitFrame() == Core::FrameResult::OutOfDate)
+            this->m_hasErrors = !this->ResizeWindow();
     }
 
     bool SetupVertices() {
@@ -69,9 +71,12 @@ public:
             return false;
         }
 
-        this->m_descriptorSet = this->m_descriptorManager->AllocateDescriptor(m_descriptorSetLayout);
-        this->m_descriptorSet = this->m_descriptorManager->AllocateDescriptor(m_descriptorSetLayout);
-        this->m_descriptorSet = this->m_descriptorManager->AllocateDescriptor(m_descriptorSetLayout);
+        this->m_descriptorSet = this->m_descriptorManager->AllocateDescriptor(
+                m_descriptorSetLayout,
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER }
+        );
+        if (!m_descriptorSet)
+            return false;
 
         return true;
     }

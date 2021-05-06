@@ -24,12 +24,28 @@ namespace EvoVulkan::Core {
                         {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1.f},
                         {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,       0.5f}
                 };
+
+        static bool Contains(const std::set<VkDescriptorType>& types, const VkDescriptorType& type) {
+            std::set<VkDescriptorType>::iterator it;
+            for (it = types.begin(); it != types.end(); ++it)
+                if (type == *it)
+                    return true;
+
+            return false;
+        }
     public:
-        static DescriptorPool* Create(const uint32_t maxSets, VkDescriptorSetLayout layout, VkDevice device) {
+        static DescriptorPool* Create(
+                const uint32_t maxSets,
+                VkDescriptorSetLayout layout,
+                VkDevice device, const std::set<VkDescriptorType>& requestTypes)
+        {
             auto* pool = new DescriptorPool(maxSets);
 
             pool->m_layout = layout;
             pool->m_device = device;
+
+            pool->m_requestTypes = requestTypes;
+
             pool->m_descriptorSets = (VkDescriptorSet *) malloc(sizeof(VkDescriptorSet) * maxSets);
             for (uint32_t i = 0; i < maxSets; i++)
                 pool->m_descriptorSets[i] = VK_NULL_HANDLE;
@@ -37,7 +53,8 @@ namespace EvoVulkan::Core {
             std::vector<VkDescriptorPoolSize> sizes = {};
             sizes.reserve(g_poolSizes.size());
             for (auto sz : g_poolSizes)
-                sizes.push_back({ sz.first, uint32_t(sz.second * maxSets) });
+                if (Contains(requestTypes, sz.first))
+                    sizes.push_back({ sz.first, uint32_t(sz.second * maxSets) });
 
             VkDescriptorPoolCreateInfo descriptorPoolCI =
                     Tools::Initializers::DescriptorPoolCreateInfo(sizes.size(), sizes.data(), maxSets);
@@ -67,6 +84,12 @@ namespace EvoVulkan::Core {
             }
         }
     public:
+        bool Equal(const std::set<VkDescriptorType>& requestTypes) {
+            return requestTypes.size() == m_requestTypes.size()
+                   && std::equal(requestTypes.begin(), requestTypes.end(),
+                                 m_requestTypes.begin());
+        }
+
         [[nodiscard]] VkDescriptorSet* FindFree() const {
             for (uint32_t t = 0; t < m_maxSets; t++)
                 if (m_descriptorSets[t] == VK_NULL_HANDLE)
@@ -75,15 +98,17 @@ namespace EvoVulkan::Core {
             return nullptr;
         }
     public:
+        std::set<VkDescriptorType> m_requestTypes   = std::set<VkDescriptorType>();
+
         // for check equal alloc request (reference)
-        VkDescriptorSetLayout m_layout         = VK_NULL_HANDLE;
+        VkDescriptorSetLayout      m_layout         = VK_NULL_HANDLE;
 
-        VkDevice              m_device         = VK_NULL_HANDLE;
-        VkDescriptorPool      m_pool           = VK_NULL_HANDLE;
+        VkDevice                   m_device         = VK_NULL_HANDLE;
+        VkDescriptorPool           m_pool           = VK_NULL_HANDLE;
 
-        uint32_t              m_used           = 0;
-        const uint32_t        m_maxSets        = 0;
-        VkDescriptorSet*      m_descriptorSets = nullptr;
+        uint32_t                   m_used           = 0;
+        const uint32_t             m_maxSets        = 0;
+        VkDescriptorSet*           m_descriptorSets = nullptr;
     };
 
     class DescriptorManager {
@@ -111,7 +136,7 @@ namespace EvoVulkan::Core {
     public:
         void Reset();
     public:
-        VkDescriptorSet AllocateDescriptor(VkDescriptorSetLayout layout);
+        VkDescriptorSet AllocateDescriptor(VkDescriptorSetLayout layout, const std::set<VkDescriptorType>& requestTypes);
     };
 }
 

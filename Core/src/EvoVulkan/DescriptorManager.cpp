@@ -6,7 +6,10 @@
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
 
-VkDescriptorSet EvoVulkan::Core::DescriptorManager::AllocateDescriptor(VkDescriptorSetLayout layout) {
+VkDescriptorSet EvoVulkan::Core::DescriptorManager::AllocateDescriptor(
+        VkDescriptorSetLayout layout,
+        const std::set<VkDescriptorType>& requestTypes)
+{
     VK_LOG("DescriptorManager::AllocateDescriptor() : allocate new descriptor...");
 
     VkDescriptorSet* _free  = nullptr;
@@ -14,7 +17,7 @@ VkDescriptorSet EvoVulkan::Core::DescriptorManager::AllocateDescriptor(VkDescrip
     uint32_t         _index = 0;
 
     for (auto pool : m_pools) {
-        if (pool->m_layout == layout && pool->m_maxSets != pool->m_used) {
+        if (pool->m_layout == layout && pool->m_maxSets != pool->m_used && pool->Equal(requestTypes)) {
             _index = pool->m_used;
 
             pool->m_used++;
@@ -33,7 +36,7 @@ VkDescriptorSet EvoVulkan::Core::DescriptorManager::AllocateDescriptor(VkDescrip
     if (!_free) {
         VK_LOG("DescriptorManager::AllocateDescriptor() : create new descriptor pool...");
 
-        _pool = DescriptorPool::Create(m_countDescriptorsAllocate, layout, *m_device);
+        _pool = DescriptorPool::Create(m_countDescriptorsAllocate, layout, *m_device, requestTypes);
         if (!_pool) {
             VK_ERROR("DescriptorManager::AllocateDescriptor() : failed to create descriptor pool!");
             return nullptr;

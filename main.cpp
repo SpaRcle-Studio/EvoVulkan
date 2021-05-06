@@ -26,17 +26,23 @@ int main() {
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     unsigned int width     = 200; //1280
     unsigned int height    = 200; //820
     bool validationEnabled = true;
 
     auto window = glfwCreateWindow((int)width, (int)height, "Vulkan application", nullptr, nullptr); //1280, 1024
+    glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+        auto kernel = static_cast<Core::VulkanKernel*>(glfwGetWindowUserPointer(window));
+        kernel->SetSize(width, height);
+    });
 
     //!=================================================================================================================
 
     auto* kernel = new VulkanExample();
+    glfwSetWindowUserPointer(window, (void*)kernel);
+
     kernel->SetValidationLayersEnabled(validationEnabled);
     kernel->SetSize(width, height);
 
@@ -86,7 +92,7 @@ int main() {
 
     kernel->BuildCmdBuffers();
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window) && !kernel->HasErrors()) {
         glfwPollEvents();
 
         kernel->NextFrame();

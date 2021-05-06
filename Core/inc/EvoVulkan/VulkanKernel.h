@@ -17,7 +17,9 @@
 #include <EvoVulkan/DescriptorManager.h>
 
 namespace EvoVulkan::Core {
-    class VulkanKernel;
+    enum class FrameResult {
+        Error = 0, Success = 1, OutOfDate = 2
+    };
 
     /*typedef void (__stdcall *KernelRenderFunction)(
             EvoVulkan::Core::VulkanKernel* kernel,
@@ -57,6 +59,11 @@ namespace EvoVulkan::Core {
                 { .depthStencil = { 1.0f, 0 } }
         };
     protected:
+        bool                       m_hasErrors            = false;
+
+        unsigned int               m_newWidth             = 0;
+        unsigned int               m_newHeight            = 0;
+
         unsigned int               m_width                = 0;
         unsigned int               m_height               = 0;
 
@@ -88,15 +95,17 @@ namespace EvoVulkan::Core {
         bool ReCreateFrameBuffers();
         void DestroyFrameBuffers();
     public:
-        void PrepareFrame();
-        void NextFrame();
-        void SubmitFrame();
+        FrameResult PrepareFrame();
+        void        NextFrame();
+        FrameResult SubmitFrame();
     public:
         virtual void Render() { /* nothing */ }
         virtual bool BuildCmdBuffers() = 0;
     public:
         [[nodiscard]] inline VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
         [[nodiscard]] inline Types::Device* GetDevice() const { return m_device; }
+
+        [[nodiscard]] inline bool HasErrors() const noexcept { return m_hasErrors; }
 
         inline void SetCurrentBufferID(uint32_t id) { this->m_currentBuffer = id; }
 
@@ -116,12 +125,13 @@ namespace EvoVulkan::Core {
             return true;
         }
         inline void SetSize(unsigned int width, unsigned int height) {
-            this->m_width  = width;
-            this->m_height = height;
+            this->m_newWidth  = width;
+            this->m_newHeight = height;
         }
     public:
         //static VulkanKernel* Create();
         virtual bool Destroy();
+        virtual bool ResizeWindow();
     public:
         bool PreInit(
                 const std::string& appName,
