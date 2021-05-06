@@ -12,6 +12,96 @@
 #include <iostream>
 
 namespace EvoVulkan::Tools::Initializers {
+    static VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo(
+            uint32_t poolSizeCount,
+            VkDescriptorPoolSize* pPoolSizes,
+            uint32_t maxSets)
+    {
+        VkDescriptorPoolCreateInfo descriptorPoolInfo = {};
+        descriptorPoolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        descriptorPoolInfo.pNext         = NULL;
+        descriptorPoolInfo.poolSizeCount = poolSizeCount;
+        descriptorPoolInfo.pPoolSizes    = pPoolSizes;
+        descriptorPoolInfo.maxSets       = maxSets;
+
+        return descriptorPoolInfo;
+    }
+
+    static VkDescriptorPoolSize DescriptorPoolSize(
+            VkDescriptorType type,
+            uint32_t descriptorCount)
+    {
+        VkDescriptorPoolSize descriptorPoolSize = {};
+        descriptorPoolSize.type                 = type;
+        descriptorPoolSize.descriptorCount      = descriptorCount;
+
+        return descriptorPoolSize;
+    }
+
+    static VkDescriptorSetLayoutBinding DescriptorSetLayoutBinding(
+            VkDescriptorType type,
+            VkShaderStageFlags stageFlags,
+            uint32_t binding,
+            uint32_t descriptorCount = 1)
+    {
+        VkDescriptorSetLayoutBinding setLayoutBinding = {};
+        setLayoutBinding.descriptorType  = type;
+        setLayoutBinding.stageFlags      = stageFlags;
+        setLayoutBinding.binding         = binding;
+        setLayoutBinding.descriptorCount = descriptorCount;
+
+        return setLayoutBinding;
+    }
+
+    static VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(
+            const VkDescriptorSetLayoutBinding* pBindings,
+            uint32_t bindingCount)
+    {
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
+        descriptorSetLayoutCreateInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptorSetLayoutCreateInfo.pBindings    = pBindings;
+        descriptorSetLayoutCreateInfo.bindingCount = bindingCount;
+
+        return descriptorSetLayoutCreateInfo;
+    }
+
+    static VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo(
+            VkDescriptorPool descriptorPool,
+            const VkDescriptorSetLayout* pSetLayouts,
+            uint32_t descriptorSetCount)
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
+        descriptorSetAllocateInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocateInfo.descriptorPool     = descriptorPool;
+        descriptorSetAllocateInfo.pSetLayouts        = pSetLayouts;
+        descriptorSetAllocateInfo.descriptorSetCount = descriptorSetCount;
+
+        return descriptorSetAllocateInfo;
+    }
+
+    static VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo(
+            const VkDescriptorSetLayout* pSetLayouts,
+            uint32_t setLayoutCount = 1)
+    {
+        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+        pipelineLayoutCreateInfo.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutCreateInfo.setLayoutCount             = setLayoutCount;
+        pipelineLayoutCreateInfo.pSetLayouts                = pSetLayouts;
+
+        return pipelineLayoutCreateInfo;
+    }
+
+    static VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(
+            const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+    {
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
+        descriptorSetLayoutCreateInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptorSetLayoutCreateInfo.pBindings    = bindings.data();
+        descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+
+        return descriptorSetLayoutCreateInfo;
+    }
+
     static VkSubmitInfo SubmitInfo() {
         VkSubmitInfo submitInfo = {};
         submitInfo.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;

@@ -14,6 +14,8 @@
 
 #include <EvoVulkan/Tools/VulkanTools.h>
 
+#include <EvoVulkan/DescriptorManager.h>
+
 namespace EvoVulkan::Core {
     class VulkanKernel;
 
@@ -67,6 +69,8 @@ namespace EvoVulkan::Core {
         Types::CmdPool*            m_cmdPool              = nullptr;
         Types::DepthStencil*       m_depthStencil         = nullptr;
 
+        Core::DescriptorManager*   m_descriptorManager    = nullptr;
+
         Types::Synchronization     m_syncs                = {};
         VkSubmitInfo               m_submitInfo           = {};
 
@@ -117,7 +121,7 @@ namespace EvoVulkan::Core {
         }
     public:
         //static VulkanKernel* Create();
-        bool Destroy();
+        virtual bool Destroy();
     public:
         bool PreInit(
                 const std::string& appName,

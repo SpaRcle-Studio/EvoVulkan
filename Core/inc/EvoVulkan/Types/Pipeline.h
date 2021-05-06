@@ -5,9 +5,13 @@
 #ifndef EVOVULKAN_PIPELINE_H
 #define EVOVULKAN_PIPELINE_H
 
-namespace EvoVulkan::Types {
-    class Pipeline {
+#include <vulkan/vulkan.h>
 
+namespace EvoVulkan::Types {
+    struct Pipeline {
+        VkPipeline            m_pipeline            = VK_NULL_HANDLE;
+        VkPipelineLayout      m_layout              = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     };
 }
 

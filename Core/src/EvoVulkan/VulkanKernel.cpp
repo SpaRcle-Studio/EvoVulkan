@@ -105,6 +105,15 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     VK_LOG("VulkanKernel::Init() : count MSAA samples is "
         + std::to_string(m_device->GetMSAASamples()));
 
+    //!========================================[Create descriptor manager]==============================================
+
+    VK_LOG("VulkanKernel::Init() : create descriptor manager...");
+    this->m_descriptorManager = Core::DescriptorManager::Create(m_device);
+    if (!m_descriptorManager) {
+        VK_ERROR("VulkanKernel::Init() : failed to create descriptor manager!");
+        return false;
+    }
+
     //!=============================================[Init surface]======================================================
 
     if (!m_surface->Init(m_device)) {
@@ -266,6 +275,8 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 bool EvoVulkan::Core::VulkanKernel::Destroy() {
     Tools::VkDebug::Log("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
 
+    this->m_descriptorManager->Free();
+
     this->DestroyFrameBuffers();
 
     Tools::DestroyPipelineCache(*m_device, &m_pipelineCache);
@@ -328,7 +339,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
 
     Tools::DestroyInstance(&m_instance);
 
-    //Tools::VkDebug::Log("VulkanKernel::Destroy() : all resources has been freed!");
+    Tools::VkDebug::Log("VulkanKernel::Destroy() : all resources has been freed!");
 
     return true;
 }

@@ -7,7 +7,8 @@ find_package(Vulkan REQUIRED FATAL_ERROR)
 include_directories(${Vulkan_INCLUDE_DIRS})
 
 add_library(EvoVulkanCore STATIC
-        src/VulkanKernel.cpp
+        src/EvoVulkan/VulkanKernel.cpp
+        src/EvoVulkan/DescriptorManager.cpp
 
         src/EvoVulkan/Types/Device.cpp
         src/EvoVulkan/Types/Framebuffer.cpp

@@ -15,6 +15,18 @@
 using namespace EvoVulkan;
 
 class VulkanExample : public Core::VulkanKernel {
+private:
+    //VkPipeline            m_pipeline      = VK_NULL_HANDLE;
+
+    VkPipelineLayout      m_pipelineLayout      = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet       m_descriptorSet       = VK_NULL_HANDLE;
+
+    struct {
+        VkPipelineVertexInputStateCreateInfo inputState;
+        std::vector<VkVertexInputBindingDescription> bindingDescriptions;
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+    } m_vertices;
 public:
     void Render() override {
         this->PrepareFrame();
@@ -31,6 +43,37 @@ public:
         }
 
         this->SubmitFrame();
+    }
+
+    bool SetupVertices() {
+        //m_vertices.bindingDescriptions.resize(1);
+        //m_vertices.bindingDescriptions[0] =
+        //        Tools::Initializers::VertexInputBindingDescription(
+        //                0, //VERTEX_BUFFER_BIND_ID
+        //                sizeof(Vertex),
+        //                VK_VERTEX_INPUT_RATE_VERTEX);
+    }
+
+    bool SetupShader() {
+        this->m_descriptorSetLayout = Tools::CreateDescriptorLayout(*m_device, {
+               Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+        });
+        if (this->m_descriptorSetLayout == VK_NULL_HANDLE) {
+            VK_ERROR("VulkanExample::SetupShader() : failed to create descriptor layout!");
+            return false;
+        }
+
+        this->m_pipelineLayout = Tools::CreatePipelineLayout(*m_device, m_descriptorSetLayout);
+        if (this->m_pipelineLayout == VK_NULL_HANDLE) {
+            VK_ERROR("VulkanExample::SetupShader() : failed to create pipeline layout!");
+            return false;
+        }
+
+        this->m_descriptorSet = this->m_descriptorManager->AllocateDescriptor(m_descriptorSetLayout);
+        this->m_descriptorSet = this->m_descriptorManager->AllocateDescriptor(m_descriptorSetLayout);
+        this->m_descriptorSet = this->m_descriptorManager->AllocateDescriptor(m_descriptorSetLayout);
+
+        return true;
     }
 
     bool BuildCmdBuffers() override {
@@ -63,6 +106,16 @@ public:
         }
 
         return true;
+    }
+
+    bool Destroy() override {
+        if (m_pipelineLayout)
+            vkDestroyPipelineLayout(*m_device, m_pipelineLayout, nullptr);
+
+        if (m_descriptorSetLayout)
+            vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayout, nullptr);
+
+        return VulkanKernel::Destroy();
     }
 };
 

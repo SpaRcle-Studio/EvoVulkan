@@ -81,6 +81,9 @@ int main() {
 
     //!=================================================================================================================
 
+    if (!kernel->SetupShader())
+        return -1;
+
     kernel->BuildCmdBuffers();
 
     while (!glfwWindowShouldClose(window)) {
