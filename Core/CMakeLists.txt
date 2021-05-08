@@ -20,10 +20,13 @@ add_library(EvoVulkanCore STATIC
         src/EvoVulkan/Types/Synchronization.cpp
         src/EvoVulkan/Types/CmdPool.cpp
         src/EvoVulkan/Types/CmdBuffer.cpp
+        src/EvoVulkan/Types/VulkanBuffer.cpp
         src/EvoVulkan/Types/DepthStencil.cpp
 
         src/EvoVulkan/Tools/VulkanTools.cpp
 
+        src/EvoVulkan/Complexes/Shader.cpp
+        src/EvoVulkan/Complexes/Mesh.cpp
         )
 
 target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})

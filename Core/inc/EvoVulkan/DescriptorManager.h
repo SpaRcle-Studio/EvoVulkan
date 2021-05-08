@@ -136,7 +136,7 @@ namespace EvoVulkan::Core {
     public:
         void Reset();
     public:
-        VkDescriptorSet AllocateDescriptor(VkDescriptorSetLayout layout, const std::set<VkDescriptorType>& requestTypes);
+        VkDescriptorSet AllocateDescriptorSets(VkDescriptorSetLayout layout, const std::set<VkDescriptorType>& requestTypes);
     };
 }
 

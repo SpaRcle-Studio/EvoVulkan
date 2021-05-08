@@ -5,6 +5,43 @@
 #include <EvoVulkan/Tools/VulkanTools.h>
 
 namespace EvoVulkan::Tools {
+    VkShaderModule LoadShaderModule(const char *fileName, VkDevice device) {
+        std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
+
+        if (is.is_open()) {
+            size_t size = is.tellg();
+            is.seekg(0, std::ios::beg);
+            char* shaderCode = new char[size];
+            is.read(shaderCode, size);
+            is.close();
+
+            if (size <= 0) {
+                VK_ERROR("Tools::LoadShaderModule() : failed to read shader! \nPath: " + std::string(fileName));
+                return VK_NULL_HANDLE;
+            }
+
+            VkShaderModule shaderModule;
+            VkShaderModuleCreateInfo moduleCreateInfo{};
+            moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            moduleCreateInfo.codeSize = size;
+            moduleCreateInfo.pCode = (uint32_t*)shaderCode;
+
+            auto result = vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule);
+            if (result != VK_SUCCESS) {
+                VK_ERROR("Tools::LoadShaderModule() : failed to create vulkan shader module! \nPath: " + std::string(fileName));
+                return VK_NULL_HANDLE;
+            }
+
+            delete[] shaderCode;
+
+            return shaderModule;
+        }
+        else {
+            VK_ERROR("Tools::LoadShaderModule() : Could not open shader file! \nPath: " + std::string(fileName));
+            return VK_NULL_HANDLE;
+        }
+    }
+
     VkPipelineLayout CreatePipelineLayout(const VkDevice& device, VkDescriptorSetLayout descriptorSetLayout) {
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = Initializers::PipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 

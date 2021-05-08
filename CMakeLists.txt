@@ -12,3 +12,5 @@ include_directories(${Vulkan_INCLUDE_DIRS})
 
 add_executable(EvoVulkanTest main.cpp)
 target_link_libraries(EvoVulkanTest EvoVulkanCore glfw)
+
+target_include_directories(EvoVulkanTest PUBLIC Depends/inc)

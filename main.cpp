@@ -90,12 +90,21 @@ int main() {
     if (!kernel->SetupShader())
         return -1;
 
+    if (!kernel->SetupUniforms())
+        return -1;
+
+    if (!kernel->GenerateGeometry())
+        return -1;
+
     kernel->BuildCmdBuffers();
+    //kernel->UpdateUBO();
 
     while (!glfwWindowShouldClose(window) && !kernel->HasErrors()) {
         glfwPollEvents();
 
         kernel->NextFrame();
+
+        kernel->UpdateUBO();
     }
 
     kernel->Destroy();

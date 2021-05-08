@@ -14,6 +14,8 @@
 
 #include <EvoVulkan/Tools/VulkanTools.h>
 
+#include <EvoVulkan/Types/VulkanBuffer.h>
+
 #include <EvoVulkan/DescriptorManager.h>
 
 namespace EvoVulkan::Core {
@@ -60,6 +62,7 @@ namespace EvoVulkan::Core {
         };
     protected:
         bool                       m_hasErrors            = false;
+        bool                       m_paused               = false;
 
         unsigned int               m_newWidth             = 0;
         unsigned int               m_newHeight            = 0;
@@ -102,17 +105,21 @@ namespace EvoVulkan::Core {
         virtual void Render() { /* nothing */ }
         virtual bool BuildCmdBuffers() = 0;
     public:
+        [[nodiscard]] inline VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
+
         [[nodiscard]] inline VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
         [[nodiscard]] inline Types::Device* GetDevice() const { return m_device; }
 
         [[nodiscard]] inline bool HasErrors() const noexcept { return m_hasErrors; }
 
-        inline void SetCurrentBufferID(uint32_t id) { this->m_currentBuffer = id; }
-
         //inline bool SetRenderFunction(KernelRenderFunction drawFunction) {
         //    this->m_renderFunction = drawFunction;
         //    return true;
         //}
+
+        [[nodiscard]] inline Core::DescriptorManager* GetDescriptorManager() const noexcept {
+            return m_descriptorManager;
+        }
 
         inline bool SetValidationLayersEnabled(const bool& value) {
             if (m_isPreInitialized) {
@@ -127,11 +134,21 @@ namespace EvoVulkan::Core {
         inline void SetSize(unsigned int width, unsigned int height) {
             this->m_newWidth  = width;
             this->m_newHeight = height;
+
+            bool oldPause = m_paused;
+            m_paused = m_newHeight == 0 || m_newWidth == 0;
+            if (oldPause != m_paused) {
+                if (m_paused)
+                    VK_LOG("VulkanKernel::SetSize() : window has been collapsed!");
+                else
+                    VK_LOG("VulkanKernel::SetSize() : window has been expend!");
+            }
         }
+        bool ResizeWindow();
     public:
         //static VulkanKernel* Create();
         virtual bool Destroy();
-        virtual bool ResizeWindow();
+        virtual bool OnResize() = 0;
     public:
         bool PreInit(
                 const std::string& appName,

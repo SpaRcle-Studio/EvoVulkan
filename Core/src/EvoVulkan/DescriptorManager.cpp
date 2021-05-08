@@ -6,7 +6,7 @@
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
 
-VkDescriptorSet EvoVulkan::Core::DescriptorManager::AllocateDescriptor(
+VkDescriptorSet EvoVulkan::Core::DescriptorManager::AllocateDescriptorSets(
         VkDescriptorSetLayout layout,
         const std::set<VkDescriptorType>& requestTypes)
 {
@@ -55,7 +55,7 @@ VkDescriptorSet EvoVulkan::Core::DescriptorManager::AllocateDescriptor(
     auto descriptorSetAllocInfo = Tools::Initializers::DescriptorSetAllocateInfo(_pool->m_pool, &layout, 1);
     auto result = vkAllocateDescriptorSets(*m_device, &descriptorSetAllocInfo, _free);
     if (result != VK_SUCCESS) {
-        VK_ERROR("DescriptorManager::AllocateDescriptor() : failed to allocate vulkan descriptor set!");
+        VK_ERROR("DescriptorManager::AllocateDescriptor() : failed to allocate vulkan descriptor sets!");
         return nullptr;
     }
 

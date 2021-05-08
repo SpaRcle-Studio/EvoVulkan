@@ -11,7 +11,120 @@
 #include <string>
 #include <iostream>
 
+#include <EvoVulkan/Tools/VulkanDebug.h>
+
 namespace EvoVulkan::Tools::Initializers {
+    static VkMappedMemoryRange MappedMemoryRange(){
+        VkMappedMemoryRange mappedMemoryRange = {};
+        mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        return mappedMemoryRange;
+    }
+
+    static VkViewport Viewport(
+            float width,
+            float height,
+            float minDepth,
+            float maxDepth)
+    {
+        VkViewport viewport {};
+        viewport.width = width;
+        viewport.height = height;
+        viewport.minDepth = minDepth;
+        viewport.maxDepth = maxDepth;
+        return viewport;
+    }
+
+    static VkRect2D Rect2D(
+            int32_t width,
+            int32_t height,
+            int32_t offsetX,
+            int32_t offsetY)
+    {
+        VkRect2D rect2D {};
+        rect2D.extent.width = width;
+        rect2D.extent.height = height;
+        rect2D.offset.x = offsetX;
+        rect2D.offset.y = offsetY;
+        return rect2D;
+    }
+
+    static VkVertexInputBindingDescription VertexInputBindingDescription(
+            uint32_t binding,
+            uint32_t stride,
+            VkVertexInputRate inputRate)
+    {
+        VkVertexInputBindingDescription vInputBindDescription {};
+        vInputBindDescription.binding   = binding;
+        vInputBindDescription.stride    = stride;
+        vInputBindDescription.inputRate = inputRate;
+
+        return vInputBindDescription;
+    }
+
+    static VkVertexInputAttributeDescription VertexInputAttributeDescription(
+            uint32_t binding,
+            uint32_t location,
+            VkFormat format,
+            uint32_t offset)
+    {
+        VkVertexInputAttributeDescription vInputAttribDescription {};
+        vInputAttribDescription.location = location;
+        vInputAttribDescription.binding  = binding;
+        vInputAttribDescription.format   = format;
+        vInputAttribDescription.offset   = offset;
+
+        return vInputAttribDescription;
+    }
+
+    static VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(VkShaderModule shaderModule, VkShaderStageFlagBits stage) {
+        VkPipelineShaderStageCreateInfo shaderStage = {};
+        shaderStage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage.stage  = stage;
+        shaderStage.module = shaderModule;
+        shaderStage.pName  = "main";
+
+        return shaderStage;
+    }
+
+    static VkMemoryAllocateInfo MemoryAllocateInfo() {
+        VkMemoryAllocateInfo memAllocInfo = {};
+        memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        return memAllocInfo;
+    }
+
+    static VkBufferCreateInfo BufferCreateInfo(
+            VkBufferUsageFlags usage,
+            VkDeviceSize size)
+    {
+        VkBufferCreateInfo bufCreateInfo = {};
+        bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufCreateInfo.usage = usage;
+        bufCreateInfo.size  = size;
+
+        return bufCreateInfo;
+    }
+
+    static VkWriteDescriptorSet WriteDescriptorSet(
+            VkDescriptorSet dstSet,
+            VkDescriptorType type,
+            uint32_t binding,
+            VkDescriptorBufferInfo* bufferInfo,
+            uint32_t descriptorCount = 1)
+    {
+        if (bufferInfo->buffer == VK_NULL_HANDLE)
+            VK_WARN("Initializers::WriteDescriptorSet() : buffer is NULL! You must create uniform buffer.");
+
+        VkWriteDescriptorSet writeDescriptorSet = {};
+        writeDescriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSet.dstSet          = dstSet;
+        writeDescriptorSet.descriptorType  = type;
+        writeDescriptorSet.dstBinding      = binding;
+        writeDescriptorSet.pBufferInfo     = bufferInfo;
+        writeDescriptorSet.descriptorCount = descriptorCount;
+
+        return writeDescriptorSet;
+    }
+
     static VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo(
             uint32_t poolSizeCount,
             VkDescriptorPoolSize* pPoolSizes,

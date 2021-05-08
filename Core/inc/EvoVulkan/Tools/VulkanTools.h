@@ -25,8 +25,11 @@
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
 #include <functional>
+#include <fstream>
 
 namespace EvoVulkan::Tools {
+    VkShaderModule LoadShaderModule(const char *fileName, VkDevice device);
+
     VkPipelineLayout CreatePipelineLayout(const VkDevice& device, VkDescriptorSetLayout descriptorSetLayout);
 
     static VkDescriptorSetLayout CreateDescriptorLayout(

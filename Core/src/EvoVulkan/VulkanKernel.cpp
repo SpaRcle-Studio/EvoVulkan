@@ -400,6 +400,9 @@ void EvoVulkan::Core::VulkanKernel::DestroyFrameBuffers() {
 }
 
 void EvoVulkan::Core::VulkanKernel::NextFrame() {
+    if (m_paused)
+        return;
+
     //if (viewUpdated) {
     //    viewUpdated = false;
     //    viewChanged();
@@ -490,7 +493,15 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
         return false;
     }
 
-    this->BuildCmdBuffers();
+    if (!this->BuildCmdBuffers()) {
+        VK_ERROR("VulkanKernel::ResizeWindow() : failed to build command buffer!");
+        return false;
+    }
+
+    if (!this->OnResize()) {
+        VK_ERROR("VulkanKernel::ResizeWindow() : failed to resize inherited class!");
+        return false;
+    }
 
     return true;
 }
