@@ -50,7 +50,7 @@ bool EvoVulkan::Complexes::Mesh::Bake(Shader const* shader) {
 
     this->m_countSamplers = images.size();
     if (m_countSamplers) {
-        this->m_samplers = (VkImage)
+       // this->m_samplers = (VkImage)
     }
 
     return true;
