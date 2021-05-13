@@ -12,6 +12,8 @@
 
 #include <EvoVulkan/DescriptorManager.h>
 
+#include <variant>
+
 namespace EvoVulkan::Complexes {
     static bool IsDescriptorTypeSampler(const VkDescriptorType& type) {
         return type >= VK_DESCRIPTOR_TYPE_SAMPLER && type <= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -67,17 +69,20 @@ namespace EvoVulkan::Complexes {
 
     class Mesh {
     private:
+        std::vector<std::variant<VkDescriptorImageInfo, Types::Buffer*>> m_uniforms;
+    private:
         /** \note reference */
         Types::Buffer const*     m_vertices          = nullptr;
         /** \note reference */
         Types::Buffer const*     m_indices           = nullptr;
+        uint32_t                 m_countIndices      = 0;
 
         VkDescriptorSet          m_descriptorSet     = VK_NULL_HANDLE;
 
-        Types::Buffer**          m_uniforms          = nullptr;
-        uint32_t                 m_countUniforms     = 0;
-        VkDescriptorImageInfo*   m_samplers          = nullptr;
-        uint32_t                 m_countSamplers     = 0;
+        //Types::Buffer**          m_uniforms          = nullptr;
+        //uint32_t                 m_countUniforms     = 0;
+        //VkDescriptorImageInfo*   m_samplers          = nullptr;
+        //uint32_t                 m_countSamplers     = 0;
 
         const Types::Device*     m_device            = nullptr;
 
@@ -85,9 +90,9 @@ namespace EvoVulkan::Complexes {
 
         Shader const*            m_attachShader      = nullptr;
     public:
-        void Draw();
+        void Draw(const VkCommandBuffer& cmd);
 
-        Mesh(const Types::Device* device, Types::Buffer const *vertices, Types::Buffer const *indices, Core::DescriptorManager* manager);
+        Mesh(const Types::Device* device, Types::Buffer const *vertices, Types::Buffer const *indices, const uint32_t& countIndices, Core::DescriptorManager* manager);
 
         bool Bake(Shader const* shader);
     };

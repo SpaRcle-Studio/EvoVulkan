@@ -11,6 +11,15 @@
 EvoVulkan::Types::CmdBuffer* EvoVulkan::Types::CmdBuffer::Create(
         const EvoVulkan::Types::Device *device,
         const EvoVulkan::Types::CmdPool *cmdPool,
+        VkCommandBufferLevel level)
+{
+    VkCommandBufferAllocateInfo cmdBufAllocateInfo = Tools::Initializers::CommandBufferAllocateInfo(*cmdPool, level, 1);
+    return Create(device, cmdPool, cmdBufAllocateInfo);
+}
+
+EvoVulkan::Types::CmdBuffer* EvoVulkan::Types::CmdBuffer::Create(
+        const EvoVulkan::Types::Device *device,
+        const EvoVulkan::Types::CmdPool *cmdPool,
         VkCommandBufferAllocateInfo cmdBufAllocateInfo)
 {
     auto buffer = new CmdBuffer();
@@ -79,23 +88,16 @@ bool EvoVulkan::Types::CmdBuffer::IsComplete() const{
     return m_buffer != VK_NULL_HANDLE && IsComplete();
 }
 
-bool EvoVulkan::Types::CmdBuffer::Begin() {
-    if (!IsReady()) {
-        VK_ERROR("CmdBuffer::Begin() : command buffer isn't ready!");
-        return false;
+EvoVulkan::Types::CmdBuffer* EvoVulkan::Types::CmdBuffer::BeginSingleTime(const Device *device, const CmdPool *cmdPool) {
+    auto buffer = Create(device, cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    if (!buffer) {
+        VK_ERROR("CmdBuffer::BeginSingleTime() : failed to create command buffer!");
+        return nullptr;
     }
-
-    VkCommandBufferBeginInfo cmdBufInfo = {};
-    cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    // todo : check null handles, flags?
-
-    auto result = vkBeginCommandBuffer(m_buffer, &cmdBufInfo);
-    if (result != VK_SUCCESS) {
-        VK_ERROR("CmdBuffer::Begin() : failed to begin command buffer!");
-        return false;
+    if (!buffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
+        VK_ERROR("CmdBuffer::BeginSingleTime() : failed to begin command buffer!");
+        return nullptr;
     }
-
-    this->m_isBegin = true;
-
-    return true;
+    return buffer;
 }
+

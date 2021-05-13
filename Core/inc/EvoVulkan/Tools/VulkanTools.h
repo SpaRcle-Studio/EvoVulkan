@@ -256,6 +256,236 @@ namespace EvoVulkan::Tools {
         return device;
     }
 
+    static VkBuffer CreateBuffer(const Types::Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkDeviceMemory& bufferMemory) {
+        VkBufferCreateInfo bufferCI = EvoVulkan::Tools::Initializers::BufferCreateInfo(usage, size);
+        bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VkBuffer buffer = VK_NULL_HANDLE;
+        if (vkCreateBuffer(*device, &bufferCI, nullptr, &buffer) != VK_SUCCESS) {
+            VK_ERROR("Texture::CreateBuffer() : failed to create vulkan buffer!");
+            return VK_NULL_HANDLE;
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(*device, buffer, &memRequirements);
+
+        VkMemoryAllocateInfo memAllocInfo = Tools::Initializers::MemoryAllocateInfo();
+        memAllocInfo.allocationSize  = memRequirements.size;
+        memAllocInfo.memoryTypeIndex = device->GetMemoryType(memRequirements.memoryTypeBits, properties);
+
+        if (vkAllocateMemory(*device, &memAllocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateBuffer() : failed to allocate vulkan memory!");
+            return VK_NULL_HANDLE;
+        }
+        if (vkBindBufferMemory(*device, buffer, bufferMemory, 0) != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateBuffer() : failed to bind vulkan buffer!");
+            return VK_NULL_HANDLE;
+        }
+
+        return buffer;
+    }
+
+    static bool CopyBufferToImage(const Types::Device* device, const Types::CmdPool* pool, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+        Types::CmdBuffer* copyCmd = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        if (!copyCmd | !copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
+            VK_ERROR("Tools::CopyBufferToImage() : failed to create command buffer!");
+            return false;
+        }
+
+        VkBufferImageCopy region = {};
+        region.bufferOffset      = 0;
+        region.bufferRowLength   = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {
+                width,
+                height,
+                1
+        };
+
+        vkCmdCopyBufferToImage(*copyCmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+        copyCmd->Destroy();
+        copyCmd->Free();
+
+        return true;
+    }
+
+    static VkSampler CreateSampler(
+            const Types::Device* device,
+            uint32_t mipLevels,
+            VkFilter minFilter,
+            VkFilter magFilter,
+            VkSamplerAddressMode addressMode,
+            VkCompareOp compareOp)
+    {
+        VkSamplerCreateInfo samplerIC = Tools::Initializers::SamplerCreateInfo();
+
+        samplerIC.magFilter    = magFilter;
+        samplerIC.minFilter    = minFilter;
+        samplerIC.mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerIC.addressModeU = addressMode;
+        samplerIC.addressModeV = addressMode;
+        samplerIC.addressModeW = addressMode;
+        samplerIC.mipLodBias   = 0.0f;
+        samplerIC.compareOp    = compareOp;
+        samplerIC.minLod       = 0.0f;
+        // Set max level-of-detail to mip level count of the texture
+        samplerIC.maxLod = mipLevels;
+        // Enable anisotropic filtering
+        // This feature is optional, so we must check if it's supported on the device
+        if (device->SamplerAnisotropyEnabled()) {
+            // Use max. level of anisotropy for this example
+            samplerIC.maxAnisotropy    = device->GetMaxSamplerAnisotropy();
+            samplerIC.anisotropyEnable = VK_TRUE;
+        } else {
+            // The device does not support anisotropic filtering
+            samplerIC.maxAnisotropy = 1.0;
+            samplerIC.anisotropyEnable = VK_FALSE;
+        }
+        samplerIC.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+        VkSampler sampler = VK_NULL_HANDLE;
+        if (vkCreateSampler(*device, &samplerIC, nullptr, &sampler) != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateSampler() : failed to create vulkan sampler!");
+            return VK_NULL_HANDLE;
+        }
+
+        return sampler;
+    }
+
+    static VkImageView CreateImageView(const VkDevice& device, VkImage image, VkFormat format, uint32_t mipLevels) {
+        VkImageView view = VK_NULL_HANDLE;
+
+        VkImageViewCreateInfo viewCI           = Tools::Initializers::ImageViewCreateInfo();
+        viewCI.image                           = image;
+        viewCI.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+        viewCI.format                          = format;
+        viewCI.components                      = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
+        viewCI.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewCI.subresourceRange.baseMipLevel   = 0;
+        viewCI.subresourceRange.baseArrayLayer = 0;
+        viewCI.subresourceRange.layerCount     = 1;
+        viewCI.subresourceRange.levelCount     = mipLevels;
+
+        if (vkCreateImageView(device, &viewCI, nullptr, &view) != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateImageView() : failed to create image view!");
+            return VK_NULL_HANDLE;
+        }
+
+        return view;
+    }
+
+    static VkImage CreateImage(
+            const Types::Device* device,
+            uint32_t width, uint32_t height,
+            uint32_t mipLevels,
+            VkFormat format, VkImageTiling tiling,
+            VkImageUsageFlags usage,
+            VkMemoryPropertyFlags properties,
+            VkDeviceMemory* imageMemory)
+    {
+        VkImageCreateInfo imageInfo = {};
+        imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType     = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width  = width;
+        imageInfo.extent.height = height;
+        imageInfo.extent.depth  = 1;
+        imageInfo.mipLevels     = mipLevels;
+        imageInfo.arrayLayers   = 1;
+        imageInfo.format        = format;
+        imageInfo.tiling        = tiling;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage         = usage;
+        imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT; // TODO: sample count 1 bit! Get from device?
+        imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+
+        VkImage image = VK_NULL_HANDLE;
+        if (vkCreateImage(*device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateImage() : failed to create vulkan image!");
+            return VK_NULL_HANDLE;
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(*device, image, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo = {};
+        allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize  = memRequirements.size;
+        allocInfo.memoryTypeIndex = device->GetMemoryType(memRequirements.memoryTypeBits, properties);
+
+        if (vkAllocateMemory(*device, &allocInfo, nullptr, imageMemory) != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateImage() : failed to allocate vulkan image memory!");
+            return VK_NULL_HANDLE;
+        }
+
+        if (vkBindImageMemory(*device, image, *imageMemory, 0) != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateImage() : failed to bind vulkan image memory!");
+            return VK_NULL_HANDLE;
+        }
+
+        return image;
+    }
+
+    static bool TransitionImageLayout(const Types::Device* device, const Types::CmdPool* pool, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
+        Types::CmdBuffer* copyCmd = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        if (!copyCmd | !copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
+            VK_ERROR("Tools::TransitionImageLayout() : failed to create/begin command buffer!");
+            return false;
+        }
+
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout            = oldLayout;
+        barrier.newLayout            = newLayout;
+        barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image                = image;
+        barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel   = 0;
+        barrier.subresourceRange.levelCount     = mipLevels;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount     = 1;
+
+        VkPipelineStageFlags sourceStage;
+        VkPipelineStageFlags destinationStage;
+
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } else {
+           VK_ERROR("Tools::TransitionImageLayout() : Unsupported layout transition!");
+           return false;
+        }
+
+        vkCmdPipelineBarrier(
+                *copyCmd,
+                sourceStage, destinationStage,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+        );
+
+        copyCmd->Destroy();
+        copyCmd->Free();
+
+        return true;
+    }
+
     static Types::Device* CreateDevice(
             const VkInstance& instance, const Types::Surface* surface,
             const std::vector<const char*>& extensions,
@@ -318,6 +548,8 @@ namespace EvoVulkan::Tools {
         //!=============================================================================================================
 
         VkPhysicalDeviceFeatures deviceFeatures = {};
+        deviceFeatures.fillModeNonSolid  = TRUE;
+        deviceFeatures.samplerAnisotropy = TRUE;
 
         logicalDevice = Tools::CreateLogicalDevice(
                 physicalDevice,

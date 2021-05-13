@@ -15,6 +15,10 @@
 
 #include <GLFW/glfw3.h>
 
+#include <EvoVulkan/Types/Texture.h>
+
+#include <stbi.h>
+
 #include <EvoVulkan/VulkanKernel.h>
 #include <EvoVulkan/Complexes/Shader.h>
 #include <EvoVulkan/Complexes/Mesh.h>
@@ -29,6 +33,7 @@ struct UniformBuffer {
 
 struct Vertex {
     float position[3];
+    float uv[2];
 };
 
 class VulkanExample : public Core::VulkanKernel {
@@ -100,6 +105,14 @@ public:
         }
     }
 
+    bool LoadTexture() {
+        int w, h, channels;
+        uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\miku.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
+        Types::Texture* texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, w, h, channels);
+
+        return true;
+    }
+
     bool SetupUniforms() {
         for (auto & _mesh : meshes) {
             _mesh.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(
@@ -122,7 +135,10 @@ public:
             std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                     // Binding 0 : Vertex shader uniform buffer
                     Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
-                                                            &_mesh.m_uniformBuffer->m_descriptor)
+                                                            &_mesh.m_uniformBuffer->m_descriptor),
+
+                    //Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                    //                                        &_mesh.m_uniformBuffer->m_descriptor)
             };
             vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
         }
@@ -140,14 +156,20 @@ public:
                        {
                                Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                                VK_SHADER_STAGE_VERTEX_BIT, 0),
+
+                               //Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                               //                                                VK_SHADER_STAGE_FRAGMENT_BIT, 1),
                        },
                        {
                                sizeof(UniformBuffer)
                        });
 
         m_shader->SetVertexDescriptions(
-                {Tools::Initializers::VertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)},
-                {Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position))}
+                { Tools::Initializers::VertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX) },
+                {
+                    Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)),
+                    Tools::Initializers::VertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,    offsetof(Vertex, uv))
+                }
         );
 
         m_shader->Compile(
@@ -165,10 +187,10 @@ public:
         // Setup vertices for a single uv-mapped quad made from two triangles
         std::vector<Vertex> vertices =
                 {
-                        {1.0f,  1.0f,  0.0f},
-                        {-1.0f, 1.0f,  0.0f},
-                        {-1.0f, -1.0f, 0.0f},
-                        {1.0f,  -1.0f, 0.0f}
+                        { {1.0f,  1.0f,  0.0f}, { 1.0f, 1.0f } },
+                        { {-1.0f, 1.0f,  0.0f}, { 0.0f, 1.0f } },
+                        { {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } },
+                        { {1.0f,  -1.0f, 0.0f}, { 1.0f, 0.0f } }
                 };
 
         // Setup indices
@@ -194,11 +216,12 @@ public:
                 indices.data());
 
         for (auto &meshe : meshes) {
-            meshe.m_indexBuffer = indexBuffer;
+            meshe.m_indexBuffer  = indexBuffer;
             meshe.m_vertexBuffer = vertexBuffer;
         }
 
-        //auto* mesh = new Complexes::Mesh(*m_device, m_shader->GetDescriptorTypes(), vertexBuffer, indexBuffer);
+        //auto* mesh = new Complexes::Mesh(m_device, vertexBuffer, indexBuffer, 6, m_descriptorManager);
+        //mesh->Bake(m_shader);
 
         return true;
     }

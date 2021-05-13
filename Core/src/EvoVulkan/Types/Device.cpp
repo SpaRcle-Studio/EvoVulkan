@@ -37,6 +37,18 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
     // Gather physical device memory properties
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &device->m_memoryProperties);
 
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+    {
+        device->m_enableSamplerAnisotropy = deviceFeatures.samplerAnisotropy;
+    }
+
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(device->m_physicalDevice, &deviceProperties);
+    {
+        device->m_maxSamplerAnisotropy = deviceProperties.limits.maxSamplerAnisotropy;
+    }
+
     //device->m_maxCountMSAASamples = calculate...
 
     return device;

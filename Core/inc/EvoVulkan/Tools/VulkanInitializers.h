@@ -166,6 +166,19 @@ namespace EvoVulkan::Tools::Initializers {
         return setLayoutBinding;
     }
 
+    static VkImageViewCreateInfo ImageViewCreateInfo() {
+        VkImageViewCreateInfo image_view_create_info = {};
+        image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        return image_view_create_info;
+    }
+
+    static VkSamplerCreateInfo SamplerCreateInfo() {
+        VkSamplerCreateInfo samplerCreateInfo {};
+        samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerCreateInfo.maxAnisotropy = 1.0f;
+        return samplerCreateInfo;
+    }
+
     static VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(
             const VkDescriptorSetLayoutBinding* pBindings,
             uint32_t bindingCount)

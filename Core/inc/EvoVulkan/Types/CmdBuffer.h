@@ -28,12 +28,40 @@ namespace EvoVulkan::Types {
     public:
         operator VkCommandBuffer() const { return m_buffer; }
     public:
+        static CmdBuffer* BeginSingleTime(
+                const Device* device,
+                const CmdPool* cmdPool);
+
+        static CmdBuffer* Create(
+                const Device* device,
+                const CmdPool* cmdPool,
+                VkCommandBufferLevel level);
+
         static CmdBuffer* Create(
                 const Device* device,
                 const CmdPool* cmdPool,
                 VkCommandBufferAllocateInfo cmdBufAllocateInfo);
 
-        bool Begin();
+        inline bool Begin(const VkCommandBufferUsageFlagBits& usage) {
+            if (!IsReady()) {
+                VK_ERROR("CmdBuffer::Begin() : command buffer isn't ready!");
+                return false;
+            }
+
+            VkCommandBufferBeginInfo cmdBufInfo = {};
+            cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            cmdBufInfo.flags = usage;
+
+            auto result = vkBeginCommandBuffer(m_buffer, &cmdBufInfo);
+            if (result != VK_SUCCESS) {
+                VK_ERROR("CmdBuffer::Begin() : failed to begin command buffer!");
+                return false;
+            }
+
+            this->m_isBegin = true;
+
+            return true;
+        }
 
         bool ReAlloc();
 
