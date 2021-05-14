@@ -101,3 +101,23 @@ EvoVulkan::Types::CmdBuffer* EvoVulkan::Types::CmdBuffer::BeginSingleTime(const 
     return buffer;
 }
 
+bool EvoVulkan::Types::CmdBuffer::End() {
+    this->m_isBegin = false;
+
+    vkEndCommandBuffer(this->m_buffer);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_buffer;
+
+    auto result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    if (result != VK_SUCCESS) {
+        VK_ERROR("CmdBuffer::End() : failed to queue submit!");
+        return false;
+    }
+    vkQueueWaitIdle(m_device->GetGraphicsQueue());
+
+    return true;
+}
+

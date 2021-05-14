@@ -63,6 +63,8 @@ namespace EvoVulkan::Types {
             return true;
         }
 
+        bool End();
+
         bool ReAlloc();
 
         [[nodiscard]] bool IsBegin()    const { return m_isBegin; }

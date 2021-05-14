@@ -285,12 +285,9 @@ namespace EvoVulkan::Tools {
         return buffer;
     }
 
-    static bool CopyBufferToImage(const Types::Device* device, const Types::CmdPool* pool, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-        Types::CmdBuffer* copyCmd = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        if (!copyCmd | !copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
-            VK_ERROR("Tools::CopyBufferToImage() : failed to create command buffer!");
-            return false;
-        }
+    static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+        if (!copyCmd->IsBegin())
+            copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
         VkBufferImageCopy region = {};
         region.bufferOffset      = 0;
@@ -309,8 +306,7 @@ namespace EvoVulkan::Tools {
 
         vkCmdCopyBufferToImage(*copyCmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-        copyCmd->Destroy();
-        copyCmd->Free();
+        copyCmd->End();
 
         return true;
     }
@@ -431,12 +427,15 @@ namespace EvoVulkan::Tools {
         return image;
     }
 
-    static bool TransitionImageLayout(const Types::Device* device, const Types::CmdPool* pool, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
-        Types::CmdBuffer* copyCmd = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        if (!copyCmd | !copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
-            VK_ERROR("Tools::TransitionImageLayout() : failed to create/begin command buffer!");
-            return false;
-        }
+    static bool TransitionImageLayout(Types::CmdBuffer* copyCmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
+        //Types::CmdBuffer* copyCmd = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        //if (!copyCmd | !copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
+        //    VK_ERROR("Tools::TransitionImageLayout() : failed to create/begin command buffer!");
+        //    return false;
+        //}
+
+        if (!copyCmd->IsBegin())
+            copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
         VkImageMemoryBarrier barrier = {};
         barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -480,10 +479,7 @@ namespace EvoVulkan::Tools {
                 1, &barrier
         );
 
-        copyCmd->Destroy();
-        copyCmd->Free();
-
-        return true;
+        return copyCmd->End();
     }
 
     static Types::Device* CreateDevice(

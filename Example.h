@@ -39,6 +39,7 @@ struct Vertex {
 class VulkanExample : public Core::VulkanKernel {
 private:
     Complexes::Shader*          m_shader              = nullptr;
+    Types::Texture*             m_texture             = nullptr;
 
     struct mesh {
         VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
@@ -108,7 +109,9 @@ public:
     bool LoadTexture() {
         int w, h, channels;
         uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\miku.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
-        Types::Texture* texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, w, h, channels);
+        m_texture = Types::Texture::Load(m_device, m_cmdPool, pixels, w, h, 1, channels);
+
+        stbi_image_free(pixels);
 
         return true;
     }
@@ -132,13 +135,19 @@ public:
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
                     sizeof(UniformBuffer));
 
+            // Setup a descriptor image info for the current texture to be used as a combined image sampler
+            VkDescriptorImageInfo textureDescriptor;
+            textureDescriptor.imageView   = m_texture->m_view;			// The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
+            textureDescriptor.sampler     = m_texture->m_sampler;		// The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
+            textureDescriptor.imageLayout = m_texture->m_imageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
+
             std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                     // Binding 0 : Vertex shader uniform buffer
                     Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
                                                             &_mesh.m_uniformBuffer->m_descriptor),
 
-                    //Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                    //                                        &_mesh.m_uniformBuffer->m_descriptor)
+                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                                                            &textureDescriptor)
             };
             vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
         }
@@ -157,8 +166,8 @@ public:
                                Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                                VK_SHADER_STAGE_VERTEX_BIT, 0),
 
-                               //Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                               //                                                VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+                               Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                                                               VK_SHADER_STAGE_FRAGMENT_BIT, 1),
                        },
                        {
                                sizeof(UniformBuffer)
@@ -187,8 +196,8 @@ public:
         // Setup vertices for a single uv-mapped quad made from two triangles
         std::vector<Vertex> vertices =
                 {
-                        { {1.0f,  1.0f,  0.0f}, { 1.0f, 1.0f } },
-                        { {-1.0f, 1.0f,  0.0f}, { 0.0f, 1.0f } },
+                        { {1.0f,  2.0f,  0.0f}, { 1.0f, 1.0f } },
+                        { {-1.0f, 2.0f,  0.0f}, { 0.0f, 1.0f } },
                         { {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } },
                         { {1.0f,  -1.0f, 0.0f}, { 1.0f, 0.0f } }
                 };
