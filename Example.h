@@ -36,18 +36,77 @@ struct Vertex {
     float uv[2];
 };
 
+const float skyboxVertices[36 * 3] = {
+        // positions
+        -10.0f,  10.0f, -10.0f,
+        -10.0f, -10.0f, -10.0f,
+        10.0f, -10.0f, -10.0f,
+        10.0f, -10.0f, -10.0f,
+        10.0f,  10.0f, -10.0f,
+        -10.0f,  10.0f, -10.0f,
+
+        -10.0f, -10.0f,  10.0f,
+        -10.0f, -10.0f, -10.0f,
+        -10.0f,  10.0f, -10.0f,
+        -10.0f,  10.0f, -10.0f,
+        -10.0f,  10.0f,  10.0f,
+        -10.0f, -10.0f,  10.0f,
+
+        10.0f, -10.0f, -10.0f,
+        10.0f, -10.0f,  10.0f,
+        10.0f,  10.0f,  10.0f,
+        10.0f,  10.0f,  10.0f,
+        10.0f,  10.0f, -10.0f,
+        10.0f, -10.0f, -10.0f,
+
+        -10.0f, -10.0f,  10.0f,
+        -10.0f,  10.0f,  10.0f,
+        10.0f,  10.0f,  10.0f,
+        10.0f,  10.0f,  10.0f,
+        10.0f, -10.0f,  10.0f,
+        -10.0f, -10.0f,  10.0f,
+
+        -10.0f,  10.0f, -10.0f,
+        10.0f,  10.0f, -10.0f,
+        10.0f,  10.0f,  10.0f,
+        10.0f,  10.0f,  10.0f,
+        -10.0f,  10.0f,  10.0f,
+        -10.0f,  10.0f, -10.0f,
+
+        -10.0f, -10.0f, -10.0f,
+        -10.0f, -10.0f,  10.0f,
+        10.0f, -10.0f, -10.0f,
+        10.0f, -10.0f, -10.0f,
+        -10.0f, -10.0f,  10.0f,
+        10.0f, -10.0f,  10.0f
+};
+
+struct mesh {
+    VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+    Types::Buffer*  m_uniformBuffer = nullptr;
+    Types::Buffer*  m_vertexBuffer  = nullptr;
+    Types::Buffer*  m_indexBuffer   = nullptr;
+    UniformBuffer   m_ubo           = {};
+    uint64_t        m_countIndices  = 0;
+
+    __forceinline void Draw(const VkCommandBuffer& cmd, const VkPipelineLayout& layout) const {
+        VkDeviceSize offsets[1] = {0};
+
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &m_descriptorSet, 0, NULL);
+        vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertexBuffer->m_buffer, offsets);
+        vkCmdBindIndexBuffer(cmd, m_indexBuffer->m_buffer, 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdDrawIndexed(cmd, m_countIndices, 1, 0, 0, 0);
+    }
+};
+
 class VulkanExample : public Core::VulkanKernel {
 private:
     Complexes::Shader*          m_shader              = nullptr;
     Types::Texture*             m_texture             = nullptr;
 
-    struct mesh {
-        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
-        Types::Buffer *m_uniformBuffer = nullptr;
-        Types::Buffer *m_vertexBuffer = nullptr;
-        Types::Buffer *m_indexBuffer = nullptr;
-        UniformBuffer m_ubo = {};
-    } meshes[2];
+    mesh meshes[3];
+    mesh skybox;
 public:
     void Render() override {
         if (this->PrepareFrame() == Core::FrameResult::OutOfDate)
@@ -78,21 +137,56 @@ public:
                 100.0f             // Far clipping plane. Keep as little as possible.
         );
 
-        glm::mat4 view = glm::lookAt(
+        /*glm::mat4 view = glm::lookAt(
                 glm::vec3(4, 3, 3), // Camera is at (4,3,3), in World Space
                 glm::vec3(0, 0, 0), // and looks at the origin
                 glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-        );
-
+        );*/
         static float f = 0.f;
+        static float x = 0.f;
+        static float y = 0.f;
+        static float z = 0.f;
 
-        f += 1;
+        glm::mat4 view = glm::mat4(1);
+        {
+            view = glm::rotate(view,
+                     -glm::radians(0.f) // pitch
+                    , {1, 0, 0}
+            );
+            view = glm::rotate(view,
+                     -glm::radians(0.f) //yaw
+                    , {0, 1, 0}
+            );
+            view = glm::rotate(view,
+                     0.f // roll
+                    , {0, 0, 1}
+            );
+        }
+
+        view = glm::translate(view, glm::vec3(x, y, z));
+
+        float speed = 0.2;
+
+        if ((GetAsyncKeyState(VK_LEFT) < 0))
+            x -= speed;
+        if ((GetAsyncKeyState(VK_RIGHT) < 0))
+            x += speed;
+
+        if ((GetAsyncKeyState(VK_UP) < 0))
+            z += speed;
+        if ((GetAsyncKeyState(VK_DOWN) < 0))
+            z -= speed;
+
+        if ((GetAsyncKeyState(VK_SPACE) < 0))
+            y -= speed;
+        if ((GetAsyncKeyState(VK_SHIFT) < 0))
+            y += speed;
 
         int i = 0;
         for (auto & _mesh : meshes) {
             glm::mat4 model = glm::mat4(1);
-            model = glm::translate(model, glm::vec3(i * 3, 0, 0));
-            model *= glm::mat4(glm::angleAxis(glm::radians(f), glm::vec3(0, 1, 0)));
+            model = glm::translate(model, glm::vec3(i * 2.5, 0, -5 * i));
+           // model *= glm::mat4(glm::angleAxis(glm::radians(f), glm::vec3(0, 1, 0)));
 
             i++;
 
@@ -109,7 +203,17 @@ public:
     bool LoadTexture() {
         int w, h, channels;
         uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\miku.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
-        m_texture = Types::Texture::Load(m_device, m_cmdPool, pixels, w, h, 1, channels);
+        //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\An exception has occured.jpg)", &w, &h, &channels, STBI_rgb_alpha);
+        //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\akira-(been0328)-Anime-kaguya-sama-wa-kokurasetai-_tensai-tachi-no-renai-zunousen_-Shinomiya-Kaguya-5003254.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
+        //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\5UyhDcR0p8g.jpg)", &w, &h, &channels, STBI_rgb_alpha);
+        if (!pixels) {
+            VK_ERROR("Example::LoadTexture() : failed to load texture! Reason: " + std::string(stbi_failure_reason()));
+            return false;
+        }
+
+        m_texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h, channels);
+        if (!m_texture)
+            return false;
 
         stbi_image_free(pixels);
 
@@ -227,6 +331,7 @@ public:
         for (auto &meshe : meshes) {
             meshe.m_indexBuffer  = indexBuffer;
             meshe.m_vertexBuffer = vertexBuffer;
+            meshe.m_countIndices = indices.size();
         }
 
         //auto* mesh = new Complexes::Mesh(m_device, vertexBuffer, indexBuffer, 6, m_descriptorManager);
@@ -272,13 +377,15 @@ public:
                 //vkCmdDraw(m_drawCmdBuffs[i], 3, 1, 0, 0);
 
                 for (auto & _mesh : meshes) {
-                    VkDeviceSize offsets[1] = {0};
+                    /*VkDeviceSize offsets[1] = {0};
                     vkCmdBindDescriptorSets(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                             m_shader->GetPipelineLayout(), 0, 1, &_mesh.m_descriptorSet, 0, NULL);
                     vkCmdBindVertexBuffers(m_drawCmdBuffs[i], 0, 1, &_mesh.m_vertexBuffer->m_buffer, offsets);
                     vkCmdBindIndexBuffer(m_drawCmdBuffs[i], _mesh.m_indexBuffer->m_buffer, 0, VK_INDEX_TYPE_UINT32);
 
-                    vkCmdDrawIndexed(m_drawCmdBuffs[i], 6, 1, 0, 0, 0);
+                    vkCmdDrawIndexed(m_drawCmdBuffs[i], 6, 1, 0, 0, 0);*/
+
+                    _mesh.Draw(m_drawCmdBuffs[i], m_shader->GetPipelineLayout());
                 }
             }
 

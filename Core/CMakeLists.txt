@@ -22,6 +22,7 @@ add_library(EvoVulkanCore STATIC
         src/EvoVulkan/Types/CmdBuffer.cpp
         src/EvoVulkan/Types/VulkanBuffer.cpp
         src/EvoVulkan/Types/DepthStencil.cpp
+        src/EvoVulkan/Types/Texture.cpp
 
         src/EvoVulkan/Tools/VulkanTools.cpp
 

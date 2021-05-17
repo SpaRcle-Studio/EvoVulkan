@@ -42,6 +42,8 @@ namespace EvoVulkan::Types {
                               const bool& enableSampleShading);
         void Free();
     public:
+        [[nodiscard]] bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
+
         [[nodiscard]] inline bool SamplerAnisotropyEnabled() const noexcept { return m_enableSamplerAnisotropy; }
         [[nodiscard]] inline float GetMaxSamplerAnisotropy() const noexcept { return m_maxSamplerAnisotropy;    }
 

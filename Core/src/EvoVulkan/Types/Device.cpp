@@ -92,7 +92,8 @@ EvoVulkan::Types::FamilyQueues *EvoVulkan::Types::Device::GetQueues() const {
 uint32_t EvoVulkan::Types::Device::GetMemoryType(
         uint32_t typeBits,
         VkMemoryPropertyFlags properties,
-        VkBool32 *memTypeFound) const {
+        VkBool32 *memTypeFound) const
+{
     for (uint32_t i = 0; i < m_memoryProperties.memoryTypeCount; i++) {
         if ((typeBits & 1) == 1) {
             if ((m_memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
@@ -112,4 +113,12 @@ uint32_t EvoVulkan::Types::Device::GetMemoryType(
         VK_ERROR("Device::GetMemoryType() : Could not find a matching memory type");
         return UINT32_MAX;
     }
+}
+
+bool EvoVulkan::Types::Device::IsSupportLinearBlitting(const VkFormat& imageFormat) const {
+    // Check if image format supports linear blitting
+    VkFormatProperties formatProperties;
+    vkGetPhysicalDeviceFormatProperties(m_physicalDevice, imageFormat, &formatProperties);
+
+    return (formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
 }
