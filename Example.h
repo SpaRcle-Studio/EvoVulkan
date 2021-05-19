@@ -16,6 +16,7 @@
 #include <GLFW/glfw3.h>
 
 #include <EvoVulkan/Types/Texture.h>
+#include <EvoVulkan/Types/Framebuffer.h>
 
 #include <stbi.h>
 
@@ -105,6 +106,8 @@ private:
     Complexes::Shader*          m_shader              = nullptr;
     Types::Texture*             m_texture             = nullptr;
 
+    Types::FrameBuffer*         m_offscreen           = nullptr;
+
     mesh meshes[3];
     mesh skybox;
 public:
@@ -185,7 +188,7 @@ public:
         int i = 0;
         for (auto & _mesh : meshes) {
             glm::mat4 model = glm::mat4(1);
-            model = glm::translate(model, glm::vec3(i * 2.5, 0, -5 * i));
+            model = glm::translate(model, glm::vec3(i * 2.5, 0, 5 * i));
            // model *= glm::mat4(glm::angleAxis(glm::radians(f), glm::vec3(0, 1, 0)));
 
             i++;
@@ -408,8 +411,25 @@ public:
         return VulkanKernel::Destroy();
     }
 
-    bool OnResize() override {
+    bool OnComplete() override {
+        this->m_offscreen = Types::FrameBuffer::Create(
+                m_device,
+                m_swapchain,
+                {
+                        VK_FORMAT_R8G8B8A8_UNORM,
+                        VK_FORMAT_R8G8B8A8_UNORM,
+                },
+                m_width,
+                m_height);
+
+        if (!m_offscreen)
+            return false;
+
         return true;
+    }
+
+    bool OnResize() override {
+        return this->m_offscreen->ReCreate(m_width, m_height);
     }
 };
 

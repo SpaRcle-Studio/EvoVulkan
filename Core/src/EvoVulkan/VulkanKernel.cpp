@@ -266,6 +266,12 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     this->m_isPostInitialized = true;
 
+    VK_LOG("VulkanKernel::PostInit() : call custom on-complete function...");
+    if (!OnComplete()) {
+        VK_ERROR("VulkanKernel::PostInit() : failed to complete Evo Vulkan!");
+        return false;
+    }
+
     VK_INFO("VulkanKernel::PostInit() : Evo Vulkan successfully post-initialized!");
 
     return true;
@@ -498,6 +504,7 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
         return false;
     }
 
+    VK_LOG("VulkanKernel::ResizeWindow() : call custom on-resize function...");
     if (!this->OnResize()) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to resize inherited class!");
         return false;

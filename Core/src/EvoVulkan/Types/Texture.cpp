@@ -90,7 +90,12 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
 
     //!=================================================================================================================
 
-    texture->m_view = Tools::CreateImageView(*device, texture->m_image, texture->m_format, texture->m_mipLevels);
+    texture->m_view = Tools::CreateImageView(
+            *device,
+            texture->m_image,
+            texture->m_format,
+            texture->m_mipLevels,
+            VK_IMAGE_ASPECT_COLOR_BIT);
     if (texture->m_view == VK_NULL_HANDLE) {
         VK_ERROR("Texture::Load() : failed to create image view!");
         return nullptr;

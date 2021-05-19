@@ -168,42 +168,64 @@ namespace EvoVulkan::Tools {
         return sync;
     }
 
-    VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain) {
+    VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain, std::vector<VkAttachmentDescription> attachments) {
         VK_GRAPH("Tools::CreateRenderPass() : create vulkan render pass...");
 
-        std::array<VkAttachmentDescription, 2> attachments = {};
-        // Color attachment
-        attachments[0].format         = swapchain->GetColorFormat();
-        attachments[0].samples        = VK_SAMPLE_COUNT_1_BIT;
-        attachments[0].loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachments[0].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
-        attachments[0].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[0].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments[0].finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        // Depth attachment
-        attachments[1].format         = swapchain->GetDepthFormat();
-        attachments[1].samples        = VK_SAMPLE_COUNT_1_BIT;
-        attachments[1].loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachments[1].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
-        attachments[1].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachments[1].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments[1].finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        VkSubpassDescription subpassDescription = {};
+        std::vector<VkAttachmentReference> colorReferences = { };
+        VkAttachmentReference depthReference = {};
 
-        VkAttachmentReference colorReference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-        VkAttachmentReference depthReference = { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+        if (attachments.empty()) {
+            attachments.resize(2);
 
-        VkSubpassDescription subpassDescription    = {};
-        subpassDescription.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDescription.colorAttachmentCount    = 1;
-        subpassDescription.pColorAttachments       = &colorReference;
-        subpassDescription.pDepthStencilAttachment = &depthReference;
-        subpassDescription.inputAttachmentCount    = 0;
-        subpassDescription.pInputAttachments       = nullptr;
-        subpassDescription.preserveAttachmentCount = 0;
-        subpassDescription.pPreserveAttachments    = nullptr;
-        subpassDescription.pResolveAttachments     = nullptr;
+            // Color attachment
+            attachments[0].format = swapchain->GetColorFormat();
+            attachments[0].samples = VK_SAMPLE_COUNT_1_BIT; // TODO: 1 sample!
+            attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            // Depth attachment
+            attachments[1].format = swapchain->GetDepthFormat();
+            attachments[1].samples = VK_SAMPLE_COUNT_1_BIT; // TODO: 1 sample!
+            attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+            colorReferences.push_back({0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+            depthReference = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+
+            subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpassDescription.colorAttachmentCount = 1;
+            subpassDescription.pColorAttachments = colorReferences.data();
+            subpassDescription.pDepthStencilAttachment = &depthReference;
+            subpassDescription.inputAttachmentCount = 0;
+            subpassDescription.pInputAttachments = nullptr;
+            subpassDescription.preserveAttachmentCount = 0;
+            subpassDescription.pPreserveAttachments = nullptr;
+            subpassDescription.pResolveAttachments = nullptr;
+        }
+        else {
+            for (uint32_t i = 0; i < attachments.size() - 1; i++)
+                colorReferences.push_back({ i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+
+            depthReference = { static_cast<uint32_t>(attachments.size() - 1), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+
+            subpassDescription.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpassDescription.colorAttachmentCount    = static_cast<uint32_t>(colorReferences.size());
+            subpassDescription.pColorAttachments       = colorReferences.data();
+            subpassDescription.pDepthStencilAttachment = &depthReference;
+            subpassDescription.inputAttachmentCount    = 0;
+            subpassDescription.pInputAttachments       = nullptr;
+            subpassDescription.preserveAttachmentCount = 0;
+            subpassDescription.pPreserveAttachments    = nullptr;
+            subpassDescription.pResolveAttachments     = nullptr;
+        }
 
         // Subpass dependencies for layout transitions
         std::array<VkSubpassDependency, 2> dependencies = {};

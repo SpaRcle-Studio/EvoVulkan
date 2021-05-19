@@ -13,11 +13,13 @@
 
 namespace EvoVulkan::Types {
     struct Texture {
-        VkSampler      m_sampler      = VK_NULL_HANDLE;
-        VkImage        m_image        = VK_NULL_HANDLE;
-        VkImageLayout  m_imageLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
         VkDeviceMemory m_deviceMemory = VK_NULL_HANDLE;
+        VkImage        m_image        = VK_NULL_HANDLE;
         VkImageView    m_view         = VK_NULL_HANDLE;
+
+        VkSampler      m_sampler      = VK_NULL_HANDLE;
+
+        VkImageLayout  m_imageLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
         VkFormat       m_format       = VK_FORMAT_UNDEFINED;
         uint32_t       m_width        = 0,
                        m_height       = 0;

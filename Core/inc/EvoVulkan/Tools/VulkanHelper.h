@@ -200,7 +200,16 @@ namespace EvoVulkan::Tools {
 
         //! Find supported depth format
         //! We prefer 24 bits of depth and 8 bits of stencil, but that may not be supported by all implementations
-        std::vector<VkFormat> depthFormats = { VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM };
+        //std::vector<VkFormat> depthFormats = { VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM };
+
+        std::vector<VkFormat> depthFormats = {
+                VK_FORMAT_D32_SFLOAT_S8_UINT,
+                VK_FORMAT_D32_SFLOAT,
+                VK_FORMAT_D24_UNORM_S8_UINT,
+                VK_FORMAT_D16_UNORM_S8_UINT,
+                VK_FORMAT_D16_UNORM
+        };
+
         for (auto& format : depthFormats) {
             VkFormatProperties formatProps;
             vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);

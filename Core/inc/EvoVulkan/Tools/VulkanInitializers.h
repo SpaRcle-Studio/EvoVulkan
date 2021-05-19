@@ -92,6 +92,12 @@ namespace EvoVulkan::Tools::Initializers {
         return memAllocInfo;
     }
 
+    static VkRenderPassBeginInfo RenderPassBeginInfo() {
+        VkRenderPassBeginInfo renderPassBeginInfo {};
+        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        return renderPassBeginInfo;
+    }
+
     static VkBufferCreateInfo BufferCreateInfo(
             VkBufferUsageFlags usage,
             VkDeviceSize size)
@@ -102,6 +108,21 @@ namespace EvoVulkan::Tools::Initializers {
         bufCreateInfo.size  = size;
 
         return bufCreateInfo;
+    }
+
+    static VkDescriptorImageInfo DescriptorImageInfo(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout)
+    {
+        VkDescriptorImageInfo descriptorImageInfo {};
+        descriptorImageInfo.sampler = sampler;
+        descriptorImageInfo.imageView = imageView;
+        descriptorImageInfo.imageLayout = imageLayout;
+        return descriptorImageInfo;
+    }
+
+    static VkImageCreateInfo ImageCreateInfo() {
+        VkImageCreateInfo imageCreateInfo {};
+        imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        return imageCreateInfo;
     }
 
     static VkWriteDescriptorSet WriteDescriptorSet(

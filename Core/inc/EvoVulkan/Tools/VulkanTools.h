@@ -354,15 +354,15 @@ namespace EvoVulkan::Tools {
         return sampler;
     }
 
-    static VkImageView CreateImageView(const VkDevice& device, VkImage image, VkFormat format, uint32_t mipLevels) {
+    static VkImageView CreateImageView(const VkDevice& device, VkImage image, VkFormat format, uint32_t mipLevels, VkImageAspectFlags imageAspectFlags) {
         VkImageView view = VK_NULL_HANDLE;
 
         VkImageViewCreateInfo viewCI           = Tools::Initializers::ImageViewCreateInfo();
         viewCI.image                           = image;
         viewCI.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
         viewCI.format                          = format;
-        viewCI.components                      = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
-        viewCI.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        //viewCI.components                      = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
+        viewCI.subresourceRange.aspectMask     = imageAspectFlags; //VK_IMAGE_ASPECT_COLOR_BIT;
         viewCI.subresourceRange.baseMipLevel   = 0;
         viewCI.subresourceRange.baseArrayLayer = 0;
         viewCI.subresourceRange.layerCount     = 1;
@@ -591,7 +591,7 @@ namespace EvoVulkan::Tools {
             VK_ERROR("Tools::DestroyRenderPass() : render pass is nullptr!");
     }
 
-    VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain);
+    VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain, std::vector<VkAttachmentDescription> attachments = {});
 }
 
 #endif //EVOVULKAN_VULKANTOOLS_H

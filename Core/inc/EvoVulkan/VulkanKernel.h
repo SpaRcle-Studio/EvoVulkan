@@ -149,6 +149,7 @@ namespace EvoVulkan::Core {
         //static VulkanKernel* Create();
         virtual bool Destroy();
         virtual bool OnResize() = 0;
+        virtual bool OnComplete() { return true; }
     public:
         bool PreInit(
                 const std::string& appName,
