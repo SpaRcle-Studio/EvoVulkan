@@ -14,6 +14,13 @@
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
 
+#define EVSafeFreeObject(object) \
+    if (object) {                \
+        object->Destroy();       \
+        object->Free();          \
+        object = nullptr;        \
+    }                            \
+
 namespace EvoVulkan::Tools {
     static void DestroyFences(const VkDevice& device, const std::vector<VkFence>& fences) {
         for (auto& fence : fences)

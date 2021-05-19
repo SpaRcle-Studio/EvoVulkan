@@ -117,11 +117,30 @@ namespace EvoVulkan::Types {
         std::vector<VkFormat>   m_attachFormats = {};
         VkFormat                m_depthFormat   = VK_FORMAT_UNDEFINED;
 
-        FrameBufferAttachment*  m_attachments   = nullptr;
         FrameBufferAttachment   m_depth         = {};
 
         const Types::Device*    m_device        = nullptr;
         const Types::Swapchain* m_swapchain     = nullptr;
+    public:
+        /// \Warn Unsafe access! But it's fast.
+        FrameBufferAttachment*  m_attachments   = nullptr;
+    public:
+        /// \Warn Slow access! But it's safe.
+        [[nodiscard]] VkImageView GetAttachment(const uint32_t id) const {
+            if (id >= m_countAttach) {
+                VK_ERROR("Framebuffer::GetAttachment() : going beyond the array boundaries!");
+                return VK_NULL_HANDLE;
+            }
+            return m_attachments[id].m_view;
+        }
+
+        [[nodiscard]] inline VkRenderPass GetRenderPass() const noexcept {
+            return m_renderPass;
+        }
+
+        [[nodiscard]] inline uint32_t GetCountAttachments() const noexcept {
+            return m_countAttach;
+        }
     private:
         bool CreateAttachments() {
             this->m_attachments = (FrameBufferAttachment*)malloc(sizeof(FrameBufferAttachment) * m_countAttach);
@@ -199,7 +218,7 @@ namespace EvoVulkan::Types {
 
             VkFramebufferCreateInfo FBO_CI = {};
             FBO_CI.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            FBO_CI.pNext                   = NULL;
+            FBO_CI.pNext                   = nullptr;
             FBO_CI.renderPass              = m_renderPass;
             FBO_CI.pAttachments            = attachments.data();
             FBO_CI.attachmentCount         = static_cast<uint32_t>(attachments.size());
@@ -236,30 +255,35 @@ namespace EvoVulkan::Types {
             return true;
         }
     public:
-        VkRenderPassBeginInfo Begin(VkClearValue* clearValues, uint32_t count) {
+        VkRenderPassBeginInfo Begin(VkClearValue* clearValues, uint32_t countCls) {
             VkRenderPassBeginInfo renderPassBeginInfo = Tools::Initializers::RenderPassBeginInfo();
 
             renderPassBeginInfo.renderPass               = m_renderPass;
             renderPassBeginInfo.framebuffer              = m_framebuffer;
             renderPassBeginInfo.renderArea.extent.width  = m_width;
             renderPassBeginInfo.renderArea.extent.height = m_height;
-            renderPassBeginInfo.clearValueCount          = count;
+            renderPassBeginInfo.clearValueCount          = countCls;
             renderPassBeginInfo.pClearValues             = clearValues;
 
             return renderPassBeginInfo;
         }
 
         void Destroy() {
-            if (m_renderPass != VK_NULL_HANDLE) {
-                vkDestroyRenderPass(*m_device, m_renderPass, nullptr);
-                m_renderPass = VK_NULL_HANDLE;
-            }
-
             if (m_attachments) {
                 for (uint32_t i = 0; i < m_countAttach; i++)
                     m_attachments[i].Destroy();
                 free(m_attachments);
                 m_attachments = nullptr;
+            }
+
+            if (m_framebuffer != VK_NULL_HANDLE) {
+                vkDestroyFramebuffer(*m_device, m_framebuffer, nullptr);
+                m_framebuffer = VK_NULL_HANDLE;
+            }
+
+            if (m_colorSampler != VK_NULL_HANDLE) {
+                vkDestroySampler(*m_device, m_colorSampler, nullptr);
+                m_colorSampler = VK_NULL_HANDLE;
             }
         }
 
@@ -270,7 +294,6 @@ namespace EvoVulkan::Types {
             this->m_height = height;
 
             if (!this->CreateAttachments() ||
-                !this->CreateRenderPass()  ||
                 !this->CreateFramebuffer() ||
                 !this->CreateSampler()
                 ) {
@@ -297,6 +320,11 @@ namespace EvoVulkan::Types {
                 fbo->m_depthFormat   = Tools::GetDepthFormat(*device);
             }
 
+            if (!fbo->CreateRenderPass()) {
+                VK_ERROR("Framebuffer::Create() : failed to create render pass!");
+                return nullptr;
+            }
+
             if (!fbo->ReCreate(width, height)) {
                 VK_ERROR("Framebuffer::Create() : failed to re-create framebuffer!");
                 return nullptr;
@@ -318,7 +346,12 @@ namespace EvoVulkan::Types {
         }
 
         void Free() {
-            //TODO:!
+            if (m_renderPass != VK_NULL_HANDLE) {
+                vkDestroyRenderPass(*m_device, m_renderPass, nullptr);
+                m_renderPass = VK_NULL_HANDLE;
+            }
+
+            delete this;
         }
     };
 }

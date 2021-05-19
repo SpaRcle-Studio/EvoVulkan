@@ -53,7 +53,13 @@ namespace EvoVulkan::Complexes {
         bool SetVertexDescriptions(
                 const std::vector<VkVertexInputBindingDescription>& binding,
                 const std::vector<VkVertexInputAttributeDescription>& attribute);
-        bool Compile(VkPolygonMode polygonMode, VkCullModeFlags cullMode, VkCompareOp depthCompare, VkBool32 blendEnable, VkBool32 depthEnable);
+        bool Compile(
+                VkPolygonMode polygonMode,
+                VkCullModeFlags cullMode,
+                VkCompareOp depthCompare,
+                VkBool32 blendEnable,
+                VkBool32 depthEnable,
+                uint32_t countAttachments);
 
         void Destroy();
         void Free();
@@ -72,6 +78,8 @@ namespace EvoVulkan::Complexes {
         VkDescriptorSetLayout                        m_descriptorSetLayout = VK_NULL_HANDLE;
         std::vector<VkDescriptorSetLayoutBinding>    m_layoutBindings      = {};
         std::vector<VkDeviceSize>                    m_uniformSizes        = {};
+
+        bool                                       m_hasVertices         = false;
 
         /** \brief cache is reference. */
         VkPipelineCache                              m_cache               = VK_NULL_HANDLE;

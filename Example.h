@@ -103,7 +103,8 @@ struct mesh {
 
 class VulkanExample : public Core::VulkanKernel {
 private:
-    Complexes::Shader*          m_shader              = nullptr;
+    Complexes::Shader*          m_geometry            = nullptr;
+    Complexes::Shader*          m_postProcessing      = nullptr;
     Types::Texture*             m_texture             = nullptr;
 
     Types::FrameBuffer*         m_offscreen           = nullptr;
@@ -226,7 +227,7 @@ public:
     bool SetupUniforms() {
         for (auto & _mesh : meshes) {
             _mesh.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(
-                    m_shader->GetDescriptorSetLayout(),
+                    m_geometry->GetDescriptorSetLayout(),
                     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}
             );
             if (!_mesh.m_descriptorSet) {
@@ -262,12 +263,12 @@ public:
         return true;
     }
     bool SetupShader() {
-        this->m_shader = new Complexes::Shader(GetDevice(), GetRenderPass(), GetPipelineCache());
+        this->m_geometry = new Complexes::Shader(GetDevice(), GetRenderPass(), GetPipelineCache());
 
-        m_shader->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
+        m_geometry->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
                        {
-                               {"shader.vert", VK_SHADER_STAGE_VERTEX_BIT},
-                               {"shader.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
+                               {"geometry.vert", VK_SHADER_STAGE_VERTEX_BIT},
+                               {"geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
                        },
                        {
                                Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -280,7 +281,7 @@ public:
                                sizeof(UniformBuffer)
                        });
 
-        m_shader->SetVertexDescriptions(
+        m_geometry->SetVertexDescriptions(
                 { Tools::Initializers::VertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX) },
                 {
                     Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)),
@@ -288,12 +289,37 @@ public:
                 }
         );
 
-        m_shader->Compile(
+        m_geometry->Compile(
                 VK_POLYGON_MODE_FILL,
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_FALSE,
-                VK_TRUE
+                VK_TRUE,
+                1
+        );
+
+        //!=============================================================================================================
+
+        this->m_postProcessing = new Complexes::Shader(GetDevice(), this->m_offscreen->GetRenderPass(), GetPipelineCache());
+
+        m_postProcessing->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
+                         {
+                                 {"post_processing.vert", VK_SHADER_STAGE_VERTEX_BIT},
+                                 {"post_processing.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
+                         },
+                         {
+                                 Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                                                                 VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+                         },
+                         { });
+
+        m_postProcessing->Compile(
+                VK_POLYGON_MODE_FILL,
+                VK_CULL_MODE_NONE,
+                VK_COMPARE_OP_LESS_OR_EQUAL,
+                VK_FALSE,
+                VK_TRUE,
+                this->m_offscreen->GetCountAttachments()
         );
 
         return true;
@@ -375,7 +401,7 @@ public:
             vkCmdSetScissor(m_drawCmdBuffs[i], 0, 1, &scissor);
 
             {
-                vkCmdBindPipeline(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shader->GetPipeline());
+                vkCmdBindPipeline(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_geometry->GetPipeline());
 
                 //vkCmdDraw(m_drawCmdBuffs[i], 3, 1, 0, 0);
 
@@ -388,7 +414,7 @@ public:
 
                     vkCmdDrawIndexed(m_drawCmdBuffs[i], 6, 1, 0, 0, 0);*/
 
-                    _mesh.Draw(m_drawCmdBuffs[i], m_shader->GetPipelineLayout());
+                    _mesh.Draw(m_drawCmdBuffs[i], m_geometry->GetPipelineLayout());
                 }
             }
 
@@ -400,10 +426,10 @@ public:
     }
 
     bool Destroy() override {
-        if (m_shader) {
-            m_shader->Destroy();
-            m_shader->Free();
-        }
+        EVSafeFreeObject(m_offscreen);
+
+        EVSafeFreeObject(m_geometry);
+        EVSafeFreeObject(m_postProcessing);
 
         for (auto & _mesh : meshes)
             _mesh.m_uniformBuffer->Destroy();
@@ -429,7 +455,7 @@ public:
     }
 
     bool OnResize() override {
-        return this->m_offscreen->ReCreate(m_width, m_height);
+        return m_offscreen ? this->m_offscreen->ReCreate(m_width, m_height) : true;
     }
 };
 

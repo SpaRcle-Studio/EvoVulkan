@@ -24,7 +24,14 @@ bool EvoVulkan::Complexes::Shader::Load(
         const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
         const std::vector<VkDeviceSize>& uniformSizes)
 {
-    this->m_uniformSizes   = uniformSizes;
+    if (!this) {
+        VK_ERROR("Shader::Load() : WTF!? this is nullptr!");
+        return false;
+    }
+
+    if (!uniformSizes.empty())
+        this->m_uniformSizes   = uniformSizes;
+
     this->m_layoutBindings = descriptorLayoutBindings;
 
     for (auto module : modules) {
@@ -63,6 +70,8 @@ bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
     m_vertices.m_inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_vertices.m_attributeDescriptions.size());
     m_vertices.m_inputState.pVertexAttributeDescriptions    = m_vertices.m_attributeDescriptions.data();
 
+    this->m_hasVertices = true;
+
     return true;
 }
 
@@ -71,7 +80,8 @@ bool EvoVulkan::Complexes::Shader::Compile(
         VkCullModeFlags cullMode,
         VkCompareOp depthCompare,
         VkBool32 blendEnable,
-        VkBool32 depthEnable)
+        VkBool32 depthEnable,
+        uint32_t countAttachments)
 {
     if (!this->BuildLayouts()) {
         VK_ERROR("Shader::Compile() : failed to build layouts!");
@@ -80,8 +90,15 @@ bool EvoVulkan::Complexes::Shader::Compile(
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = Tools::Initializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
     VkPipelineRasterizationStateCreateInfo rasterizationState = Tools::Initializers::PipelineRasterizationStateCreateInfo(polygonMode, cullMode, VK_FRONT_FACE_CLOCKWISE, 0);
-    VkPipelineColorBlendAttachmentState    blendAttachmentState = Tools::Initializers::PipelineColorBlendAttachmentState(0xf, blendEnable);
-    VkPipelineColorBlendStateCreateInfo    colorBlendState = Tools::Initializers::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+
+    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {};
+
+    for (uint32_t i = 0; i < countAttachments; i++)
+        blendAttachmentStates.push_back(Tools::Initializers::PipelineColorBlendAttachmentState(0xf, blendEnable));
+
+    VkPipelineColorBlendStateCreateInfo colorBlendState =
+            Tools::Initializers::PipelineColorBlendStateCreateInfo(countAttachments, blendAttachmentStates.data());
+
     VkPipelineDepthStencilStateCreateInfo  depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthEnable, VK_TRUE, depthCompare);
     VkPipelineViewportStateCreateInfo      viewportState = Tools::Initializers::PipelineViewportStateCreateInfo(1, 1, 0);
     VkPipelineMultisampleStateCreateInfo   multisampleState = Tools::Initializers::PipelineMultisampleStateCreateInfo(m_device->GetMSAASamples(), 0);
@@ -97,7 +114,11 @@ bool EvoVulkan::Complexes::Shader::Compile(
     VkGraphicsPipelineCreateInfo pipelineCreateInfo =
             Tools::Initializers::PipelineCreateInfo(m_pipelineLayout, m_renderPass, 0);
 
-    pipelineCreateInfo.pVertexInputState   = &m_vertices.m_inputState;
+    if (!m_hasVertices)
+        m_vertices.m_inputState = Tools::Initializers::PipelineVertexInputStateCreateInfo();
+
+    pipelineCreateInfo.pVertexInputState = &m_vertices.m_inputState;
+
     pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
     pipelineCreateInfo.pRasterizationState = &rasterizationState;
     pipelineCreateInfo.pColorBlendState    = &colorBlendState;
