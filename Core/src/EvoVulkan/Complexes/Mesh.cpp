@@ -2,12 +2,14 @@
 // Created by Nikita on 08.05.2021.
 //
 
+#include <variant>
+
 #include <EvoVulkan/Complexes/Mesh.h>
 
 void EvoVulkan::Complexes::Mesh::Draw(const VkCommandBuffer& cmd) {
     VkDeviceSize offsets[1] = {0};
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            this->m_attachShader->GetPipelineLayout(), 0, 1, &m_descriptorSet, 0, NULL);
+                            this->m_attachShader->GetPipelineLayout(), 0, 1, &m_descriptorSet.m_self, 0, NULL);
     vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertices->m_buffer, offsets);
     vkCmdBindIndexBuffer(cmd, m_indices->m_buffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -21,7 +23,7 @@ bool EvoVulkan::Complexes::Mesh::Bake(Shader const* shader) {
             shader->GetDescriptorSetLayout(),
             m_attachShader->GetDescriptorTypes()
     );
-    if (m_descriptorSet == VK_NULL_HANDLE) {
+    if (m_descriptorSet.m_self == VK_NULL_HANDLE) {
         VK_ERROR("Mesh::Bake() : failed to allocate descriptor sets!");
         return false;
     }
@@ -72,7 +74,7 @@ bool EvoVulkan::Complexes::Mesh::Bake(Shader const* shader) {
 
             writeDescriptorSets.push_back(
                     Tools::Initializers::WriteDescriptorSet(
-                            m_descriptorSet,
+                            m_descriptorSet.m_self,
                             type,
                             0, &buffer->m_descriptor));
         }

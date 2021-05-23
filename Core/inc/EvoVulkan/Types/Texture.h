@@ -45,8 +45,13 @@ namespace EvoVulkan::Types {
                 uint32_t height,
                 uint8_t channels)
         {
+#ifdef max
             return Load(device, pool, pixels, format, width, height,
                         static_cast<uint32_t>(std::floor(std::log2(max(width, height)))) + 1, channels);
+#else
+            return Load(device, pool, pixels, format, width, height,
+                        static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1, channels);
+#endif
         }
 
         static Texture* LoadWithoutMip(

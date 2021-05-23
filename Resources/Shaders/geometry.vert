@@ -13,13 +13,6 @@ layout (binding = 0) uniform UniformBuffer {
 
 #extension GL_ARB_separate_shader_objects : enable
 
-vec3 colors[3] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
-);
-
-
 void main() {
     UV = inUV;
 

@@ -28,6 +28,10 @@ namespace EvoVulkan::Types {
     public:
         operator VkCommandBuffer() const { return m_buffer; }
     public:
+        static VkCommandBuffer CreateSimple(const Device* device,
+                                            const CmdPool* cmdPool,
+                                            const VkCommandBufferLevel& level);
+
         static CmdBuffer* BeginSingleTime(
                 const Device* device,
                 const CmdPool* cmdPool);

@@ -499,14 +499,14 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
         return false;
     }
 
-    if (!this->BuildCmdBuffers()) {
-        VK_ERROR("VulkanKernel::ResizeWindow() : failed to build command buffer!");
-        return false;
-    }
-
     VK_LOG("VulkanKernel::ResizeWindow() : call custom on-resize function...");
     if (!this->OnResize()) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to resize inherited class!");
+        return false;
+    }
+
+    if (!this->BuildCmdBuffers()) {
+        VK_ERROR("VulkanKernel::ResizeWindow() : failed to build command buffer!");
         return false;
     }
 

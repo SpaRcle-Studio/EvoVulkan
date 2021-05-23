@@ -5,6 +5,11 @@
 #ifndef EVOVULKAN_SHADER_H
 #define EVOVULKAN_SHADER_H
 
+#include <sys/stat.h>
+//#include <unistd.h>
+#include <string>
+#include <fstream>
+
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/DescriptorManager.h>
 #include <EvoVulkan/Types/VulkanBuffer.h>
@@ -13,6 +18,8 @@ namespace EvoVulkan::Complexes {
     inline bool file_exists (const std::string& name) {
         struct stat buffer{};
         return (stat (name.c_str(), &buffer) == 0);
+
+        //return ( access( name.c_str(), F_OK ) != -1 );
     }
 
     class Shader {
@@ -65,6 +72,10 @@ namespace EvoVulkan::Complexes {
         void Free();
     private:
         bool BuildLayouts();
+    public:
+        operator VkPipeline() const {
+            return m_pipeline;
+        }
     private:
         struct {
             VkPipelineVertexInputStateCreateInfo           m_inputState;
@@ -79,7 +90,7 @@ namespace EvoVulkan::Complexes {
         std::vector<VkDescriptorSetLayoutBinding>    m_layoutBindings      = {};
         std::vector<VkDeviceSize>                    m_uniformSizes        = {};
 
-        bool                                       m_hasVertices         = false;
+        bool                                         m_hasVertices         = false;
 
         /** \brief cache is reference. */
         VkPipelineCache                              m_cache               = VK_NULL_HANDLE;

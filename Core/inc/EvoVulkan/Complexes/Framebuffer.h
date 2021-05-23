@@ -8,11 +8,14 @@
 #include <vulkan/vulkan.h>
 
 #include <EvoVulkan/Types/Device.h>
+#include <EvoVulkan/Types/CmdPool.h>
 #include <EvoVulkan/Types/Swapchain.h>
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
 
-namespace EvoVulkan::Types {
+#include <EvoVulkan/DescriptorManager.h>
+
+namespace EvoVulkan::Complexes {
     struct FrameBufferAttachment {
         VkImage        m_image;
         VkDeviceMemory m_mem;
@@ -60,6 +63,7 @@ namespace EvoVulkan::Types {
 
     static FrameBufferAttachment CreateAttachment(
             const Types::Device* device,
+            const Types::CmdPool* pool,
             VkFormat format,
             VkImageUsageFlags usage,
             VkExtent2D imageSize)
@@ -105,25 +109,35 @@ namespace EvoVulkan::Types {
     //!=================================================================================================================
 
     class FrameBuffer {
-        uint32_t                m_width         = 0,
-                                m_height        = 0,
-                                m_countAttach   = 0;
+        uint32_t                 m_width         = 0,
+                                 m_height        = 0,
+                                 m_countAttach   = 0;
 
-        VkFramebuffer           m_framebuffer   = VK_NULL_HANDLE;
-        VkRenderPass            m_renderPass    = VK_NULL_HANDLE;
+        VkFramebuffer            m_framebuffer   = VK_NULL_HANDLE;
+        VkRenderPass             m_renderPass    = VK_NULL_HANDLE;
 
-        VkSampler               m_colorSampler  = VK_NULL_HANDLE;
+        VkSampler                m_colorSampler  = VK_NULL_HANDLE;
 
-        std::vector<VkFormat>   m_attachFormats = {};
-        VkFormat                m_depthFormat   = VK_FORMAT_UNDEFINED;
+        std::vector<VkFormat>    m_attachFormats = {};
+        VkFormat                 m_depthFormat   = VK_FORMAT_UNDEFINED;
 
-        FrameBufferAttachment   m_depth         = {};
+        FrameBufferAttachment    m_depth         = {};
 
-        const Types::Device*    m_device        = nullptr;
-        const Types::Swapchain* m_swapchain     = nullptr;
+        const Types::Device*     m_device        = nullptr;
+        const Types::Swapchain*  m_swapchain     = nullptr;
+        const Types::CmdPool*    m_cmdPool       = nullptr;
+
+        VkRect2D                 m_scissor       = {};
+        VkViewport               m_viewport      = {};
+
+        VkCommandBufferBeginInfo m_cmdBufInfo    = {};
     public:
         /// \Warn Unsafe access! But it's fast.
         FrameBufferAttachment*  m_attachments   = nullptr;
+
+        VkSemaphore             m_semaphore     = VK_NULL_HANDLE;
+
+        VkCommandBuffer         m_cmdBuff       = VK_NULL_HANDLE;
     public:
         /// \Warn Slow access! But it's safe.
         [[nodiscard]] VkImageView GetAttachment(const uint32_t id) const {
@@ -141,6 +155,10 @@ namespace EvoVulkan::Types {
         [[nodiscard]] inline uint32_t GetCountAttachments() const noexcept {
             return m_countAttach;
         }
+
+        [[nodiscard]] inline VkCommandBuffer GetCmd() const noexcept {
+            return m_cmdBuff;
+        }
     private:
         bool CreateAttachments() {
             this->m_attachments = (FrameBufferAttachment*)malloc(sizeof(FrameBufferAttachment) * m_countAttach);
@@ -154,8 +172,9 @@ namespace EvoVulkan::Types {
            for (uint32_t i = 0; i < m_countAttach; i++) {
                m_attachments[i] = CreateAttachment(
                        m_device,
+                       m_cmdPool,
                        m_attachFormats[i],
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                        { m_width, m_height });
 
                if (!m_attachments[i].Ready()) {
@@ -166,6 +185,7 @@ namespace EvoVulkan::Types {
 
            m_depth = CreateAttachment(
                    m_device,
+                   m_cmdPool,
                    m_depthFormat,
                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                    { m_width, m_height });
@@ -255,7 +275,15 @@ namespace EvoVulkan::Types {
             return true;
         }
     public:
-        VkRenderPassBeginInfo Begin(VkClearValue* clearValues, uint32_t countCls) {
+        inline void BeginCmd() {
+            vkBeginCommandBuffer(m_cmdBuff, &m_cmdBufInfo);
+        }
+        inline void End() {
+            vkCmdEndRenderPass(m_cmdBuff);
+            vkEndCommandBuffer(m_cmdBuff);
+        }
+
+        [[nodiscard]] inline VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls) const {
             VkRenderPassBeginInfo renderPassBeginInfo = Tools::Initializers::RenderPassBeginInfo();
 
             renderPassBeginInfo.renderPass               = m_renderPass;
@@ -266,6 +294,11 @@ namespace EvoVulkan::Types {
             renderPassBeginInfo.pClearValues             = clearValues;
 
             return renderPassBeginInfo;
+        }
+
+        inline void SetViewportAndScissor() const {
+            vkCmdSetViewport(m_cmdBuff, 0, 1, &m_viewport);
+            vkCmdSetScissor(m_cmdBuff, 0, 1, &m_scissor);
         }
 
         void Destroy() {
@@ -290,8 +323,11 @@ namespace EvoVulkan::Types {
         bool ReCreate(uint32_t width, uint32_t height) {
             this->Destroy();
 
-            this->m_width  = width;
-            this->m_height = height;
+            this->m_width    = width;
+            this->m_height   = height;
+
+            this->m_viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
+            this->m_scissor  = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
 
             if (!this->CreateAttachments() ||
                 !this->CreateFramebuffer() ||
@@ -308,17 +344,29 @@ namespace EvoVulkan::Types {
         static FrameBuffer* Create(
                 const Types::Device* device,
                 const Types::Swapchain* swapchain,
+                const Types::CmdPool* pool,
                 const std::vector<VkFormat>& attachments,
                 uint32_t width, uint32_t height)
         {
             auto fbo = new FrameBuffer();
             {
+                fbo->m_cmdPool       = pool;
                 fbo->m_device        = device;
                 fbo->m_swapchain     = swapchain;
                 fbo->m_countAttach   = attachments.size();
                 fbo->m_attachFormats = attachments;
                 fbo->m_depthFormat   = Tools::GetDepthFormat(*device);
             }
+
+            auto semaphoreCI  = Tools::Initializers::SemaphoreCreateInfo();
+            if (vkCreateSemaphore(*device, &semaphoreCI, nullptr, &fbo->m_semaphore) != VK_SUCCESS) {
+                VK_ERROR("Framebuffer::Create() : failed to create vulkan semaphore!");
+                return nullptr;
+            }
+
+
+            fbo->m_cmdBuff    = Types::CmdBuffer::CreateSimple(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+            fbo->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
 
             if (!fbo->CreateRenderPass()) {
                 VK_ERROR("Framebuffer::Create() : failed to create render pass!");
@@ -346,10 +394,24 @@ namespace EvoVulkan::Types {
         }
 
         void Free() {
+            if (m_semaphore != VK_NULL_HANDLE) {
+                vkDestroySemaphore(*m_device, m_semaphore, nullptr);
+                m_semaphore = VK_NULL_HANDLE;
+            }
+
+            if (m_cmdBuff != VK_NULL_HANDLE) {
+                vkFreeCommandBuffers(*m_device, *m_cmdPool, 1, &m_cmdBuff);
+                m_cmdBuff = VK_NULL_HANDLE;
+            }
+
             if (m_renderPass != VK_NULL_HANDLE) {
                 vkDestroyRenderPass(*m_device, m_renderPass, nullptr);
                 m_renderPass = VK_NULL_HANDLE;
             }
+
+            this->m_device    = nullptr;
+            this->m_swapchain = nullptr;
+            this->m_cmdPool   = nullptr;
 
             delete this;
         }

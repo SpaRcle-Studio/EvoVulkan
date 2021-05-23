@@ -121,3 +121,16 @@ bool EvoVulkan::Types::CmdBuffer::End() {
     return true;
 }
 
+VkCommandBuffer EvoVulkan::Types::CmdBuffer::CreateSimple(const Device* device,
+                                                          const CmdPool* cmdPool,
+                                                          const VkCommandBufferLevel& level) {
+    VkCommandBufferAllocateInfo cmdBufAllocateInfo = Tools::Initializers::CommandBufferAllocateInfo(*cmdPool, level, 1);
+    VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
+    if (vkAllocateCommandBuffers(*device, &cmdBufAllocateInfo, &cmdBuffer) != VK_SUCCESS) {
+        VK_ERROR("CmdBuffer::CreateSimple() : failed to allocate vulkan command buffer!");
+        return VK_NULL_HANDLE;
+    }
+    else
+        return cmdBuffer;
+}
+

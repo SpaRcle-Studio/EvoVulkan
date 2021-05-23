@@ -28,8 +28,8 @@ int main() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    unsigned int width     = 200; //1280
-    unsigned int height    = 200; //820
+    unsigned int width     = 600; //1280
+    unsigned int height    = 600; //820
     bool validationEnabled = true;
 
     auto window = glfwCreateWindow((int)width, (int)height, "Vulkan application", nullptr, nullptr); //1280, 1024

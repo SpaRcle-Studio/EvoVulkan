@@ -29,10 +29,21 @@ bool EvoVulkan::Complexes::Shader::Load(
         return false;
     }
 
+    auto modules_names = std::string();
+    for (const auto & module : modules)
+        modules_names += std::string(module.first).append(" ");
+    VK_LOG("Shader::Load() : load new shader...\n\tSource: " + source + "\n\tModules: " + modules_names);
+
+
     if (!uniformSizes.empty())
         this->m_uniformSizes   = uniformSizes;
 
     this->m_layoutBindings = descriptorLayoutBindings;
+    for (size_t t = 0; t < m_layoutBindings.size(); t++)
+        if (t != m_layoutBindings[t].binding) {
+            VK_ERROR("Shader::Load() : incorrect layout bindings! Binding: " + std::to_string(t));
+            return false;
+        }
 
     for (auto module : modules) {
         std::string out = cache + "/" + std::string(module.first) + ".spv";

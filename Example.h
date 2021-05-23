@@ -16,20 +16,25 @@
 #include <GLFW/glfw3.h>
 
 #include <EvoVulkan/Types/Texture.h>
-#include <EvoVulkan/Types/Framebuffer.h>
 
 #include <stbi.h>
 
 #include <EvoVulkan/VulkanKernel.h>
+
 #include <EvoVulkan/Complexes/Shader.h>
 #include <EvoVulkan/Complexes/Mesh.h>
+#include <EvoVulkan/Complexes/Framebuffer.h>
 
 using namespace EvoVulkan;
 
-struct UniformBuffer {
+struct ModelUniformBuffer {
     glm::mat4 projection;
     glm::mat4 view;
     glm::mat4 model;
+};
+
+struct PPUniformBuffer {
+    float gamma;
 };
 
 struct Vertex {
@@ -83,31 +88,44 @@ const float skyboxVertices[36 * 3] = {
 };
 
 struct mesh {
-    VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
-    Types::Buffer*  m_uniformBuffer = nullptr;
-    Types::Buffer*  m_vertexBuffer  = nullptr;
-    Types::Buffer*  m_indexBuffer   = nullptr;
-    UniformBuffer   m_ubo           = {};
-    uint64_t        m_countIndices  = 0;
+    Core::DescriptorManager* m_descrManager  = nullptr;
+    Core::DescriptorSet      m_descriptorSet = {};
+
+    Types::Buffer*           m_uniformBuffer = nullptr;
+    Types::Buffer*           m_vertexBuffer  = nullptr;
+    Types::Buffer*           m_indexBuffer   = nullptr;
+    ModelUniformBuffer       m_ubo           = {};
+    uint64_t                 m_countIndices  = 0;
 
     __forceinline void Draw(const VkCommandBuffer& cmd, const VkPipelineLayout& layout) const {
         VkDeviceSize offsets[1] = {0};
 
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &m_descriptorSet, 0, NULL);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &m_descriptorSet.m_self, 0, NULL);
         vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertexBuffer->m_buffer, offsets);
         vkCmdBindIndexBuffer(cmd, m_indexBuffer->m_buffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdDrawIndexed(cmd, m_countIndices, 1, 0, 0, 0);
+    }
+
+    void Destroy() {
+        if (m_descriptorSet.m_self != VK_NULL_HANDLE) {
+            m_descrManager->FreeDescriptorSet(m_descriptorSet);
+            m_descriptorSet = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+        }
     }
 };
 
 class VulkanExample : public Core::VulkanKernel {
 private:
     Complexes::Shader*          m_geometry            = nullptr;
+
     Complexes::Shader*          m_postProcessing      = nullptr;
+    Core::DescriptorSet         m_PPDescriptorSet     = { };
+    Types::Buffer*              m_PPUniformBuffer     = nullptr;
+
     Types::Texture*             m_texture             = nullptr;
 
-    Types::FrameBuffer*         m_offscreen           = nullptr;
+    Complexes::FrameBuffer*     m_offscreen           = nullptr;
 
     mesh meshes[3];
     mesh skybox;
@@ -116,7 +134,7 @@ public:
         if (this->PrepareFrame() == Core::FrameResult::OutOfDate)
             this->m_hasErrors = !this->ResizeWindow();
 
-        // Command buffer to be submitted to the queue
+        /*// Command buffer to be submitted to the queue
         m_submitInfo.commandBufferCount = 1;
         m_submitInfo.pCommandBuffers    = &m_drawCmdBuffs[m_currentBuffer];
 
@@ -124,6 +142,26 @@ public:
         auto result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &m_submitInfo, VK_NULL_HANDLE);
         if (result != VK_SUCCESS) {
             VK_ERROR("renderFunction() : failed to queue submit!");
+            return;
+        }*/
+
+        m_submitInfo.commandBufferCount = 1;
+
+        m_submitInfo.pWaitSemaphores    = &m_syncs.m_presentComplete;
+        m_submitInfo.pSignalSemaphores  = &m_offscreen->m_semaphore;
+        m_submitInfo.pCommandBuffers    = &m_offscreen->m_cmdBuff;
+        auto result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &m_submitInfo, VK_NULL_HANDLE);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("renderFunction() : failed to first queue submit!");
+            return;
+        }
+
+        m_submitInfo.pWaitSemaphores    = &m_offscreen->m_semaphore;
+        m_submitInfo.pSignalSemaphores  = &m_syncs.m_renderComplete;
+        m_submitInfo.pCommandBuffers    = &m_drawCmdBuffs[m_currentBuffer];
+        result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &m_submitInfo, VK_NULL_HANDLE);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("renderFunction() : failed to second queue submit!");
             return;
         }
 
@@ -189,8 +227,10 @@ public:
         int i = 0;
         for (auto & _mesh : meshes) {
             glm::mat4 model = glm::mat4(1);
-            model = glm::translate(model, glm::vec3(i * 2.5, 0, 5 * i));
+            model = glm::translate(model, glm::vec3(i * 2.5, 0, -5 * i));
            // model *= glm::mat4(glm::angleAxis(glm::radians(f), glm::vec3(0, 1, 0)));
+
+           model *= glm::mat4(glm::angleAxis(glm::radians(10.f * (float)i), glm::vec3(0, 1, 0)));
 
             i++;
 
@@ -200,14 +240,14 @@ public:
                     model
             };
 
-            _mesh.m_uniformBuffer->CopyToDevice(&_mesh.m_ubo, sizeof(UniformBuffer));
+            _mesh.m_uniformBuffer->CopyToDevice(&_mesh.m_ubo, sizeof(ModelUniformBuffer));
         }
     }
 
     bool LoadTexture() {
         int w, h, channels;
-        uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\miku.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
-        //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\An exception has occured.jpg)", &w, &h, &channels, STBI_rgb_alpha);
+        //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\miku.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
+        uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\An exception has occured.jpg)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\akira-(been0328)-Anime-kaguya-sama-wa-kokurasetai-_tensai-tachi-no-renai-zunousen_-Shinomiya-Kaguya-5003254.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\5UyhDcR0p8g.jpg)", &w, &h, &channels, STBI_rgb_alpha);
         if (!pixels) {
@@ -224,13 +264,33 @@ public:
         return true;
     }
 
+    bool UpdatePP() {
+        auto attach0 = m_offscreen->GetImageDescriptors()[0];
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+                // Binding 0 : Fragment shader uniform buffer
+                Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
+                                                        &m_PPUniformBuffer->m_descriptor),
+
+                // Binding 1: Fragment shader sampler
+                Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                                                        &attach0)
+        };
+
+        vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+
+        return true;
+    }
+
     bool SetupUniforms() {
+        // geometry
         for (auto & _mesh : meshes) {
+            _mesh.m_descrManager = m_descriptorManager;
+
             _mesh.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(
                     m_geometry->GetDescriptorSetLayout(),
                     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}
             );
-            if (!_mesh.m_descriptorSet) {
+            if (_mesh.m_descriptorSet.m_self == VK_NULL_HANDLE) {
                 VK_ERROR("VulkanExample::SetupDescriptors() : failed to allocate descriptor sets!");
                 return false;
             }
@@ -241,7 +301,7 @@ public:
                     m_device,
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-                    sizeof(UniformBuffer));
+                    sizeof(ModelUniformBuffer));
 
             // Setup a descriptor image info for the current texture to be used as a combined image sampler
             VkDescriptorImageInfo textureDescriptor;
@@ -251,41 +311,56 @@ public:
 
             std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                     // Binding 0 : Vertex shader uniform buffer
-                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
+                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
                                                             &_mesh.m_uniformBuffer->m_descriptor),
 
-                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                                             &textureDescriptor)
             };
             vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
         }
 
-        return true;
+        // post processing
+        this->m_PPDescriptorSet = this->m_descriptorManager->AllocateDescriptorSets(m_postProcessing->GetDescriptorSetLayout(), {
+                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+        });
+
+        m_PPUniformBuffer = EvoVulkan::Types::Buffer::Create(
+                m_device,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+                sizeof(PPUniformBuffer));
+
+        return UpdatePP();
     }
     bool SetupShader() {
-        this->m_geometry = new Complexes::Shader(GetDevice(), GetRenderPass(), GetPipelineCache());
+        //this->m_geometry = new Complexes::Shader(GetDevice(), GetRenderPass(), GetPipelineCache());
+        this->m_geometry = new Complexes::Shader(GetDevice(), m_offscreen->GetRenderPass(), GetPipelineCache());
 
         m_geometry->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
-                       {
-                               {"geometry.vert", VK_SHADER_STAGE_VERTEX_BIT},
-                               {"geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
-                       },
-                       {
-                               Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                                               VK_SHADER_STAGE_VERTEX_BIT, 0),
+                         {
+                                 {"geometry.vert", VK_SHADER_STAGE_VERTEX_BIT},
+                                 {"geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
+                         },
+                         {
+                                 Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                                                 VK_SHADER_STAGE_VERTEX_BIT, 0),
 
-                               Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                                               VK_SHADER_STAGE_FRAGMENT_BIT, 1),
-                       },
-                       {
-                               sizeof(UniformBuffer)
-                       });
+                                 Tools::Initializers::DescriptorSetLayoutBinding(
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                         VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+                         },
+                         {
+                                 sizeof(ModelUniformBuffer)
+                         });
 
         m_geometry->SetVertexDescriptions(
-                { Tools::Initializers::VertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX) },
+                {Tools::Initializers::VertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)},
                 {
-                    Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)),
-                    Tools::Initializers::VertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,    offsetof(Vertex, uv))
+                        Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT,
+                                                                             offsetof(Vertex, position)),
+                        Tools::Initializers::VertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,
+                                                                             offsetof(Vertex, uv))
                 }
         );
 
@@ -294,24 +369,32 @@ public:
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_FALSE,
-                VK_TRUE,
+                VK_TRUE, //
                 1
         );
 
         //!=============================================================================================================
 
-        this->m_postProcessing = new Complexes::Shader(GetDevice(), this->m_offscreen->GetRenderPass(), GetPipelineCache());
+        //this->m_postProcessing = new Complexes::Shader(GetDevice(), this->m_offscreen->GetRenderPass(), GetPipelineCache());
+        this->m_postProcessing = new Complexes::Shader(GetDevice(), this->GetRenderPass(), GetPipelineCache());
 
         m_postProcessing->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
-                         {
-                                 {"post_processing.vert", VK_SHADER_STAGE_VERTEX_BIT},
-                                 {"post_processing.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
-                         },
-                         {
-                                 Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                                                 VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-                         },
-                         { });
+                               {
+                                       {"post_processing.vert", VK_SHADER_STAGE_VERTEX_BIT},
+                                       {"post_processing.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
+                               },
+                               {
+                                       Tools::Initializers::DescriptorSetLayoutBinding(
+                                               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                               VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+
+                                       Tools::Initializers::DescriptorSetLayoutBinding(
+                                               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                               VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+                               },
+                               {
+                                       sizeof(PPUniformBuffer)
+                               });
 
         m_postProcessing->Compile(
                 VK_POLYGON_MODE_FILL,
@@ -370,29 +453,47 @@ public:
     }
 
     bool BuildCmdBuffers() override {
-        VkCommandBufferBeginInfo cmdBufInfo = {};
-        cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmdBufInfo.pNext = nullptr;
+        VkClearValue clearValues[2] {
+                { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
+                { .depthStencil = { 1.0f, 0 } }
+        };
 
-        // Set clear values for all framebuffer attachments with loadOp set to clear
-        // We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
+        VkRenderPassBeginInfo renderPassBeginInfo = m_offscreen->BeginRenderPass(&clearValues[0], 2);
 
-        VkRenderPassBeginInfo renderPassBeginInfo = {};
-        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassBeginInfo.pNext = nullptr;
-        renderPassBeginInfo.renderPass = m_renderPass;
-        renderPassBeginInfo.renderArea.offset.x = 0;
-        renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = m_width;
-        renderPassBeginInfo.renderArea.extent.height = m_height;
-        renderPassBeginInfo.clearValueCount = 2;
-        renderPassBeginInfo.pClearValues = m_clearValues;
+        m_offscreen->BeginCmd();
+        vkCmdBeginRenderPass(m_offscreen->GetCmd(), &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        m_offscreen->SetViewportAndScissor();
+
+        {
+            vkCmdBindPipeline(m_offscreen->GetCmd(), VK_PIPELINE_BIND_POINT_GRAPHICS, *m_geometry);
+
+            for (auto & _mesh : meshes)
+                _mesh.Draw(m_offscreen->GetCmd(), m_geometry->GetPipelineLayout());
+        }
+
+        m_offscreen->End();
+
+        return BuildCmdBuffersPostProcess();
+    }
+
+    bool BuildCmdBuffersPostProcess() {
+        VkCommandBufferBeginInfo cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
+
+        VkClearValue clearValues[2] {
+                { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
+                { .depthStencil = { 1.0f, 0 } }
+        };
+
+        auto renderPassBI = Tools::Insert::RenderPassBeginInfo(
+                m_width, m_height, m_renderPass,
+                VK_NULL_HANDLE, &clearValues[0], 2);
 
         for (int i = 0; i < 3; i++) {
-            renderPassBeginInfo.framebuffer = m_frameBuffers[i];
+            renderPassBI.framebuffer = m_frameBuffers[i];
 
             vkBeginCommandBuffer(m_drawCmdBuffs[i], &cmdBufInfo);
-            vkCmdBeginRenderPass(m_drawCmdBuffs[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(m_drawCmdBuffs[i], &renderPassBI, VK_SUBPASS_CONTENTS_INLINE);
 
             VkViewport viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
             vkCmdSetViewport(m_drawCmdBuffs[i], 0, 1, &viewport);
@@ -400,23 +501,10 @@ public:
             VkRect2D scissor = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
             vkCmdSetScissor(m_drawCmdBuffs[i], 0, 1, &scissor);
 
-            {
-                vkCmdBindPipeline(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_geometry->GetPipeline());
+            vkCmdBindPipeline(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_postProcessing);
+            vkCmdBindDescriptorSets(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_postProcessing->GetPipelineLayout(), 0, 1, &m_PPDescriptorSet.m_self, 0, NULL);
 
-                //vkCmdDraw(m_drawCmdBuffs[i], 3, 1, 0, 0);
-
-                for (auto & _mesh : meshes) {
-                    /*VkDeviceSize offsets[1] = {0};
-                    vkCmdBindDescriptorSets(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                            m_shader->GetPipelineLayout(), 0, 1, &_mesh.m_descriptorSet, 0, NULL);
-                    vkCmdBindVertexBuffers(m_drawCmdBuffs[i], 0, 1, &_mesh.m_vertexBuffer->m_buffer, offsets);
-                    vkCmdBindIndexBuffer(m_drawCmdBuffs[i], _mesh.m_indexBuffer->m_buffer, 0, VK_INDEX_TYPE_UINT32);
-
-                    vkCmdDrawIndexed(m_drawCmdBuffs[i], 6, 1, 0, 0, 0);*/
-
-                    _mesh.Draw(m_drawCmdBuffs[i], m_geometry->GetPipelineLayout());
-                }
-            }
+            vkCmdDraw(m_drawCmdBuffs[i], 3, 1, 0, 0);
 
             vkCmdEndRenderPass(m_drawCmdBuffs[i]);
             vkEndCommandBuffer(m_drawCmdBuffs[i]);
@@ -432,18 +520,19 @@ public:
         EVSafeFreeObject(m_postProcessing);
 
         for (auto & _mesh : meshes)
-            _mesh.m_uniformBuffer->Destroy();
+            _mesh.Destroy();
 
         return VulkanKernel::Destroy();
     }
 
     bool OnComplete() override {
-        this->m_offscreen = Types::FrameBuffer::Create(
+        this->m_offscreen = Complexes::FrameBuffer::Create(
                 m_device,
                 m_swapchain,
+                m_cmdPool,
                 {
                         VK_FORMAT_R8G8B8A8_UNORM,
-                        VK_FORMAT_R8G8B8A8_UNORM,
+                        //VK_FORMAT_R8G8B8A8_UNORM,
                 },
                 m_width,
                 m_height);
@@ -455,7 +544,11 @@ public:
     }
 
     bool OnResize() override {
-        return m_offscreen ? this->m_offscreen->ReCreate(m_width, m_height) : true;
+        vkQueueWaitIdle(m_device->GetGraphicsQueue());
+        vkDeviceWaitIdle(*m_device);
+
+        return m_offscreen ? (this->m_offscreen->ReCreate(m_width, m_height) && UpdatePP()) : true;
+        //return true;
     }
 };
 

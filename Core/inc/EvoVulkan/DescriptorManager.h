@@ -39,6 +39,11 @@ namespace EvoVulkan::Core {
                 VkDescriptorSetLayout layout,
                 VkDevice device, const std::set<VkDescriptorType>& requestTypes)
         {
+            if (requestTypes.empty()) {
+                VK_ERROR("DescriptorPool::Create() : request types is empty!");
+                return nullptr;
+            }
+
             auto* pool = new DescriptorPool(maxSets);
 
             pool->m_layout = layout;
@@ -58,6 +63,8 @@ namespace EvoVulkan::Core {
 
             VkDescriptorPoolCreateInfo descriptorPoolCI =
                     Tools::Initializers::DescriptorPoolCreateInfo(sizes.size(), sizes.data(), maxSets);
+
+            descriptorPoolCI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
             VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &pool->m_pool);
             if (vkRes != VK_NULL_HANDLE) {
@@ -90,12 +97,13 @@ namespace EvoVulkan::Core {
                                  m_requestTypes.begin());
         }
 
-        [[nodiscard]] VkDescriptorSet* FindFree() const {
+        [[nodiscard]] int64_t FindFree() const {
             for (uint32_t t = 0; t < m_maxSets; t++)
                 if (m_descriptorSets[t] == VK_NULL_HANDLE)
-                    return &m_descriptorSets[t];
+                    return t;
+                    //return &m_descriptorSets[t];
 
-            return nullptr;
+            return -1;
         }
     public:
         std::set<VkDescriptorType> m_requestTypes   = std::set<VkDescriptorType>();
@@ -109,6 +117,13 @@ namespace EvoVulkan::Core {
         uint32_t                   m_used           = 0;
         const uint32_t             m_maxSets        = 0;
         VkDescriptorSet*           m_descriptorSets = nullptr;
+    };
+
+    struct DescriptorSet {
+        VkDescriptorSet       m_self;
+        VkDescriptorSetLayout m_layout;
+
+        //operator VkDescriptorSet() { return m_self; }
     };
 
     class DescriptorManager {
@@ -136,7 +151,8 @@ namespace EvoVulkan::Core {
     public:
         void Reset();
     public:
-        VkDescriptorSet AllocateDescriptorSets(VkDescriptorSetLayout layout, const std::set<VkDescriptorType>& requestTypes);
+        DescriptorSet AllocateDescriptorSets(VkDescriptorSetLayout layout, const std::set<VkDescriptorType>& requestTypes);
+        bool FreeDescriptorSet(Core::DescriptorSet descriptorSet);
     };
 }
 

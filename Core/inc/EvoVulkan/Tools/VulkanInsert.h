@@ -8,6 +8,25 @@
 #include <vulkan/vulkan.h>
 
 namespace EvoVulkan::Tools::Insert {
+    static VkRenderPassBeginInfo RenderPassBeginInfo(
+            const uint32_t width,
+            const uint32_t height,
+            const VkRenderPass& renderPass,
+            const VkFramebuffer& framebuffer,
+            VkClearValue* clearValues,
+            const uint32_t countValues)
+    {
+        return VkRenderPassBeginInfo {
+            .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .pNext           = nullptr,
+            .renderPass      = renderPass,
+            .framebuffer     = framebuffer,
+            .renderArea      = { VkOffset2D(), { width, height } },
+            .clearValueCount = countValues,
+            .pClearValues    = clearValues
+        };
+    }
+
     static void ImageMemoryBarrier(
             VkCommandBuffer command_buffer,
             VkImage image,

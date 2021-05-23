@@ -9,6 +9,9 @@
 
 #include <iostream>
 
+#include <cstring>
+#include <cmath>
+
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
 

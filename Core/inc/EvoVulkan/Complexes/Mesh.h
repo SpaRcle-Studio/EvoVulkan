@@ -77,7 +77,8 @@ namespace EvoVulkan::Complexes {
         Types::Buffer const*     m_indices           = nullptr;
         uint32_t                 m_countIndices      = 0;
 
-        VkDescriptorSet          m_descriptorSet     = VK_NULL_HANDLE;
+        //VkDescriptorSet          m_descriptorSet     = VK_NULL_HANDLE;
+        Core::DescriptorSet      m_descriptorSet     = { };
 
         //Types::Buffer**          m_uniforms          = nullptr;
         //uint32_t                 m_countUniforms     = 0;

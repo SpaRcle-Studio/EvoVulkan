@@ -371,6 +371,12 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineColorBlendAttachmentState;
     }
 
+    static VkCommandBufferBeginInfo CommandBufferBeginInfo() {
+        VkCommandBufferBeginInfo cmdBufferBeginInfo {};
+        cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        return cmdBufferBeginInfo;
+    }
+
     static VkPipelineColorBlendStateCreateInfo PipelineColorBlendStateCreateInfo(
             uint32_t attachmentCount,
             const VkPipelineColorBlendAttachmentState * pAttachments)
