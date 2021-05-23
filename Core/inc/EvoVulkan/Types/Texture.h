@@ -13,17 +13,45 @@
 
 namespace EvoVulkan::Types {
     struct Texture {
-        VkDeviceMemory m_deviceMemory = VK_NULL_HANDLE;
-        VkImage        m_image        = VK_NULL_HANDLE;
-        VkImageView    m_view         = VK_NULL_HANDLE;
+        VkDeviceMemory       m_deviceMemory = VK_NULL_HANDLE;
+        VkImage              m_image        = VK_NULL_HANDLE;
+        VkImageView          m_view         = VK_NULL_HANDLE;
 
-        VkSampler      m_sampler      = VK_NULL_HANDLE;
+        VkSampler            m_sampler      = VK_NULL_HANDLE;
 
-        VkImageLayout  m_imageLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
-        VkFormat       m_format       = VK_FORMAT_UNDEFINED;
-        uint32_t       m_width        = 0,
-                       m_height       = 0;
-        uint32_t       m_mipLevels    = 0;
+        VkImageLayout        m_imageLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkFormat             m_format       = VK_FORMAT_UNDEFINED;
+        uint32_t             m_width        = 0,
+                             m_height       = 0;
+        uint32_t             m_mipLevels    = 0;
+
+        const Types::Device* m_device       = nullptr;
+
+        void Destroy() {
+            if (m_sampler != VK_NULL_HANDLE) {
+                vkDestroySampler(*m_device, m_sampler, nullptr);
+                m_sampler = VK_NULL_HANDLE;
+            }
+
+            if (m_view != VK_NULL_HANDLE) {
+                vkDestroyImageView(*m_device, m_view, nullptr);
+                m_view = VK_NULL_HANDLE;
+            }
+
+            if (m_image != VK_NULL_HANDLE) {
+                vkDestroyImage(*m_device, m_image, nullptr);
+                m_image = VK_NULL_HANDLE;
+            }
+
+            if (m_deviceMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(*m_device, m_deviceMemory, nullptr);
+                m_deviceMemory = VK_NULL_HANDLE;
+            }
+        }
+
+        void Free() {
+            delete this;
+        }
 
         static bool GenerateMipmaps(Texture* texture, Types::CmdBuffer* singleBuffer);
 

@@ -15,6 +15,12 @@ namespace EvoVulkan::Types {
     * @note To be filled by an external source like the VulkanDevice
     */
     struct Buffer {
+    private:
+        Buffer()  = default;
+        ~Buffer() = default;
+    public:
+        Buffer(const Buffer&) = delete;
+
         static Buffer* Create(
                 const Device* device,
                 VkBufferUsageFlags usageFlags,
@@ -49,6 +55,9 @@ namespace EvoVulkan::Types {
         VkResult Invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) const;
 
         void Destroy();
+        void Free() {
+            delete this;
+        }
     };
 }
 

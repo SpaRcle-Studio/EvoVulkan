@@ -111,6 +111,10 @@ namespace EvoVulkan::Complexes {
     class FrameBuffer {
         uint32_t                 m_width         = 0,
                                  m_height        = 0,
+
+                                 m_baseWidth     = 0,
+                                 m_baseHeight    = 0,
+
                                  m_countAttach   = 0;
 
         VkFramebuffer            m_framebuffer   = VK_NULL_HANDLE;
@@ -122,6 +126,8 @@ namespace EvoVulkan::Complexes {
         VkFormat                 m_depthFormat   = VK_FORMAT_UNDEFINED;
 
         FrameBufferAttachment    m_depth         = {};
+
+        float                    m_scale         = 1.f;
 
         const Types::Device*     m_device        = nullptr;
         const Types::Swapchain*  m_swapchain     = nullptr;
@@ -278,7 +284,7 @@ namespace EvoVulkan::Complexes {
         inline void BeginCmd() {
             vkBeginCommandBuffer(m_cmdBuff, &m_cmdBufInfo);
         }
-        inline void End() {
+        inline void End() const {
             vkCmdEndRenderPass(m_cmdBuff);
             vkEndCommandBuffer(m_cmdBuff);
         }
@@ -309,6 +315,8 @@ namespace EvoVulkan::Complexes {
                 m_attachments = nullptr;
             }
 
+            m_depth.Destroy();
+
             if (m_framebuffer != VK_NULL_HANDLE) {
                 vkDestroyFramebuffer(*m_device, m_framebuffer, nullptr);
                 m_framebuffer = VK_NULL_HANDLE;
@@ -323,8 +331,11 @@ namespace EvoVulkan::Complexes {
         bool ReCreate(uint32_t width, uint32_t height) {
             this->Destroy();
 
-            this->m_width    = width;
-            this->m_height   = height;
+            this->m_baseWidth  = width;
+            this->m_baseHeight = height;
+
+            this->m_width    = m_baseWidth  * m_scale;
+            this->m_height   = m_baseHeight * m_scale;
 
             this->m_viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
             this->m_scissor  = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
@@ -346,10 +357,17 @@ namespace EvoVulkan::Complexes {
                 const Types::Swapchain* swapchain,
                 const Types::CmdPool* pool,
                 const std::vector<VkFormat>& attachments,
-                uint32_t width, uint32_t height)
+                uint32_t width, uint32_t height,
+                float scale = 1.f)
         {
+            if (scale <= 0.f) {
+                VK_ERROR("Framebuffer::Create() : scale <= zero!");
+                return nullptr;
+            }
+
             auto fbo = new FrameBuffer();
             {
+                fbo->m_scale         = scale;
                 fbo->m_cmdPool       = pool;
                 fbo->m_device        = device;
                 fbo->m_swapchain     = swapchain;

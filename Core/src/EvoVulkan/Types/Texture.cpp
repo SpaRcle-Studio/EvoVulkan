@@ -37,6 +37,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
         texture->m_height    = height;
         texture->m_mipLevels = mipLevels;
         texture->m_format    = format;
+        texture->m_device    = device;
     }
 
     uint64_t imageSize = texture->m_width * texture->m_height * channels;

@@ -18,6 +18,7 @@
 #include <EvoVulkan/Types/Texture.h>
 
 #include <stbi.h>
+#include <tinyobjloader.h>
 
 #include <EvoVulkan/VulkanKernel.h>
 
@@ -33,6 +34,12 @@ struct ModelUniformBuffer {
     glm::mat4 model;
 };
 
+struct SkyboxlUniformBuffer {
+    glm::mat4 projection;
+    glm::mat4 view;
+    glm::vec3 camPos;
+};
+
 struct PPUniformBuffer {
     float gamma;
 };
@@ -40,51 +47,6 @@ struct PPUniformBuffer {
 struct Vertex {
     float position[3];
     float uv[2];
-};
-
-const float skyboxVertices[36 * 3] = {
-        // positions
-        -10.0f,  10.0f, -10.0f,
-        -10.0f, -10.0f, -10.0f,
-        10.0f, -10.0f, -10.0f,
-        10.0f, -10.0f, -10.0f,
-        10.0f,  10.0f, -10.0f,
-        -10.0f,  10.0f, -10.0f,
-
-        -10.0f, -10.0f,  10.0f,
-        -10.0f, -10.0f, -10.0f,
-        -10.0f,  10.0f, -10.0f,
-        -10.0f,  10.0f, -10.0f,
-        -10.0f,  10.0f,  10.0f,
-        -10.0f, -10.0f,  10.0f,
-
-        10.0f, -10.0f, -10.0f,
-        10.0f, -10.0f,  10.0f,
-        10.0f,  10.0f,  10.0f,
-        10.0f,  10.0f,  10.0f,
-        10.0f,  10.0f, -10.0f,
-        10.0f, -10.0f, -10.0f,
-
-        -10.0f, -10.0f,  10.0f,
-        -10.0f,  10.0f,  10.0f,
-        10.0f,  10.0f,  10.0f,
-        10.0f,  10.0f,  10.0f,
-        10.0f, -10.0f,  10.0f,
-        -10.0f, -10.0f,  10.0f,
-
-        -10.0f,  10.0f, -10.0f,
-        10.0f,  10.0f, -10.0f,
-        10.0f,  10.0f,  10.0f,
-        10.0f,  10.0f,  10.0f,
-        -10.0f,  10.0f,  10.0f,
-        -10.0f,  10.0f, -10.0f,
-
-        -10.0f, -10.0f, -10.0f,
-        -10.0f, -10.0f,  10.0f,
-        10.0f, -10.0f, -10.0f,
-        10.0f, -10.0f, -10.0f,
-        -10.0f, -10.0f,  10.0f,
-        10.0f, -10.0f,  10.0f
 };
 
 struct mesh {
@@ -108,10 +70,18 @@ struct mesh {
     }
 
     void Destroy() {
+        EVSafeFreeObject(m_uniformBuffer);
+
+        m_vertexBuffer = nullptr;
+        m_indexBuffer  = nullptr;
+
         if (m_descriptorSet.m_self != VK_NULL_HANDLE) {
             m_descrManager->FreeDescriptorSet(m_descriptorSet);
             m_descriptorSet = { VK_NULL_HANDLE, VK_NULL_HANDLE };
         }
+
+        m_descrManager = nullptr;
+        m_countIndices = 0;
     }
 };
 
@@ -122,6 +92,9 @@ private:
     Complexes::Shader*          m_postProcessing      = nullptr;
     Core::DescriptorSet         m_PPDescriptorSet     = { };
     Types::Buffer*              m_PPUniformBuffer     = nullptr;
+
+    Types::Buffer*              m_planeVerticesBuff   = nullptr;
+    Types::Buffer*              m_planeIndicesBuff    = nullptr;
 
     Types::Texture*             m_texture             = nullptr;
 
@@ -424,7 +397,7 @@ public:
         // Create buffers
         // For the sake of simplicity we won't stage the vertex data to the gpu memory
         // Vertex buffer
-        auto vertexBuffer = Types::Buffer::Create(
+        this->m_planeVerticesBuff = Types::Buffer::Create(
                 m_device,
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -433,7 +406,7 @@ public:
         // return false;
 
         // Index buffer
-        auto indexBuffer = Types::Buffer::Create(
+        this->m_planeIndicesBuff = Types::Buffer::Create(
                 m_device,
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -441,8 +414,8 @@ public:
                 indices.data());
 
         for (auto &meshe : meshes) {
-            meshe.m_indexBuffer  = indexBuffer;
-            meshe.m_vertexBuffer = vertexBuffer;
+            meshe.m_indexBuffer  = m_planeIndicesBuff;
+            meshe.m_vertexBuffer = m_planeVerticesBuff;
             meshe.m_countIndices = indices.size();
         }
 
@@ -514,13 +487,26 @@ public:
     }
 
     bool Destroy() override {
+        VK_LOG("Example::Destroy() : destroy kernel inherit class...");
+
         EVSafeFreeObject(m_offscreen);
+
+        EVSafeFreeObject(m_texture);
+
+        EVSafeFreeObject(m_PPUniformBuffer);
+        if (m_PPDescriptorSet.m_self != VK_NULL_HANDLE) {
+            this->m_descriptorManager->FreeDescriptorSet(m_PPDescriptorSet);
+            m_PPDescriptorSet = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+        }
 
         EVSafeFreeObject(m_geometry);
         EVSafeFreeObject(m_postProcessing);
 
         for (auto & _mesh : meshes)
             _mesh.Destroy();
+
+        EVSafeFreeObject(m_planeVerticesBuff);
+        EVSafeFreeObject(m_planeIndicesBuff);
 
         return VulkanKernel::Destroy();
     }
@@ -531,11 +517,12 @@ public:
                 m_swapchain,
                 m_cmdPool,
                 {
-                        VK_FORMAT_R8G8B8A8_UNORM,
+                        VK_FORMAT_R32G32B32A32_SFLOAT,
                         //VK_FORMAT_R8G8B8A8_UNORM,
                 },
                 m_width,
-                m_height);
+                m_height,
+                1);
 
         if (!m_offscreen)
             return false;
