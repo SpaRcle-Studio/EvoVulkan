@@ -286,10 +286,15 @@ bool EvoVulkan::Types::Swapchain::CreateBuffers() {
         colorAttachmentView.pNext = NULL;
         colorAttachmentView.format = m_colorFormat;
         colorAttachmentView.components = {
-                VK_COMPONENT_SWIZZLE_R,
-                VK_COMPONENT_SWIZZLE_G,
-                VK_COMPONENT_SWIZZLE_B,
-                VK_COMPONENT_SWIZZLE_A
+                //VK_COMPONENT_SWIZZLE_R,
+                //VK_COMPONENT_SWIZZLE_G,
+                //VK_COMPONENT_SWIZZLE_B,
+                //VK_COMPONENT_SWIZZLE_A
+
+                VK_COMPONENT_SWIZZLE_IDENTITY,
+                VK_COMPONENT_SWIZZLE_IDENTITY,
+                VK_COMPONENT_SWIZZLE_IDENTITY,
+                VK_COMPONENT_SWIZZLE_IDENTITY
         };
         colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         colorAttachmentView.subresourceRange.baseMipLevel = 0;

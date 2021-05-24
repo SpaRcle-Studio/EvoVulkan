@@ -104,8 +104,25 @@ bool EvoVulkan::Complexes::Shader::Compile(
 
     std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {};
 
-    for (uint32_t i = 0; i < countAttachments; i++)
-        blendAttachmentStates.push_back(Tools::Initializers::PipelineColorBlendAttachmentState(0xf, blendEnable));
+    for (uint32_t i = 0; i < countAttachments; i++) {
+        auto writeMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        auto attch = Tools::Initializers::PipelineColorBlendAttachmentState(writeMask, blendEnable);
+
+        attch.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        attch.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+        attch.colorBlendOp        = VK_BLEND_OP_ADD;
+
+        //attch.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        attch.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        //attch.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        attch.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+        blendAttachmentStates.push_back(attch);
+
+
+        //blendAttachmentStates.push_back(Tools::Initializers::PipelineColorBlendAttachmentState(0xf, blendEnable));
+    }
 
     VkPipelineColorBlendStateCreateInfo colorBlendState =
             Tools::Initializers::PipelineColorBlendStateCreateInfo(countAttachments, blendAttachmentStates.data());

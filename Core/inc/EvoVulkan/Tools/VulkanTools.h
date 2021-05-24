@@ -361,7 +361,8 @@ namespace EvoVulkan::Tools {
         viewCI.image                           = image;
         viewCI.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
         viewCI.format                          = format;
-        //viewCI.components                      = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
+        viewCI.components                      = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+        //viewCI.components                      = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
         viewCI.subresourceRange.aspectMask     = imageAspectFlags; //VK_IMAGE_ASPECT_COLOR_BIT;
         viewCI.subresourceRange.baseMipLevel   = 0;
         viewCI.subresourceRange.baseArrayLayer = 0;

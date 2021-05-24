@@ -34,7 +34,7 @@ struct ModelUniformBuffer {
     glm::mat4 model;
 };
 
-struct SkyboxlUniformBuffer {
+struct SkyboxUniformBuffer {
     glm::mat4 projection;
     glm::mat4 view;
     glm::vec3 camPos;
@@ -118,6 +118,7 @@ public:
             return;
         }*/
 
+
         m_submitInfo.commandBufferCount = 1;
 
         m_submitInfo.pWaitSemaphores    = &m_syncs.m_presentComplete;
@@ -200,7 +201,7 @@ public:
         int i = 0;
         for (auto & _mesh : meshes) {
             glm::mat4 model = glm::mat4(1);
-            model = glm::translate(model, glm::vec3(i * 2.5, 0, -5 * i));
+            model = glm::translate(model, glm::vec3(i * 2.5, 0, 5 * i));
            // model *= glm::mat4(glm::angleAxis(glm::radians(f), glm::vec3(0, 1, 0)));
 
            model *= glm::mat4(glm::angleAxis(glm::radians(10.f * (float)i), glm::vec3(0, 1, 0)));
@@ -341,7 +342,7 @@ public:
                 VK_POLYGON_MODE_FILL,
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
-                VK_FALSE,
+                VK_TRUE,
                 VK_TRUE, //
                 1
         );
@@ -373,7 +374,7 @@ public:
                 VK_POLYGON_MODE_FILL,
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
-                VK_FALSE,
+                VK_TRUE,
                 VK_TRUE,
                 this->m_offscreen->GetCountAttachments()
         );
@@ -421,6 +422,42 @@ public:
 
         //auto* mesh = new Complexes::Mesh(m_device, vertexBuffer, indexBuffer, 6, m_descriptorManager);
         //mesh->Bake(m_shader);
+
+        return true;
+    }
+
+    bool BuildCmdBuffers123123123() {
+        VkCommandBufferBeginInfo cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
+
+        VkClearValue clearValues[2] {
+                { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
+                { .depthStencil = { 1.0f, 0 } }
+        };
+
+        auto renderPassBI = Tools::Insert::RenderPassBeginInfo(
+                m_width, m_height, m_renderPass,
+                VK_NULL_HANDLE, &clearValues[0], 2);
+
+        for (int i = 0; i < 3; i++) {
+            renderPassBI.framebuffer = m_frameBuffers[i];
+
+            vkBeginCommandBuffer(m_drawCmdBuffs[i], &cmdBufInfo);
+            vkCmdBeginRenderPass(m_drawCmdBuffs[i], &renderPassBI, VK_SUBPASS_CONTENTS_INLINE);
+
+            VkViewport viewport = Tools::Initializers::Viewport((float) m_width, (float) m_height, 0.0f, 1.0f);
+            vkCmdSetViewport(m_drawCmdBuffs[i], 0, 1, &viewport);
+
+            VkRect2D scissor = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
+            vkCmdSetScissor(m_drawCmdBuffs[i], 0, 1, &scissor);
+
+            vkCmdBindPipeline(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_geometry);
+
+            for (auto &_mesh : meshes)
+                _mesh.Draw(m_drawCmdBuffs[i], m_geometry->GetPipelineLayout());
+
+            vkCmdEndRenderPass(m_drawCmdBuffs[i]);
+            vkEndCommandBuffer(m_drawCmdBuffs[i]);
+        }
 
         return true;
     }
