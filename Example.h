@@ -9,6 +9,9 @@
 #define GLFW_INCLUDE_VULKAN
 #define VK_USE_PLATFORM_WIN32_KHR
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tinyobjloader.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -18,9 +21,10 @@
 #include <EvoVulkan/Types/Texture.h>
 
 #include <stbi.h>
-#include <tinyobjloader.h>
 
 #include <EvoVulkan/VulkanKernel.h>
+
+#include <EvoVulkan/Types/RenderPass.h>
 
 #include <EvoVulkan/Complexes/Shader.h>
 #include <EvoVulkan/Complexes/Mesh.h>
@@ -35,8 +39,7 @@ struct ModelUniformBuffer {
 };
 
 struct SkyboxUniformBuffer {
-    glm::mat4 projection;
-    glm::mat4 view;
+    glm::mat4 PVMat;
     glm::vec3 camPos;
 };
 
@@ -44,9 +47,13 @@ struct PPUniformBuffer {
     float gamma;
 };
 
-struct Vertex {
+struct VertexUV {
     float position[3];
     float uv[2];
+};
+
+struct Vertex {
+    float position[3];
 };
 
 struct mesh {
@@ -88,6 +95,7 @@ struct mesh {
 class VulkanExample : public Core::VulkanKernel {
 private:
     Complexes::Shader*          m_geometry            = nullptr;
+    Complexes::Shader*          m_skyboxShader        = nullptr;
 
     Complexes::Shader*          m_postProcessing      = nullptr;
     Core::DescriptorSet         m_PPDescriptorSet     = { };
@@ -95,6 +103,9 @@ private:
 
     Types::Buffer*              m_planeVerticesBuff   = nullptr;
     Types::Buffer*              m_planeIndicesBuff    = nullptr;
+
+    Types::Buffer*              m_skyboxVerticesBuff  = nullptr;
+    Types::Buffer*              m_skyboxIndicesBuff   = nullptr;
 
     Types::Texture*             m_texture             = nullptr;
 
@@ -204,7 +215,7 @@ public:
             model = glm::translate(model, glm::vec3(i * 2.5, 0, 5 * i));
            // model *= glm::mat4(glm::angleAxis(glm::radians(f), glm::vec3(0, 1, 0)));
 
-           model *= glm::mat4(glm::angleAxis(glm::radians(10.f * (float)i), glm::vec3(0, 1, 0)));
+            model *= glm::mat4(glm::angleAxis(glm::radians(10.f * (float)i), glm::vec3(0, 1, 0)));
 
             i++;
 
@@ -216,6 +227,73 @@ public:
 
             _mesh.m_uniformBuffer->CopyToDevice(&_mesh.m_ubo, sizeof(ModelUniformBuffer));
         }
+
+        SkyboxUniformBuffer ubo = {
+                projectionMatrix * view,
+                glm::vec3(x, y, z)
+        };
+
+        skybox.m_uniformBuffer->CopyToDevice(&ubo, sizeof(SkyboxUniformBuffer));
+    }
+
+    void LoadSkybox() {
+        tinyobj::attrib_t attrib;
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+        std::string warn, err;
+
+        std::vector<uint32_t> indices;
+        std::vector<Vertex> vertices;
+
+        if (tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, R"(J:\C++\GameEngine\Resources\Models\skybox3.obj)"))
+            for (const auto& shape : shapes) {
+                for (const auto& index : shape.mesh.indices) {
+                    Vertex vertex{};
+
+                    vertex.position[0] = attrib.vertices[3 * index.vertex_index + 0];
+                    vertex.position[1] = attrib.vertices[3 * index.vertex_index + 1];
+                    vertex.position[2] = attrib.vertices[3 * index.vertex_index + 2];
+
+                    vertices.push_back(vertex);
+                    indices.push_back(indices.size());
+                }
+            }
+
+        //std::cout << indices.size() << std::endl;
+
+        this->m_skyboxVerticesBuff = Types::Buffer::Create(
+                m_device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                vertices.size() * sizeof(VertexUV),
+                vertices.data());
+
+        this->m_skyboxIndicesBuff = Types::Buffer::Create(
+                m_device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                indices.size() * sizeof(uint32_t),
+                indices.data());
+
+        skybox.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(m_skyboxShader->GetDescriptorSetLayout(), {
+                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+        });
+        skybox.m_countIndices = indices.size();
+        skybox.m_vertexBuffer = m_skyboxVerticesBuff;
+        skybox.m_indexBuffer  = m_skyboxIndicesBuff;
+        skybox.m_descrManager = m_descriptorManager;
+
+        skybox.m_uniformBuffer = EvoVulkan::Types::Buffer::Create(
+                m_device,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                sizeof(SkyboxUniformBuffer));
+
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+                // Binding 0 : Fragment shader uniform buffer
+                Tools::Initializers::WriteDescriptorSet(skybox.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
+                                                        &skybox.m_uniformBuffer->m_descriptor),
+        };
+
+        vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
     }
 
     bool LoadTexture() {
@@ -240,6 +318,7 @@ public:
 
     bool UpdatePP() {
         auto attach0 = m_offscreen->GetImageDescriptors()[0];
+        auto attach1 = m_offscreen->GetImageDescriptors()[1];
         std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                 // Binding 0 : Fragment shader uniform buffer
                 Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
@@ -247,7 +326,11 @@ public:
 
                 // Binding 1: Fragment shader sampler
                 Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                                                        &attach0)
+                                                        &attach0),
+
+                // Binding 2: Fragment shader sampler
+                Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
+                                                        &attach1)
         };
 
         vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -323,18 +406,22 @@ public:
                                  Tools::Initializers::DescriptorSetLayoutBinding(
                                          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                          VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+
+                                 Tools::Initializers::DescriptorSetLayoutBinding(
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                         VK_SHADER_STAGE_FRAGMENT_BIT, 2),
                          },
                          {
                                  sizeof(ModelUniformBuffer)
                          });
 
         m_geometry->SetVertexDescriptions(
-                {Tools::Initializers::VertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)},
+                {Tools::Initializers::VertexInputBindingDescription(0, sizeof(VertexUV), VK_VERTEX_INPUT_RATE_VERTEX)},
                 {
                         Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT,
-                                                                             offsetof(Vertex, position)),
+                                                                             offsetof(VertexUV, position)),
                         Tools::Initializers::VertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,
-                                                                             offsetof(Vertex, uv))
+                                                                             offsetof(VertexUV, uv))
                 }
         );
 
@@ -343,8 +430,44 @@ public:
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_TRUE,
-                VK_TRUE, //
-                1
+                VK_TRUE
+        );
+
+        //!=============================================================================================================
+
+        this->m_skyboxShader = new Complexes::Shader(GetDevice(), m_offscreen->GetRenderPass(), GetPipelineCache());
+
+        m_skyboxShader->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
+                         {
+                                 {"skybox.vert", VK_SHADER_STAGE_VERTEX_BIT},
+                                 {"skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
+                         },
+                         {
+                                 Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                                                 VK_SHADER_STAGE_VERTEX_BIT, 0),
+
+                                 //Tools::Initializers::DescriptorSetLayoutBinding(
+                                 //        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                 //        VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+                         },
+                         {
+                                 sizeof(SkyboxUniformBuffer)
+                         });
+
+        m_skyboxShader->SetVertexDescriptions(
+                {Tools::Initializers::VertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)},
+                {
+                        Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT,
+                                                                             offsetof(Vertex, position)),
+                }
+        );
+
+        m_skyboxShader->Compile(
+                VK_POLYGON_MODE_FILL,
+                VK_CULL_MODE_NONE,
+                VK_COMPARE_OP_LESS_OR_EQUAL,
+                VK_TRUE,
+                VK_TRUE
         );
 
         //!=============================================================================================================
@@ -365,6 +488,10 @@ public:
                                        Tools::Initializers::DescriptorSetLayoutBinding(
                                                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                                VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+
+                                       Tools::Initializers::DescriptorSetLayoutBinding(
+                                               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                               VK_SHADER_STAGE_FRAGMENT_BIT, 2),
                                },
                                {
                                        sizeof(PPUniformBuffer)
@@ -375,8 +502,7 @@ public:
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_TRUE,
-                VK_TRUE,
-                this->m_offscreen->GetCountAttachments()
+                VK_TRUE
         );
 
         return true;
@@ -384,7 +510,7 @@ public:
 
     bool GenerateGeometry() {
         // Setup vertices for a single uv-mapped quad made from two triangles
-        std::vector<Vertex> vertices =
+        std::vector<VertexUV> vertices =
                 {
                         { {1.0f,  2.0f,  0.0f}, { 1.0f, 1.0f } },
                         { {-1.0f, 2.0f,  0.0f}, { 0.0f, 1.0f } },
@@ -402,7 +528,7 @@ public:
                 m_device,
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                vertices.size() * sizeof(Vertex),
+                vertices.size() * sizeof(VertexUV),
                 vertices.data());
         // return false;
 
@@ -435,7 +561,7 @@ public:
         };
 
         auto renderPassBI = Tools::Insert::RenderPassBeginInfo(
-                m_width, m_height, m_renderPass,
+                m_width, m_height, m_renderPass.m_self,
                 VK_NULL_HANDLE, &clearValues[0], 2);
 
         for (int i = 0; i < 3; i++) {
@@ -463,12 +589,15 @@ public:
     }
 
     bool BuildCmdBuffers() override {
-        VkClearValue clearValues[2] {
-                { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
+        const uint8_t countClsVals = 3;
+
+        VkClearValue clearValues[countClsVals] {
+                { .color = {{0.0f, 0.0f, 0.0f, 1.0f}} },
+                { .color = {{0.0f, 0.0f, 0.0f, 1.0f}} },
                 { .depthStencil = { 1.0f, 0 } }
         };
 
-        VkRenderPassBeginInfo renderPassBeginInfo = m_offscreen->BeginRenderPass(&clearValues[0], 2);
+        VkRenderPassBeginInfo renderPassBeginInfo = m_offscreen->BeginRenderPass(&clearValues[0], countClsVals);
 
         m_offscreen->BeginCmd();
         vkCmdBeginRenderPass(m_offscreen->GetCmd(), &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -480,6 +609,12 @@ public:
 
             for (auto & _mesh : meshes)
                 _mesh.Draw(m_offscreen->GetCmd(), m_geometry->GetPipelineLayout());
+        }
+
+        {
+            vkCmdBindPipeline(m_offscreen->m_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, *m_skyboxShader);
+
+            skybox.Draw(m_offscreen->m_cmdBuff, m_skyboxShader->GetPipelineLayout());
         }
 
         m_offscreen->End();
@@ -496,7 +631,7 @@ public:
         };
 
         auto renderPassBI = Tools::Insert::RenderPassBeginInfo(
-                m_width, m_height, m_renderPass,
+                m_width, m_height, m_renderPass.m_self,
                 VK_NULL_HANDLE, &clearValues[0], 2);
 
         for (int i = 0; i < 3; i++) {
@@ -538,9 +673,14 @@ public:
 
         EVSafeFreeObject(m_geometry);
         EVSafeFreeObject(m_postProcessing);
+        EVSafeFreeObject(m_skyboxShader);
 
         for (auto & _mesh : meshes)
             _mesh.Destroy();
+        skybox.Destroy();
+
+        EVSafeFreeObject(m_skyboxVerticesBuff);
+        EVSafeFreeObject(m_skyboxIndicesBuff);
 
         EVSafeFreeObject(m_planeVerticesBuff);
         EVSafeFreeObject(m_planeIndicesBuff);
@@ -554,6 +694,7 @@ public:
                 m_swapchain,
                 m_cmdPool,
                 {
+                        VK_FORMAT_R32G32B32A32_SFLOAT,
                         VK_FORMAT_R32G32B32A32_SFLOAT,
                         //VK_FORMAT_R8G8B8A8_UNORM,
                 },

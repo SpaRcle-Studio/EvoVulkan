@@ -11,6 +11,7 @@
 #include <fstream>
 
 #include <EvoVulkan/Types/Device.h>
+#include <EvoVulkan/Types/RenderPass.h>
 #include <EvoVulkan/DescriptorManager.h>
 #include <EvoVulkan/Types/VulkanBuffer.h>
 
@@ -24,7 +25,7 @@ namespace EvoVulkan::Complexes {
 
     class Shader {
     public:
-        Shader(const Types::Device* device, const VkRenderPass& renderPass, const VkPipelineCache& cache);
+        Shader(const Types::Device* device, Types::RenderPass renderPass, const VkPipelineCache& cache);
     public:
         /**
          * @note Use for building descriptors
@@ -65,8 +66,7 @@ namespace EvoVulkan::Complexes {
                 VkCullModeFlags cullMode,
                 VkCompareOp depthCompare,
                 VkBool32 blendEnable,
-                VkBool32 depthEnable,
-                uint32_t countAttachments);
+                VkBool32 depthEnable); //, uint32_t countAttachments
 
         void Destroy();
         void Free();
@@ -84,7 +84,8 @@ namespace EvoVulkan::Complexes {
         } m_vertices;
 
         const Types::Device*                         m_device              = nullptr;
-        VkRenderPass                                 m_renderPass          = VK_NULL_HANDLE;
+        //VkRenderPass                                 m_renderPass          = VK_NULL_HANDLE;
+        Types::RenderPass                            m_renderPass          = { };
 
         VkDescriptorSetLayout                        m_descriptorSetLayout = VK_NULL_HANDLE;
         std::vector<VkDescriptorSetLayoutBinding>    m_layoutBindings      = {};

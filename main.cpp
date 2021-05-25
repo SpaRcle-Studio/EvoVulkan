@@ -99,6 +99,8 @@ int main() {
     if (!kernel->GenerateGeometry())
         return -1;
 
+    kernel->LoadSkybox();
+
     kernel->BuildCmdBuffers();
     //kernel->UpdateUBO();
 

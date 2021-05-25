@@ -10,7 +10,7 @@
 
 EvoVulkan::Complexes::Shader::Shader(
         const EvoVulkan::Types::Device* device,
-        const VkRenderPass& renderPass,
+        Types::RenderPass renderPass,
         const VkPipelineCache& cache)
 {
     this->m_device     = device;
@@ -91,8 +91,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
         VkCullModeFlags cullMode,
         VkCompareOp depthCompare,
         VkBool32 blendEnable,
-        VkBool32 depthEnable,
-        uint32_t countAttachments)
+        VkBool32 depthEnable) //, uint32_t countAttachments
 {
     if (!this->BuildLayouts()) {
         VK_ERROR("Shader::Compile() : failed to build layouts!");
@@ -104,7 +103,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
 
     std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {};
 
-    for (uint32_t i = 0; i < countAttachments; i++) {
+    for (uint32_t i = 0; i < m_renderPass.m_countColorAttach; i++) {
         auto writeMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         auto attch = Tools::Initializers::PipelineColorBlendAttachmentState(writeMask, blendEnable);
 
@@ -125,7 +124,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
     }
 
     VkPipelineColorBlendStateCreateInfo colorBlendState =
-            Tools::Initializers::PipelineColorBlendStateCreateInfo(countAttachments, blendAttachmentStates.data());
+            Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
 
     VkPipelineDepthStencilStateCreateInfo  depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthEnable, VK_TRUE, depthCompare);
     VkPipelineViewportStateCreateInfo      viewportState = Tools::Initializers::PipelineViewportStateCreateInfo(1, 1, 0);
@@ -140,7 +139,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
             Tools::Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
 
     VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-            Tools::Initializers::PipelineCreateInfo(m_pipelineLayout, m_renderPass, 0);
+            Tools::Initializers::PipelineCreateInfo(m_pipelineLayout, m_renderPass.m_self, 0);
 
     if (!m_hasVertices)
         m_vertices.m_inputState = Tools::Initializers::PipelineVertexInputStateCreateInfo();

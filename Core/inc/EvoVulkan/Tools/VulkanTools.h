@@ -26,6 +26,7 @@
 
 #include <functional>
 #include <fstream>
+#include <EvoVulkan/Types/VulkanBuffer.h>
 
 namespace EvoVulkan::Tools {
     VkShaderModule LoadShaderModule(const char *fileName, VkDevice device);
@@ -582,17 +583,7 @@ namespace EvoVulkan::Tools {
         return finallyDevice;
     }
 
-    static void DestroyRenderPass(const Types::Device* device, VkRenderPass* renderPass) {
-        VK_LOG("Tools::DestroyRenderPass() : destroy vulkan render pass...");
-
-        if (renderPass && *renderPass != VK_NULL_HANDLE) {
-            vkDestroyRenderPass(*device, *renderPass, nullptr);
-            *renderPass = VK_NULL_HANDLE;
-        } else
-            VK_ERROR("Tools::DestroyRenderPass() : render pass is nullptr!");
-    }
-
-    VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain, std::vector<VkAttachmentDescription> attachments = {});
+    //VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain, std::vector<VkAttachmentDescription> attachments = {});
 }
 
 #endif //EVOVULKAN_VULKANTOOLS_H

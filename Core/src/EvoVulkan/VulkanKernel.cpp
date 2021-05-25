@@ -224,8 +224,8 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create render pass...");
-    this->m_renderPass = Tools::CreateRenderPass(m_device, m_swapchain);
-    if (m_renderPass == VK_NULL_HANDLE) {
+    this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain);
+    if (!m_renderPass.Ready()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
         return false;
     }
@@ -293,8 +293,8 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     Tools::DestroyPipelineCache(*m_device, &m_pipelineCache);
     Tools::DestroySynchronization(*m_device, &m_syncs);
 
-    if (m_renderPass != VK_NULL_HANDLE)
-        Tools::DestroyRenderPass(m_device, &m_renderPass);
+    if (m_renderPass.Ready())
+        Types::DestroyRenderPass(m_device, &m_renderPass);
 
     if (m_depthStencil) {
         this->m_depthStencil->Destroy();
@@ -358,7 +358,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
 bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     VK_GRAPH("VulkanKernel::ReCreateFrameBuffers() : re-create vulkan frame buffers...");
 
-    if (m_renderPass == VK_NULL_HANDLE) {
+    if (!m_renderPass.Ready()) {
         VK_ERROR("VulkanKernel::ReCreateFrameBuffers() : render pass in nullptr!");
         return false;
     }
@@ -375,7 +375,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     VkFramebufferCreateInfo frameBufferCreateInfo = {};
     frameBufferCreateInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     frameBufferCreateInfo.pNext                   = NULL;
-    frameBufferCreateInfo.renderPass              = this->m_renderPass;
+    frameBufferCreateInfo.renderPass              = this->m_renderPass.m_self;
     frameBufferCreateInfo.attachmentCount         = 2;
     frameBufferCreateInfo.pAttachments            = attachments;
     frameBufferCreateInfo.width                   = m_width;

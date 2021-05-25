@@ -17,6 +17,7 @@
 #include <EvoVulkan/Types/VulkanBuffer.h>
 
 #include <EvoVulkan/DescriptorManager.h>
+#include <EvoVulkan/Types/RenderPass.h>
 
 namespace EvoVulkan::Core {
     enum class FrameResult {
@@ -70,7 +71,8 @@ namespace EvoVulkan::Core {
         unsigned int               m_width                = 0;
         unsigned int               m_height               = 0;
 
-        VkRenderPass               m_renderPass           = VK_NULL_HANDLE;
+        //VkRenderPass               m_renderPass           = VK_NULL_HANDLE;
+        Types::RenderPass          m_renderPass           = { };
         VkPipelineCache            m_pipelineCache        = VK_NULL_HANDLE;
 
         Types::Device*             m_device               = nullptr;
@@ -165,7 +167,7 @@ namespace EvoVulkan::Core {
                 );
         bool PostInit();
 
-        [[nodiscard]] inline VkRenderPass GetRenderPass() const { return m_renderPass; }
+        [[nodiscard]] inline Types::RenderPass GetRenderPass() const { return m_renderPass; }
         [[nodiscard]] inline VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
     };
 }

@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.h>
 
 #include <EvoVulkan/Types/Device.h>
+#include <EvoVulkan/Types/RenderPass.h>
 #include <EvoVulkan/Types/CmdPool.h>
 #include <EvoVulkan/Types/Swapchain.h>
 #include <EvoVulkan/Tools/VulkanInitializers.h>
@@ -118,7 +119,8 @@ namespace EvoVulkan::Complexes {
                                  m_countAttach   = 0;
 
         VkFramebuffer            m_framebuffer   = VK_NULL_HANDLE;
-        VkRenderPass             m_renderPass    = VK_NULL_HANDLE;
+        //VkRenderPass             m_renderPass    = VK_NULL_HANDLE;
+        Types::RenderPass        m_renderPass    = { };
 
         VkSampler                m_colorSampler  = VK_NULL_HANDLE;
 
@@ -154,7 +156,7 @@ namespace EvoVulkan::Complexes {
             return m_attachments[id].m_view;
         }
 
-        [[nodiscard]] inline VkRenderPass GetRenderPass() const noexcept {
+        [[nodiscard]] inline Types::RenderPass GetRenderPass() const noexcept {
             return m_renderPass;
         }
 
@@ -228,8 +230,8 @@ namespace EvoVulkan::Complexes {
                 attachmentDescs.push_back(attachmentDesc);
             }
 
-            this->m_renderPass = Tools::CreateRenderPass(m_device, m_swapchain, attachmentDescs);
-            if (m_renderPass == VK_NULL_HANDLE) {
+            this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, attachmentDescs);
+            if (!m_renderPass.Ready()) {
                 VK_ERROR("Framebuffer::CreateRenderPass() : failed to create render pass!");
                 return false;
             }
@@ -245,7 +247,7 @@ namespace EvoVulkan::Complexes {
             VkFramebufferCreateInfo FBO_CI = {};
             FBO_CI.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             FBO_CI.pNext                   = nullptr;
-            FBO_CI.renderPass              = m_renderPass;
+            FBO_CI.renderPass              = m_renderPass.m_self;
             FBO_CI.pAttachments            = attachments.data();
             FBO_CI.attachmentCount         = static_cast<uint32_t>(attachments.size());
             FBO_CI.width                   = m_width;
@@ -292,7 +294,7 @@ namespace EvoVulkan::Complexes {
         [[nodiscard]] inline VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls) const {
             VkRenderPassBeginInfo renderPassBeginInfo = Tools::Initializers::RenderPassBeginInfo();
 
-            renderPassBeginInfo.renderPass               = m_renderPass;
+            renderPassBeginInfo.renderPass               = m_renderPass.m_self;
             renderPassBeginInfo.framebuffer              = m_framebuffer;
             renderPassBeginInfo.renderArea.extent.width  = m_width;
             renderPassBeginInfo.renderArea.extent.height = m_height;
@@ -422,10 +424,13 @@ namespace EvoVulkan::Complexes {
                 m_cmdBuff = VK_NULL_HANDLE;
             }
 
-            if (m_renderPass != VK_NULL_HANDLE) {
-                vkDestroyRenderPass(*m_device, m_renderPass, nullptr);
-                m_renderPass = VK_NULL_HANDLE;
-            }
+            //if (m_renderPass != VK_NULL_HANDLE) {
+            //    vkDestroyRenderPass(*m_device, m_renderPass, nullptr);
+            //    m_renderPass = VK_NULL_HANDLE;
+            //}
+
+            if (m_renderPass.Ready())
+                Types::DestroyRenderPass(m_device, &m_renderPass);
 
             this->m_device    = nullptr;
             this->m_swapchain = nullptr;

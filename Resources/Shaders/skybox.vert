@@ -6,10 +6,11 @@ layout (location = 0) out vec3 UV;
 
 layout (binding = 0) uniform SkyboxUBO {
     mat4 PVMat;
-    vec3 cameraPos;
+    vec3 CamPos;
 } ubo;
 
 void main() {
     UV = inPos;
-    gl_Position = (PVmat * vec4(aPos + vec3(CamPos.x, CamPos.y, -CamPos.z), 1.0)).xyww;
+    //gl_Position = vec4(inPos, 0);
+    gl_Position = (ubo.PVMat * vec4(inPos + vec3(-ubo.CamPos.x, -ubo.CamPos.y, -ubo.CamPos.z), 1.0)).xyww;
 }
