@@ -286,12 +286,17 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 bool EvoVulkan::Core::VulkanKernel::Destroy() {
     Tools::VkDebug::Log("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
 
-    this->m_descriptorManager->Free();
+    if (m_descriptorManager)
+        this->m_descriptorManager->Free();
 
-    this->DestroyFrameBuffers();
+    if (!m_frameBuffers.empty())
+        this->DestroyFrameBuffers();
 
-    Tools::DestroyPipelineCache(*m_device, &m_pipelineCache);
-    Tools::DestroySynchronization(*m_device, &m_syncs);
+    if (m_pipelineCache)
+        Tools::DestroyPipelineCache(*m_device, &m_pipelineCache);
+
+    if (m_syncs.IsReady())
+        Tools::DestroySynchronization(*m_device, &m_syncs);
 
     if (m_renderPass.Ready())
         Types::DestroyRenderPass(m_device, &m_renderPass);
@@ -319,29 +324,10 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
         free(m_drawCmdBuffs);
     }*/
 
-    if (m_swapchain) {
-        m_swapchain->Destroy();
-        m_swapchain->Free();
-        m_swapchain = nullptr;
-    }
-
-    if (m_surface) {
-        m_surface->Destroy();
-        m_surface->Free();
-        m_surface = nullptr;
-    }
-
-    if (m_cmdPool) {
-        m_cmdPool->Destroy();
-        m_cmdPool->Free();
-        m_cmdPool = nullptr;
-    }
-
-    if (m_device) {
-        m_device->Destroy();
-        m_device->Free();
-        m_device = nullptr;
-    }
+    EVSafeFreeObject(m_swapchain);
+    EVSafeFreeObject(m_surface);
+    EVSafeFreeObject(m_cmdPool);
+    EVSafeFreeObject(m_device);
 
     if (m_validationEnabled) {
         Tools::DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);

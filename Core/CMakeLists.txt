@@ -33,3 +33,4 @@ add_library(EvoVulkanCore STATIC
 target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})
 
 target_include_directories(EvoVulkanCore PUBLIC inc)
+#target_include_directories(EvoVulkanCore PUBLIC inc/EvoVulkan)
