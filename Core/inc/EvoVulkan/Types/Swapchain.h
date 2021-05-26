@@ -41,6 +41,9 @@ namespace EvoVulkan::Types {
 
         SwapChainBuffer* m_buffers         = nullptr;
 
+        uint32_t         m_surfaceWidth    = 0;
+        uint32_t         m_surfaceHeight   = 0;
+
         bool             m_vsync           = false;
     private:
         bool InitFormats();
@@ -55,15 +58,19 @@ namespace EvoVulkan::Types {
     public:
         [[nodiscard]] bool IsReady() const override;
 
+        bool SurfaceIsAvailable();
+
         bool ReSetup(
             unsigned int width,
             unsigned int height);
 
-        [[nodiscard]] SwapChainBuffer* GetBuffers()   const { return m_buffers;     }
-        [[nodiscard]] VkFormat GetDepthFormat()       const { return m_depthFormat; }
-        [[nodiscard]] VkFormat GetColorFormat()       const { return m_colorFormat; }
-        [[nodiscard]] VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;  }
-        [[nodiscard]] uint32_t GetCountImages()       const { return m_countImages; }
+        [[nodiscard]] SwapChainBuffer* GetBuffers()   const { return m_buffers;       }
+        [[nodiscard]] uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;  }
+        [[nodiscard]] uint32_t GetSurfaceHeight()     const { return m_surfaceHeight; }
+        [[nodiscard]] VkFormat GetDepthFormat()       const { return m_depthFormat;   }
+        [[nodiscard]] VkFormat GetColorFormat()       const { return m_colorFormat;   }
+        [[nodiscard]] VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;    }
+        [[nodiscard]] uint32_t GetCountImages()       const { return m_countImages;   }
     public:
         /**
         * Acquires the next image in the swap chain

@@ -215,7 +215,11 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create depth stencil...");
-    this->m_depthStencil = Types::DepthStencil::Create(m_device, m_swapchain, m_width, m_height);
+    this->m_depthStencil = Types::DepthStencil::Create(
+            m_device,
+            m_swapchain,
+            m_swapchain->GetSurfaceWidth(),
+            m_swapchain->GetSurfaceHeight());
     if (!m_depthStencil || !m_depthStencil->IsReady()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create depth stencil!");
         return false;
@@ -276,12 +280,6 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     return true;
 }
-
-//EvoVulkan::Core::VulkanKernel* EvoVulkan::Core::VulkanKernel::Create() {
-//    Tools::VkDebug::Log("VulkanKernel::Create() : create Evo Vulkan kernel...");
-//    auto kernel = new VulkanKernel();
-//    return kernel;
-//}
 
 bool EvoVulkan::Core::VulkanKernel::Destroy() {
     Tools::VkDebug::Log("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
@@ -364,8 +362,8 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     frameBufferCreateInfo.renderPass              = this->m_renderPass.m_self;
     frameBufferCreateInfo.attachmentCount         = 2;
     frameBufferCreateInfo.pAttachments            = attachments;
-    frameBufferCreateInfo.width                   = m_width;
-    frameBufferCreateInfo.height                  = m_height;
+    frameBufferCreateInfo.width                   = m_swapchain->GetSurfaceWidth();
+    frameBufferCreateInfo.height                  = m_swapchain->GetSurfaceHeight();
     frameBufferCreateInfo.layers                  = 1;
 
     // Create frame buffers for every swap chain image
@@ -469,6 +467,9 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
 
     this->m_width  = m_newWidth;
     this->m_height = m_newHeight;
+
+    if (!m_swapchain->SurfaceIsAvailable())
+        return true;
 
     if (!m_swapchain->ReSetup(m_width, m_height)) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-setup swapchain!");

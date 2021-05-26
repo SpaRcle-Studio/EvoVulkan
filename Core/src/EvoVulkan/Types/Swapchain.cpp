@@ -67,9 +67,16 @@ bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int heigh
 
     //! TODO: see VS example
     if (surfCaps.currentExtent.width != width || surfCaps.currentExtent.height != height) {
-        Tools::VkDebug::Error("Swapchain::ReSize() : swap chain size different!");
-        return false;
+        Tools::VkDebug::Warn("Swapchain::ReSize() : swap chain size different! "
+                              "\n\tWidth  surface: " + std::to_string(surfCaps.currentExtent.width) +
+                              "\n\tHeight surface: " + std::to_string(surfCaps.currentExtent.height) +
+                              "\n\tWidth   window: " + std::to_string(width) +
+                              "\n\tHeight  window: " + std::to_string(height));
+        //return false;
     }
+
+    this->m_surfaceWidth  = surfCaps.currentExtent.width;
+    this->m_surfaceHeight = surfCaps.currentExtent.height;
 
     VK_GRAPH("Swapchain::ReSetup() : get present mode...");
     this->m_presentMode = Tools::GetPresentMode(*m_device, *m_surface, m_vsync);
@@ -110,7 +117,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int heigh
     swapchainCI.minImageCount            = desiredNumberOfSwapchainImages;
     swapchainCI.imageFormat              = m_colorFormat;
     swapchainCI.imageColorSpace          = m_colorSpace;
-    swapchainCI.imageExtent              = { width, height };
+    swapchainCI.imageExtent              = { m_surfaceWidth, m_surfaceHeight };
     swapchainCI.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapchainCI.preTransform             = (VkSurfaceTransformFlagBitsKHR)preTransform;
     swapchainCI.imageArrayLayers         = 1;
@@ -323,5 +330,10 @@ VkResult EvoVulkan::Types::Swapchain::AcquireNextImage(VkSemaphore presentComple
     // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
     // With that we don't have to handle VK_NOT_READY
     return vkAcquireNextImageKHR(*m_device, m_swapchain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
+}
+
+bool EvoVulkan::Types::Swapchain::SurfaceIsAvailable() {
+    VkSurfaceCapabilitiesKHR surfCaps = {};
+    return !(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS);
 }
 

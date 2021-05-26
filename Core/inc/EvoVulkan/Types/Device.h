@@ -22,12 +22,12 @@ namespace EvoVulkan::Types {
         VkPhysicalDevice                 m_physicalDevice          = VK_NULL_HANDLE;
         VkDevice                         m_logicalDevice           = VK_NULL_HANDLE;
 
-        FamilyQueues*                    m_familyQueues            = nullptr;
-
         bool                             m_enableSamplerAnisotropy = false;
         float                            m_maxSamplerAnisotropy    = 0.f;
 
         VkPhysicalDeviceMemoryProperties m_memoryProperties        = {};
+
+        std::string                      m_deviceName              = "Unknown";
 
         //! don't use for VkAttachmentDescription
         //! for multisampling.rasterizationSamples and images
@@ -36,6 +36,8 @@ namespace EvoVulkan::Types {
         //! for deviceFeatures and multisampling
         bool                             m_enableSampleShading     = false;
     public:
+        FamilyQueues*                    m_familyQueues            = nullptr;
+    public:
         static Device* Create(const VkPhysicalDevice& physicalDevice,
                               const VkDevice& logicalDevice,
                               FamilyQueues* familyQueues,
@@ -43,6 +45,8 @@ namespace EvoVulkan::Types {
         void Free();
     public:
         [[nodiscard]] bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
+
+        [[nodiscard]] inline std::string GetName() const noexcept { return m_deviceName; }
 
         [[nodiscard]] inline bool SamplerAnisotropyEnabled() const noexcept { return m_enableSamplerAnisotropy; }
         [[nodiscard]] inline float GetMaxSamplerAnisotropy() const noexcept { return m_maxSamplerAnisotropy;    }

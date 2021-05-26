@@ -24,8 +24,9 @@ namespace EvoVulkan::Types {
         int m_iGraphics = -1;
         int m_iPresent  = -1;
 
-        VkQueue m_graphicsQueue = VK_NULL_HANDLE;
         //VkQueue m_presentQueue  = VK_NULL_HANDLE;
+    public:
+        VkQueue m_graphicsQueue = VK_NULL_HANDLE;
     public:
         [[nodiscard]] bool IsComplete() const override;
         [[nodiscard]] bool IsReady()    const override;

@@ -49,6 +49,8 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
         device->m_maxSamplerAnisotropy = deviceProperties.limits.maxSamplerAnisotropy;
     }
 
+    device->m_deviceName = GetDeviceName(physicalDevice);
+
     //device->m_maxCountMSAASamples = calculate...
 
     return device;

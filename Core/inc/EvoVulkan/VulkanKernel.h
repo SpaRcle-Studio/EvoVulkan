@@ -13,6 +13,7 @@
  */
 
 #include <EvoVulkan/Tools/VulkanTools.h>
+#include <EvoVulkan/Tools/VulkanInsert.h>
 
 #include <EvoVulkan/Types/VulkanBuffer.h>
 
@@ -103,8 +104,9 @@ namespace EvoVulkan::Core {
         FrameResult PrepareFrame();
         void        NextFrame();
         FrameResult SubmitFrame();
-    public:
+    protected:
         virtual void Render() { /* nothing */ }
+    public:
         virtual bool BuildCmdBuffers() = 0;
     public:
         [[nodiscard]] inline VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
