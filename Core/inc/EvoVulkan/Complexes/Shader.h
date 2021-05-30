@@ -66,7 +66,7 @@ namespace EvoVulkan::Complexes {
                 VkCullModeFlags cullMode,
                 VkCompareOp depthCompare,
                 VkBool32 blendEnable,
-                VkBool32 depthEnable); //, uint32_t countAttachments
+                VkBool32 depthEnable);
 
         void Destroy();
         void Free();
