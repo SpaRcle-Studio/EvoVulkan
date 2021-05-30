@@ -55,7 +55,7 @@ namespace EvoVulkan::Complexes {
     public:
         bool Load(
                 const std::string& source, const std::string& cache,
-                const std::vector<std::pair<const char*, VkShaderStageFlagBits>>& modules,
+                const std::vector<std::pair<std::string, VkShaderStageFlagBits>>& modules,
                 const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
                 const std::vector<VkDeviceSize>& uniformSizes);
         bool SetVertexDescriptions(
