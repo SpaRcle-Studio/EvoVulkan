@@ -87,14 +87,14 @@ namespace EvoVulkan::Core {
         Types::Synchronization     m_syncs                = {};
         VkSubmitInfo               m_submitInfo           = {};
 
-        unsigned __int8            m_countDCB             = 0;
-        //Types::CmdBuffer**         m_drawCmdBuffs         = nullptr;
-        VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
         std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
-        std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
         uint32_t                   m_currentBuffer        = 0;
 
         VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    public:
+        uint8_t                    m_countDCB             = 0;
+        VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
+        std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
     private:
         //KernelRenderFunction       m_renderFunction       = nullptr;
     private:
@@ -109,6 +109,7 @@ namespace EvoVulkan::Core {
     public:
         virtual bool BuildCmdBuffers() = 0;
     public:
+        [[nodiscard]] inline uint32_t GetCountBuildIterations() noexcept { return 3; }
         [[nodiscard]] inline VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
 
         [[nodiscard]] inline VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
@@ -120,6 +121,13 @@ namespace EvoVulkan::Core {
         //    this->m_renderFunction = drawFunction;
         //    return true;
         //}
+
+        [[nodiscard]] inline VkViewport GetViewport()   const noexcept { return Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f); }
+        [[nodiscard]] inline VkRect2D   GetScissor()    const noexcept { return Tools::Initializers::Rect2D(m_width, m_height, 0, 0);                       }
+        [[nodiscard]] inline VkRect2D   GetRenderArea() const noexcept { return { VkOffset2D(), { m_width, m_height } };                                    }
+
+        [[nodiscard]] inline Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
+        [[nodiscard]] inline VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
 
         [[nodiscard]] inline Core::DescriptorManager* GetDescriptorManager() const noexcept {
             return m_descriptorManager;
@@ -168,9 +176,6 @@ namespace EvoVulkan::Core {
                 bool vsync
                 );
         bool PostInit();
-
-        [[nodiscard]] inline Types::RenderPass GetRenderPass() const { return m_renderPass; }
-        [[nodiscard]] inline VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
     };
 }
 

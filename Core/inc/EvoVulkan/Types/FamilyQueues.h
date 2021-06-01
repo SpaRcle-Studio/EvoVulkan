@@ -6,7 +6,6 @@
 #define EVOVULKAN_FAMILYQUEUES_H
 
 #include <vulkan/vulkan.h>
-
 #include <EvoVulkan/Types/Base/VulkanObject.h>
 
 namespace EvoVulkan::Types {
@@ -23,22 +22,18 @@ namespace EvoVulkan::Types {
     private:
         int m_iGraphics = -1;
         int m_iPresent  = -1;
-
-        //VkQueue m_presentQueue  = VK_NULL_HANDLE;
     public:
         VkQueue m_graphicsQueue = VK_NULL_HANDLE;
     public:
         [[nodiscard]] bool IsComplete() const override;
         [[nodiscard]] bool IsReady()    const override;
 
-        //void SetQueues(const VkQueue& graphics, const VkQueue& present) {
         void SetQueue(const VkQueue& graphics) {
             this->m_graphicsQueue = graphics;
-            //this->m_presentQueue  = present;
         }
 
         [[nodiscard]] unsigned int GetGraphicsIndex() const noexcept { return (unsigned int)m_iGraphics; }
-        [[nodiscard]] unsigned int GetPresentIndex() const noexcept  { return (unsigned int)m_iPresent;  }
+        [[nodiscard]] unsigned int GetPresentIndex()  const noexcept { return (unsigned int)m_iPresent;  }
     public:
         static FamilyQueues* Find(const VkPhysicalDevice& device, const Surface* surface);
 

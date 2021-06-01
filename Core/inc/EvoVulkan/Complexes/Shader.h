@@ -52,6 +52,10 @@ namespace EvoVulkan::Complexes {
         [[nodiscard]] inline VkPipelineLayout GetPipelineLayout() const noexcept {
             return m_pipelineLayout;
         }
+
+        inline void Bind(const VkCommandBuffer& cmd) const {
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
+        }
     public:
         bool Load(
                 const std::string& source, const std::string& cache,
