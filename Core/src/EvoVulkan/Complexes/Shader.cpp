@@ -72,6 +72,12 @@ bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
         const std::vector<VkVertexInputBindingDescription> &binding,
         const std::vector<VkVertexInputAttributeDescription> &attribute)
 {
+    for (uint32_t i = 0; i < binding.size(); i++)
+        if (binding[i].binding != i || binding[i].stride <= 0) {
+            VK_ERROR("Shader::SetVertexDescriptions() : incorrect vertex binding!");
+            return false;
+        }
+
     this->m_vertices.m_bindingDescriptions   = binding;
     this->m_vertices.m_attributeDescriptions = attribute;
 
