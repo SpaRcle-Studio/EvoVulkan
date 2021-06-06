@@ -9,5 +9,5 @@ layout (location = 1) out vec4 outColor;
 void main() {
     //gl_FragColor = texture(cubeMapTexture, UV);
     //outColor = texture(cubeMapTexture, UV);
-    outColor = vec4(1,0,0, 1);
+    outColor = vec4(UV, 1);
 }

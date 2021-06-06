@@ -39,7 +39,8 @@ struct ModelUniformBuffer {
 };
 
 struct SkyboxUniformBuffer {
-    glm::mat4 PVMat;
+    glm::mat4 proj;
+    glm::mat4 view;
     glm::vec3 camPos;
 };
 
@@ -190,8 +191,6 @@ public:
             );
         }
 
-        view = glm::translate(view, glm::vec3(x, y, z));
-
         float speed = 0.2;
 
         if ((GetAsyncKeyState(VK_LEFT) < 0))
@@ -221,7 +220,7 @@ public:
 
             _mesh.m_ubo = {
                     projectionMatrix,
-                    view,
+                    glm::translate(view, glm::vec3(x, y, z)),
                     model
             };
 
@@ -229,7 +228,8 @@ public:
         }
 
         SkyboxUniformBuffer ubo = {
-                projectionMatrix * view,
+                projectionMatrix,
+                view,
                 glm::vec3(x, y, z)
         };
 

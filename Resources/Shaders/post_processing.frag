@@ -19,5 +19,5 @@ void main() {
     vec4 albedo  = texture(albedoSampler, inUV);
     vec4 skybox  = texture(skyboxSampler, inUV);
 
-    outFragcolor = vec4(pow(skybox.rgb, vec3(1.0 / gamma)), albedo.a);
+    outFragcolor = vec4(pow(skybox.rgb + albedo.rgb, vec3(1.0 / gamma)), albedo.a);
 }
