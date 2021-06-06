@@ -17,7 +17,7 @@ void EvoVulkan::Complexes::Mesh::Draw(const VkCommandBuffer& cmd) {
 }
 
 bool EvoVulkan::Complexes::Mesh::Bake(Shader const* shader) {
-    this->m_attachShader = shader;
+   /* this->m_attachShader = shader;
 
     m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(
             shader->GetDescriptorSetLayout(),
@@ -80,6 +80,7 @@ bool EvoVulkan::Complexes::Mesh::Bake(Shader const* shader) {
         }
     }
     vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+*/
 
     return true;
 }

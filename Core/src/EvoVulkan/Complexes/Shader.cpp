@@ -22,7 +22,8 @@ bool EvoVulkan::Complexes::Shader::Load(
         const std::string& source, const std::string& cache,
         const std::vector<std::pair<std::string, VkShaderStageFlagBits>> &modules,
         const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
-        const std::vector<VkDeviceSize>& uniformSizes)
+        const std::vector<VkDeviceSize>& uniformSizes
+        )
 {
     if (!this) {
         VK_ERROR("Shader::Load() : WTF!? this is nullptr!");

@@ -93,7 +93,6 @@ namespace EvoVulkan::Complexes {
 
         VkDescriptorSetLayout                        m_descriptorSetLayout = VK_NULL_HANDLE;
         std::vector<VkDescriptorSetLayoutBinding>    m_layoutBindings      = {};
-        std::vector<VkDeviceSize>                    m_uniformSizes        = {};
 
         bool                                         m_hasVertices         = false;
 
@@ -104,6 +103,8 @@ namespace EvoVulkan::Complexes {
 
         std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages        = {};
         std::vector<VkShaderModule>                  m_shaderModules       = {};
+
+        std::vector<VkDeviceSize>                    m_uniformSizes        = {};
     };
 }
 
