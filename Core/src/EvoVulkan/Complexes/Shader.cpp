@@ -34,6 +34,17 @@ bool EvoVulkan::Complexes::Shader::Load(
         modules_names += std::string(module.first).append(" ");
     VK_LOG("Shader::Load() : load new shader...\n\tSource: " + source + "\n\tModules: " + modules_names);
 
+    // check correctly uniform sizes
+    {
+        uint32_t count = 0;
+        for (auto bind : descriptorLayoutBindings)
+            if (bind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+                count++;
+        if (count != uniformSizes.size()) {
+            VK_ERROR("Shader::Load() : incorrect uniform sizes!");
+            return false;
+        }
+    }
 
     if (!uniformSizes.empty())
         this->m_uniformSizes   = uniformSizes;

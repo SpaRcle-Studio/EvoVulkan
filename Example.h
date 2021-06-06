@@ -32,9 +32,14 @@
 
 using namespace EvoVulkan;
 
-struct ModelUniformBuffer {
+struct ViewUniformBuffer {
     glm::mat4 projection;
     glm::mat4 view;
+};
+
+struct ModelUniformBuffer {
+    //glm::mat4 projection;
+    //glm::mat4 view;
     glm::mat4 model;
 };
 
@@ -97,6 +102,8 @@ class VulkanExample : public Core::VulkanKernel {
 private:
     Complexes::Shader*          m_geometry            = nullptr;
     Complexes::Shader*          m_skyboxShader        = nullptr;
+
+    Types::Buffer*              m_viewUniformBuffer   = nullptr;
 
     Complexes::Shader*          m_postProcessing      = nullptr;
     Core::DescriptorSet         m_PPDescriptorSet     = { };
@@ -208,6 +215,12 @@ public:
         if ((GetAsyncKeyState(VK_SHIFT) < 0))
             y += speed;
 
+        ViewUniformBuffer viewUbo = {
+                projectionMatrix,
+                glm::translate(view, glm::vec3(x, y, z))
+        };
+        this->m_viewUniformBuffer->CopyToDevice(&viewUbo, sizeof(ViewUniformBuffer));
+
         int i = 0;
         for (auto & _mesh : meshes) {
             glm::mat4 model = glm::mat4(1);
@@ -218,11 +231,7 @@ public:
 
             i++;
 
-            _mesh.m_ubo = {
-                    projectionMatrix,
-                    glm::translate(view, glm::vec3(x, y, z)),
-                    model
-            };
+            _mesh.m_ubo = { model };
 
             _mesh.m_uniformBuffer->CopyToDevice(&_mesh.m_ubo, sizeof(ModelUniformBuffer));
         }
@@ -339,7 +348,14 @@ public:
     }
 
     bool SetupUniforms() {
+        m_viewUniformBuffer = EvoVulkan::Types::Buffer::Create(
+                m_device,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+                sizeof(ViewUniformBuffer));
+
         // geometry
+
         for (auto & _mesh : meshes) {
             _mesh.m_descrManager = m_descriptorManager;
 
@@ -371,7 +387,10 @@ public:
                     Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
                                                             &_mesh.m_uniformBuffer->m_descriptor),
 
-                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                                            &m_viewUniformBuffer->m_descriptor),
+
+                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
                                                             &textureDescriptor)
             };
             vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -403,16 +422,15 @@ public:
                                  Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                                  VK_SHADER_STAGE_VERTEX_BIT, 0),
 
-                                 Tools::Initializers::DescriptorSetLayoutBinding(
-                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                         VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+                                 Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                                                 VK_SHADER_STAGE_VERTEX_BIT, 1),
 
                                  Tools::Initializers::DescriptorSetLayoutBinding(
                                          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                          VK_SHADER_STAGE_FRAGMENT_BIT, 2),
                          },
                          {
-                                 sizeof(ModelUniformBuffer)
+                                 sizeof(ModelUniformBuffer), sizeof(ViewUniformBuffer)
                          });
 
         m_geometry->SetVertexDescriptions(
@@ -670,6 +688,8 @@ public:
             this->m_descriptorManager->FreeDescriptorSet(m_PPDescriptorSet);
             m_PPDescriptorSet = { VK_NULL_HANDLE, VK_NULL_HANDLE };
         }
+
+        EVSafeFreeObject(m_viewUniformBuffer);
 
         EVSafeFreeObject(m_geometry);
         EVSafeFreeObject(m_postProcessing);
