@@ -546,8 +546,8 @@ namespace EvoVulkan::Tools {
         //!=============================================================================================================
 
         VkPhysicalDeviceFeatures deviceFeatures = {};
-        deviceFeatures.fillModeNonSolid  = TRUE;
-        deviceFeatures.samplerAnisotropy = TRUE;
+        deviceFeatures.fillModeNonSolid  = true;
+        deviceFeatures.samplerAnisotropy = true;
 
         logicalDevice = Tools::CreateLogicalDevice(
                 physicalDevice,

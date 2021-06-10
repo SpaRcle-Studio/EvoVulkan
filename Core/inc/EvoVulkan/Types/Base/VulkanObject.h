@@ -5,10 +5,10 @@
 #ifndef EVOVULKAN_VULKANOBJECT_H
 #define EVOVULKAN_VULKANOBJECT_H
 
-#include <combaseapi.h>
+//#include <combaseapi.h>
 
 namespace EvoVulkan::Types {
-    interface IVkObject {
+    struct IVkObject {
         [[nodiscard]] virtual bool IsReady()    const { return false; };
         [[nodiscard]] virtual bool IsComplete() const { return false; };
 

@@ -129,7 +129,11 @@ namespace EvoVulkan::Core {
         [[nodiscard]] inline Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         [[nodiscard]] inline VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
 
-        [[nodiscard]] inline Core::DescriptorManager* GetDescriptorManager() const noexcept {
+        [[nodiscard]] inline Core::DescriptorManager* GetDescriptorManager() const {
+            if (!m_descriptorManager) {
+                Tools::VkDebug::Error("VulkanKernel::GetDescriptorManager() : descriptor manager is nullptr!");
+                return nullptr;
+            }
             return m_descriptorManager;
         }
 
