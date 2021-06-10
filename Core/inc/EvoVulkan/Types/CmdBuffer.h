@@ -45,7 +45,7 @@ namespace EvoVulkan::Types {
                 const Device* device,
                 const CmdPool* cmdPool,
                 VkCommandBufferAllocateInfo cmdBufAllocateInfo);
-
+    public:
         inline bool Begin(const VkCommandBufferUsageFlagBits& usage) {
             if (!IsReady()) {
                 VK_ERROR("CmdBuffer::Begin() : command buffer isn't ready!");
