@@ -20,6 +20,8 @@
 #include <EvoVulkan/DescriptorManager.h>
 #include <EvoVulkan/Types/RenderPass.h>
 
+#include <EvoVulkan/Types/MultisampleTarget.h>
+
 namespace EvoVulkan::Core {
     enum class FrameResult {
         Error = 0, Success = 1, OutOfDate = 2
@@ -70,6 +72,7 @@ namespace EvoVulkan::Core {
         Types::Swapchain*          m_swapchain            = nullptr;
         Types::CmdPool*            m_cmdPool              = nullptr;
         Types::DepthStencil*       m_depthStencil         = nullptr;
+        Types::MultisampleTarget*  m_multisample          = nullptr;
 
         Core::DescriptorManager*   m_descriptorManager    = nullptr;
 

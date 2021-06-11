@@ -11,6 +11,7 @@
 
 #include <EvoVulkan/Types/Swapchain.h>
 #include <EvoVulkan/Types/Device.h>
+#include <EvoVulkan/Types/MultisampleTarget.h>
 
 namespace EvoVulkan::Types {
     struct RenderPass {
@@ -34,37 +35,65 @@ namespace EvoVulkan::Types {
     }
 
     static RenderPass CreateRenderPass(const Types::Device *device, const Types::Swapchain *swapchain,
-                                       std::vector<VkAttachmentDescription> attachments = {}) {
+                                       std::vector<VkAttachmentDescription> attachments = {}, bool multisampling = false) {
         VK_GRAPH("Types::CreateRenderPass() : create vulkan render pass...");
 
         VkSubpassDescription subpassDescription = {};
         std::vector<VkAttachmentReference> colorReferences = {};
         VkAttachmentReference depthReference = {};
+        // Resolve attachment reference for the color attachment
+        VkAttachmentReference resolveReference = {};
 
         if (attachments.empty()) {
-            attachments.resize(2);
+            attachments.resize(multisampling ? 3 : 2);
 
             // Color attachment
             attachments[0].format = swapchain->GetColorFormat();
-            attachments[0].samples = VK_SAMPLE_COUNT_1_BIT; // TODO: 1 sample!
+            attachments[0].samples = device->GetMSAASamples();
             attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            // Depth attachment
-            attachments[1].format = swapchain->GetDepthFormat();
-            attachments[1].samples = VK_SAMPLE_COUNT_1_BIT; // TODO: 1 sample!
-            attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+            if (multisampling) {
+                // This is the frame buffer attachment to where the multisampled image
+                // will be resolved to and which will be presented to the swapchain
+                attachments[1].format = swapchain->GetColorFormat();
+                attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+                attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                attachments[1].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+                // Multisampled depth attachment we render to
+                attachments[2].format = swapchain->GetDepthFormat();
+                attachments[2].samples = device->GetMSAASamples();
+                attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                attachments[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            }
+            else {
+                // Depth attachment
+                attachments[1].format = swapchain->GetDepthFormat();
+                attachments[1].samples = device->GetMSAASamples();
+                attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            }
 
             colorReferences.push_back({0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
-            depthReference = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+            depthReference = { multisampling ? 2u : 1u, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+            resolveReference = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
             subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpassDescription.colorAttachmentCount = 1;
@@ -74,7 +103,7 @@ namespace EvoVulkan::Types {
             subpassDescription.pInputAttachments = nullptr;
             subpassDescription.preserveAttachmentCount = 0;
             subpassDescription.pPreserveAttachments = nullptr;
-            subpassDescription.pResolveAttachments = nullptr;
+            subpassDescription.pResolveAttachments = multisampling ? &resolveReference : nullptr;
         } else {
             for (uint32_t i = 0; i < attachments.size() - 1; i++)
                 colorReferences.push_back({i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});

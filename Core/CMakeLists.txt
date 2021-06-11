@@ -10,6 +10,7 @@ add_library(EvoVulkanCore STATIC
         src/EvoVulkan/VulkanKernel.cpp
         src/EvoVulkan/DescriptorManager.cpp
 
+        src/EvoVulkan/Types/MultisampleTarget.cpp
         src/EvoVulkan/Types/Device.cpp
         src/EvoVulkan/Types/Framebuffer.cpp
         src/EvoVulkan/Types/ImageView.cpp

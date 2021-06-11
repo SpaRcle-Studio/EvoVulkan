@@ -227,8 +227,21 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     //!=================================================================================================================
 
+    VK_GRAPH("VulkanKernel::PostInit() : create multisample target...");
+    this->m_multisample = Types::MultisampleTarget::Create(
+            m_device,
+            m_swapchain,
+            m_swapchain->GetSurfaceWidth(),
+            m_swapchain->GetSurfaceHeight());
+    if (!m_multisample) {
+        VK_ERROR("VulkanKernel::PostInit() : failed to create multisample!");
+        return false;
+    }
+
+    //!=================================================================================================================
+
     VK_GRAPH("VulkanKernel::PostInit() : create render pass...");
-    this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain);
+    this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, {}, true);
     if (!m_renderPass.Ready()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
         return false;
@@ -283,6 +296,11 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
 bool EvoVulkan::Core::VulkanKernel::Destroy() {
     Tools::VkDebug::Log("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
+
+    if (m_multisample) {
+        m_multisample->Destroy();
+        m_multisample->Free();
+    }
 
     if (m_descriptorManager)
         this->m_descriptorManager->Free();
@@ -347,21 +365,28 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
         return false;
     }
 
+    this->m_multisample->ReCreate(m_swapchain->GetSurfaceWidth(), m_swapchain->GetSurfaceHeight());
+
     for (auto & m_frameBuffer : m_frameBuffers)
         vkDestroyFramebuffer(*m_device, m_frameBuffer, nullptr);
     m_frameBuffers.clear();
 
-    VkImageView attachments[2];
+    std::vector<VkImageView> attachments = {};
+    attachments.resize(m_renderPass.m_countAttachments);
 
     // Depth/Stencil attachment is the same for all frame buffers
-    attachments[1] = m_depthStencil->GetImageView();
+    //!attachments[1] = m_depthStencil->GetImageView();
+
+    attachments[0] = m_multisample->GetColor();
+    // attachment[1] = swapchain image
+    attachments[2] = m_multisample->GetDepth();
 
     VkFramebufferCreateInfo frameBufferCreateInfo = {};
     frameBufferCreateInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     frameBufferCreateInfo.pNext                   = NULL;
     frameBufferCreateInfo.renderPass              = this->m_renderPass.m_self;
-    frameBufferCreateInfo.attachmentCount         = 2;
-    frameBufferCreateInfo.pAttachments            = attachments;
+    frameBufferCreateInfo.attachmentCount         = this->m_renderPass.m_countAttachments;
+    frameBufferCreateInfo.pAttachments            = attachments.data();
     frameBufferCreateInfo.width                   = m_swapchain->GetSurfaceWidth();
     frameBufferCreateInfo.height                  = m_swapchain->GetSurfaceHeight();
     frameBufferCreateInfo.layers                  = 1;
@@ -369,7 +394,8 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     // Create frame buffers for every swap chain image
     m_frameBuffers.resize(m_countDCB);
     for (uint32_t i = 0; i < m_countDCB; i++) {
-        attachments[0] = m_swapchain->GetBuffers()[i].m_view;
+        //!attachments[0] = m_swapchain->GetBuffers()[i].m_view;
+        attachments[1] = m_swapchain->GetBuffers()[i].m_view;
 
         auto result = vkCreateFramebuffer(*m_device, &frameBufferCreateInfo, nullptr, &m_frameBuffers[i]);
 

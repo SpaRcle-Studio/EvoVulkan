@@ -415,7 +415,16 @@ namespace EvoVulkan::Tools {
         VkMemoryAllocateInfo allocInfo = {};
         allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize  = memRequirements.size;
-        allocInfo.memoryTypeIndex = device->GetMemoryType(memRequirements.memoryTypeBits, properties);
+
+        VkBool32 found;
+        allocInfo.memoryTypeIndex = device->GetMemoryType(memRequirements.memoryTypeBits, properties, &found);
+        if (!found) { // TODO
+            allocInfo.memoryTypeIndex = device->GetMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &found);
+            if (!found) {
+                VK_ERROR("Tools::CreateImage() : memory is not support this properties!");
+                return VK_NULL_HANDLE;
+            }
+        }
 
         if (vkAllocateMemory(*device, &allocInfo, nullptr, imageMemory) != VK_SUCCESS) {
             VK_ERROR("Tools::CreateImage() : failed to allocate vulkan image memory!");
