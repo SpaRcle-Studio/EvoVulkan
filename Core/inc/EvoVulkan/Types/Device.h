@@ -31,7 +31,7 @@ namespace EvoVulkan::Types {
 
         //! don't use for VkAttachmentDescription
         //! for multisampling.rasterizationSamples and images
-        unsigned __int8                  m_maxCountMSAASamples     = VK_SAMPLE_COUNT_1_BIT;
+        VkSampleCountFlagBits            m_maxCountMSAASamples     = VK_SAMPLE_COUNT_1_BIT;
 
         //! for deviceFeatures and multisampling
         bool                             m_enableSampleShading     = false;

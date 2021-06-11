@@ -47,7 +47,8 @@ bool EvoVulkan::Types::DepthStencil::ReCreate(uint32_t width, uint32_t height) {
     imageCI.extent            = { width, height, 1 };
     imageCI.mipLevels         = 1;
     imageCI.arrayLayers       = 1;
-    imageCI.samples           = VK_SAMPLE_COUNT_1_BIT;
+    //imageCI.samples           = VK_SAMPLE_COUNT_1_BIT;
+    imageCI.samples           = m_device->GetMSAASamples();
     imageCI.tiling            = VK_IMAGE_TILING_OPTIMAL;
     imageCI.usage             = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 

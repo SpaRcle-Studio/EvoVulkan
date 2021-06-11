@@ -52,6 +52,7 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
     device->m_deviceName = GetDeviceName(physicalDevice);
 
     //device->m_maxCountMSAASamples = calculate...
+    //device->m_maxCountMSAASamples = Tools::GetMaxUsableSampleCount(device->m_physicalDevice);
 
     return device;
 }

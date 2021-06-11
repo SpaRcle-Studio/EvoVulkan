@@ -210,7 +210,7 @@ namespace EvoVulkan::Complexes {
             for (uint32_t i = 0; i < m_countAttach + 1; ++i) {
                 VkAttachmentDescription attachmentDesc = {};
 
-                attachmentDesc.samples        = VK_SAMPLE_COUNT_1_BIT; // TODO: 1 sample bit! Need get from device.
+                attachmentDesc.samples        = m_device->GetMSAASamples();
                 attachmentDesc.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 attachmentDesc.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
                 attachmentDesc.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;

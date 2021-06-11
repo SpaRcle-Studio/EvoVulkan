@@ -15,9 +15,10 @@
 namespace EvoVulkan::Types {
     struct RenderPass {
         VkRenderPass m_self;
+        uint32_t m_countAttachments;
         uint32_t m_countColorAttach;
 
-        [[nodiscard]] bool Ready() const noexcept { return m_countColorAttach > 0 && m_self != VK_NULL_HANDLE; }
+        [[nodiscard]] bool Ready() const noexcept { return m_countAttachments > 0 && m_self != VK_NULL_HANDLE; }
     };
 
     static void DestroyRenderPass(const Types::Device *device, RenderPass *renderPass) {
@@ -26,6 +27,7 @@ namespace EvoVulkan::Types {
         if (renderPass->Ready()) {
             vkDestroyRenderPass(*device, renderPass->m_self, nullptr);
             renderPass->m_self = VK_NULL_HANDLE;
+            renderPass->m_countAttachments = 0;
             renderPass->m_countColorAttach = 0;
         } else
             VK_ERROR("Tools::DestroyRenderPass() : render pass is nullptr!");
@@ -129,7 +131,7 @@ namespace EvoVulkan::Types {
             return {};
         }
 
-        return {renderPass, (uint32_t) colorReferences.size()};
+        return { renderPass, (uint32_t)attachments.size(), (uint32_t)colorReferences.size() };
     }
 }
 

@@ -25,16 +25,6 @@ namespace EvoVulkan::Core {
         Error = 0, Success = 1, OutOfDate = 2
     };
 
-    /*typedef void (__stdcall *KernelRenderFunction)(
-            EvoVulkan::Core::VulkanKernel* kernel,
-            //EvoVulkan::Types::Swapchain* swapchain,
-            EvoVulkan::Types::Device* device,
-            VkFence* waitFences,
-            VkCommandBuffer* drawBuffers,
-            VkSubmitInfo& submitInfo, // copy
-            uint32_t currentBuffer
-            );*/
-
     class VulkanKernel {
     public:
         VulkanKernel(const VulkanKernel&) = delete;
@@ -72,7 +62,6 @@ namespace EvoVulkan::Core {
         unsigned int               m_width                = 0;
         unsigned int               m_height               = 0;
 
-        //VkRenderPass               m_renderPass           = VK_NULL_HANDLE;
         Types::RenderPass          m_renderPass           = { };
         VkPipelineCache            m_pipelineCache        = VK_NULL_HANDLE;
 
@@ -95,8 +84,6 @@ namespace EvoVulkan::Core {
         uint8_t                    m_countDCB             = 0;
         VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
         std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
-    private:
-        //KernelRenderFunction       m_renderFunction       = nullptr;
     private:
         bool ReCreateFrameBuffers();
         void DestroyFrameBuffers();

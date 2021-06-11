@@ -399,7 +399,8 @@ namespace EvoVulkan::Tools {
         imageInfo.tiling        = tiling;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.usage         = usage;
-        imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT; // TODO: sample count 1 bit! Get from device?
+        //imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT; // TODO: sample count 1 bit! Get from device?
+        imageInfo.samples       = device->GetMSAASamples();
         imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
         VkImage image = VK_NULL_HANDLE;

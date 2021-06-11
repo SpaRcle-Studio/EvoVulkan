@@ -20,6 +20,12 @@ namespace EvoVulkan::Tools::Initializers {
         return mappedMemoryRange;
     }
 
+    static VkRenderPassCreateInfo RenderPassCreateInfo() {
+        VkRenderPassCreateInfo renderPassCreateInfo {};
+        renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        return renderPassCreateInfo;
+    }
+
     static VkViewport Viewport(
             float width,
             float height,
