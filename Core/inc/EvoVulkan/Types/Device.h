@@ -41,7 +41,9 @@ namespace EvoVulkan::Types {
         static Device* Create(const VkPhysicalDevice& physicalDevice,
                               const VkDevice& logicalDevice,
                               FamilyQueues* familyQueues,
-                              const bool& enableSampleShading);
+                              const bool& enableSampleShading,
+                              bool multisampling,
+                              int32_t sampleCount = -1);
         void Free();
     public:
         [[nodiscard]] bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
@@ -52,6 +54,7 @@ namespace EvoVulkan::Types {
         [[nodiscard]] inline float GetMaxSamplerAnisotropy() const noexcept { return m_maxSamplerAnisotropy;    }
 
         [[nodiscard]] inline VkQueue GetGraphicsQueue()  const noexcept { return m_familyQueues->m_graphicsQueue;  }
+        [[nodiscard]] inline bool MultisampleEnabled()  const noexcept { return m_maxCountMSAASamples != VK_SAMPLE_COUNT_1_BIT;  }
         //[[nodiscard]] inline VkQueue GetPresentQueue() const noexcept { return m_familyQueues->m_presentQueue; }
 
         [[nodiscard]] VkSampleCountFlagBits GetMSAASamples() const {

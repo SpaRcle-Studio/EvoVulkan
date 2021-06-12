@@ -91,7 +91,9 @@ bool EvoVulkan::Core::VulkanKernel::Init(
             m_surface,
             deviceExtensions,
             m_validationEnabled ? m_validationLayers : std::vector<const char*>(),
-            enableSampleShading);
+            enableSampleShading,
+            m_multisampling,
+            m_sampleCount);
     if (!m_device) {
         VK_ERROR("VulkanKernel::Init() : failed to create logical device!");
         return false;
@@ -214,7 +216,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     //!=================================================================================================================
 
-    VK_GRAPH("VulkanKernel::PostInit() : create depth stencil...");
+    /*VK_GRAPH("VulkanKernel::PostInit() : create depth stencil...");
     this->m_depthStencil = Types::DepthStencil::Create(
             m_device,
             m_swapchain,
@@ -223,7 +225,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     if (!m_depthStencil || !m_depthStencil->IsReady()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create depth stencil!");
         return false;
-    }
+    }*/
 
     //!=================================================================================================================
 
@@ -232,7 +234,8 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
             m_device,
             m_swapchain,
             m_swapchain->GetSurfaceWidth(),
-            m_swapchain->GetSurfaceHeight());
+            m_swapchain->GetSurfaceHeight(),
+            { this->m_swapchain->GetColorFormat() });
     if (!m_multisample) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create multisample!");
         return false;
@@ -241,7 +244,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create render pass...");
-    this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, {}, true);
+    this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, {}, m_multisampling);
     if (!m_renderPass.Ready()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
         return false;
@@ -317,11 +320,11 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_renderPass.Ready())
         Types::DestroyRenderPass(m_device, &m_renderPass);
 
-    if (m_depthStencil) {
+    /*if (m_depthStencil) {
         this->m_depthStencil->Destroy();
         this->m_depthStencil->Free();
         this->m_depthStencil = nullptr;
-    }
+    }*/
 
     if (!m_waitFences.empty()) {
         Tools::DestroyFences(*m_device, m_waitFences);
@@ -375,11 +378,13 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     attachments.resize(m_renderPass.m_countAttachments);
 
     // Depth/Stencil attachment is the same for all frame buffers
-    //!attachments[1] = m_depthStencil->GetImageView();
-
-    attachments[0] = m_multisample->GetColor();
-    // attachment[1] = swapchain image
-    attachments[2] = m_multisample->GetDepth();
+    if (m_multisampling) {
+        attachments[0] = m_multisample->GetResolve(0);
+        // attachment[1] = swapchain image
+        attachments[2] = m_multisample->GetDepth();
+    } else
+        attachments[1] = m_multisample->GetDepth();
+        //attachments[1] = m_depthStencil->GetImageView();
 
     VkFramebufferCreateInfo frameBufferCreateInfo = {};
     frameBufferCreateInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -395,7 +400,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     m_frameBuffers.resize(m_countDCB);
     for (uint32_t i = 0; i < m_countDCB; i++) {
         //!attachments[0] = m_swapchain->GetBuffers()[i].m_view;
-        attachments[1] = m_swapchain->GetBuffers()[i].m_view;
+        attachments[m_multisampling ? 1 : 0] = m_swapchain->GetBuffers()[i].m_view;
 
         auto result = vkCreateFramebuffer(*m_device, &frameBufferCreateInfo, nullptr, &m_frameBuffers[i]);
 
@@ -502,10 +507,10 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
         return false;
     }
 
-    if (!m_depthStencil->ReCreate(m_width, m_height)) {
-        VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create depth stencil!");
-        return false;
-    }
+    //if (!m_depthStencil->ReCreate(m_width, m_height)) {
+    //    VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create depth stencil!");
+    //    return false;
+   // }
 
     if (!this->ReCreateFrameBuffers()) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create frame buffers!");
@@ -524,4 +529,9 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
     }
 
     return true;
+}
+
+void EvoVulkan::Core::VulkanKernel::SetMultisampling(const uint32_t &sampleCount) {
+    this->m_multisampling = sampleCount > 1;
+    this->m_sampleCount   = sampleCount;
 }

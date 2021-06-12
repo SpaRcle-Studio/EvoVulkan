@@ -2,7 +2,7 @@
 // Created by Nikita on 12.04.2021.
 //
 
-#include "Example.h"
+#include "UnitTests/Example.h"
 
 int main() {
     EvoVulkan::Tools::VkDebug::Error = std::function<void(const std::string& msg)>([](const std::string& msg) {
@@ -28,8 +28,8 @@ int main() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    unsigned int width     = 600; //1280
-    unsigned int height    = 600; //820
+    unsigned int width     = 600;  //1280
+    unsigned int height    = 600;  //820
     bool validationEnabled = true;
 
     auto window = glfwCreateWindow((int)width, (int)height, "Vulkan application", nullptr, nullptr); //1280, 1024
@@ -45,6 +45,7 @@ int main() {
 
     kernel->SetValidationLayersEnabled(validationEnabled);
     kernel->SetSize(width, height);
+    kernel->SetMultisampling(8);
 
     std::vector<const char*> extensions;
     extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
@@ -99,10 +100,11 @@ int main() {
     if (!kernel->GenerateGeometry())
         return -1;
 
+#ifdef EVOVULKAN_EXAMPLE_H
     kernel->LoadSkybox();
+#endif
 
     kernel->BuildCmdBuffers();
-    //kernel->UpdateUBO();
 
     while (!glfwWindowShouldClose(window) && !kernel->HasErrors()) {
         glfwPollEvents();

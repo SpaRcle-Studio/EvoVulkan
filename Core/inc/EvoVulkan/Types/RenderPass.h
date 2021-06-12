@@ -40,9 +40,9 @@ namespace EvoVulkan::Types {
 
         VkSubpassDescription subpassDescription = {};
         std::vector<VkAttachmentReference> colorReferences = {};
+        std::vector<VkAttachmentReference> resolveReferences = {};
         VkAttachmentReference depthReference = {};
         // Resolve attachment reference for the color attachment
-        VkAttachmentReference resolveReference = {};
 
         if (attachments.empty()) {
             attachments.resize(multisampling ? 3 : 2);
@@ -93,24 +93,49 @@ namespace EvoVulkan::Types {
 
             colorReferences.push_back({0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
             depthReference = { multisampling ? 2u : 1u, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
-            resolveReference = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
-            subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-            subpassDescription.colorAttachmentCount = 1;
-            subpassDescription.pColorAttachments = colorReferences.data();
-            subpassDescription.pDepthStencilAttachment = &depthReference;
-            subpassDescription.inputAttachmentCount = 0;
-            subpassDescription.pInputAttachments = nullptr;
-            subpassDescription.preserveAttachmentCount = 0;
-            subpassDescription.pPreserveAttachments = nullptr;
-            subpassDescription.pResolveAttachments = multisampling ? &resolveReference : nullptr;
+            resolveReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
         } else {
-            for (uint32_t i = 0; i < attachments.size() - 1; i++)
+            //uint32_t bind = 0;
+            for (uint32_t i = 0; i < attachments.size() - 1; i++) {
                 colorReferences.push_back({i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+                if (multisampling) {
+                    VkAttachmentDescription attachmentDescription = {
+                            .format = attachments[i].format,
+                            .samples = VK_SAMPLE_COUNT_1_BIT,
+                            .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                            .finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    };
 
-            depthReference = {static_cast<uint32_t>(attachments.size() - 1),
-                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+                    attachments.insert(attachments.begin() + i + 1, attachmentDescription);
+                    i++;
+                    resolveReferences.push_back({ i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                }
+            }
 
+            //resolveReference = { static_cast<uint32_t>(attachments.size() - 2), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+            depthReference = { static_cast<uint32_t>(colorReferences.size() + resolveReferences.size()), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+        }
+
+        /*
+         * [Error] Validation Error: [ VUID-vkCmdBeginRenderPass-initialLayout-00897 ] Object 0: handle = 0x5261630000000026, type
+            = VK_OBJECT_TYPE_IMAGE; Object 1: handle = 0x8483000000000025, type = VK_OBJECT_TYPE_RENDER_PASS; Object 2: handle = 0x7
+            925100000000035, type = VK_OBJECT_TYPE_FRAMEBUFFER; Object 3: handle = 0xab46ad0000000028, type = VK_OBJECT_TYPE_IMAGE_V
+            IEW; | MessageID = 0x961074c1 | vkCmdBeginRenderPass(): Layout/usage mismatch for attachment 0 in VkRenderPass 0x8483000
+            000000025[] - the final layout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL but the image attached to VkFramebuffer 0x792
+            5100000000035[] via VkImageView 0xab46ad0000000028[] was not created with VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT or VK_IMAG
+            E_USAGE_SAMPLED_BIT The Vulkan spec states: If any of the initialLayout or finalLayout member of the VkAttachmentDescrip
+            tion structures or the layout member of the VkAttachmentReference structures specified when creating the render pass spe
+            cified in the renderPass member of pRenderPassBegin is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL then the corresponding a
+            ttachment image view of the framebuffer specified in the framebuffer member of pRenderPassBegin must have been created w
+            ith a usage value including VK_IMAGE_USAGE_SAMPLED_BIT or VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+         */
+
+        {
             subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpassDescription.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
             subpassDescription.pColorAttachments = colorReferences.data();
@@ -119,7 +144,7 @@ namespace EvoVulkan::Types {
             subpassDescription.pInputAttachments = nullptr;
             subpassDescription.preserveAttachmentCount = 0;
             subpassDescription.pPreserveAttachments = nullptr;
-            subpassDescription.pResolveAttachments = nullptr;
+            subpassDescription.pResolveAttachments = multisampling ? resolveReferences.data() : nullptr;
         }
 
         // Subpass dependencies for layout transitions

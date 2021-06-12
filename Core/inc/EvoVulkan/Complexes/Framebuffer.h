@@ -15,6 +15,7 @@
 #include <EvoVulkan/Tools/VulkanTools.h>
 
 #include <EvoVulkan/DescriptorManager.h>
+#include <EvoVulkan/Types/MultisampleTarget.h>
 
 namespace EvoVulkan::Complexes {
     struct FrameBufferAttachment {
@@ -64,7 +65,6 @@ namespace EvoVulkan::Complexes {
 
     static FrameBufferAttachment CreateAttachment(
             const Types::Device* device,
-            const Types::CmdPool* pool,
             VkFormat format,
             VkImageUsageFlags usage,
             VkExtent2D imageSize)
@@ -92,7 +92,8 @@ namespace EvoVulkan::Complexes {
                                     VK_IMAGE_TILING_OPTIMAL,
                                     usage,
                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                    &FBOAttachment.m_mem);
+                                    &FBOAttachment.m_mem,
+                                    false);
 
         FBOAttachment.m_view = Tools::CreateImageView(
                 *device,
@@ -110,46 +111,47 @@ namespace EvoVulkan::Complexes {
     //!=================================================================================================================
 
     class FrameBuffer {
-        uint32_t                 m_width         = 0,
-                                 m_height        = 0,
+    private:
+        uint32_t                  m_width             = 0,
+                                  m_height            = 0,
 
-                                 m_baseWidth     = 0,
-                                 m_baseHeight    = 0,
+                                  m_baseWidth         = 0,
+                                  m_baseHeight        = 0,
 
-                                 m_countAttach   = 0;
+                                  m_countColorAttach  = 0;
 
-        VkFramebuffer            m_framebuffer   = VK_NULL_HANDLE;
-        //VkRenderPass             m_renderPass    = VK_NULL_HANDLE;
-        Types::RenderPass        m_renderPass    = { };
+        VkFramebuffer             m_framebuffer       = VK_NULL_HANDLE;
+        Types::RenderPass         m_renderPass        = { };
 
-        VkSampler                m_colorSampler  = VK_NULL_HANDLE;
+        VkSampler                 m_colorSampler      = VK_NULL_HANDLE;
 
-        std::vector<VkFormat>    m_attachFormats = {};
-        VkFormat                 m_depthFormat   = VK_FORMAT_UNDEFINED;
+        std::vector<VkFormat>     m_attachFormats     = {};
+        VkFormat                  m_depthFormat       = VK_FORMAT_UNDEFINED;
 
-        FrameBufferAttachment    m_depth         = {};
+        //FrameBufferAttachment     m_depth             = {};
 
-        float                    m_scale         = 1.f;
+        float                     m_scale             = 1.f;
 
-        const Types::Device*     m_device        = nullptr;
-        const Types::Swapchain*  m_swapchain     = nullptr;
-        const Types::CmdPool*    m_cmdPool       = nullptr;
+        Types::MultisampleTarget* m_multisampleTarget = nullptr;
+        const Types::Device*      m_device            = nullptr;
+        const Types::Swapchain*   m_swapchain         = nullptr;
+        const Types::CmdPool*     m_cmdPool           = nullptr;
 
-        VkRect2D                 m_scissor       = {};
-        VkViewport               m_viewport      = {};
+        VkRect2D                  m_scissor           = {};
+        VkViewport                m_viewport          = {};
 
-        VkCommandBufferBeginInfo m_cmdBufInfo    = {};
+        VkCommandBufferBeginInfo  m_cmdBufInfo        = {};
     public:
         /// \Warn Unsafe access! But it's fast.
-        FrameBufferAttachment*  m_attachments   = nullptr;
+        FrameBufferAttachment*    m_attachments       = nullptr;
 
-        VkSemaphore             m_semaphore     = VK_NULL_HANDLE;
+        VkSemaphore               m_semaphore         = VK_NULL_HANDLE;
 
-        VkCommandBuffer         m_cmdBuff       = VK_NULL_HANDLE;
+        VkCommandBuffer           m_cmdBuff           = VK_NULL_HANDLE;
     public:
         /// \Warn Slow access! But it's safe.
         [[nodiscard]] VkImageView GetAttachment(const uint32_t id) const {
-            if (id >= m_countAttach) {
+            if (id >= m_countColorAttach) {
                 VK_ERROR("Framebuffer::GetAttachment() : going beyond the array boundaries!");
                 return VK_NULL_HANDLE;
             }
@@ -160,27 +162,24 @@ namespace EvoVulkan::Complexes {
             return m_renderPass;
         }
 
-        [[nodiscard]] inline uint32_t GetCountAttachments() const noexcept {
-            return m_countAttach;
-        }
+        //[[nodiscard]] inline uint32_t GetCountColorAttachments() const noexcept { return m_countColorAttach; }
 
         [[nodiscard]] inline VkCommandBuffer GetCmd() const noexcept {
             return m_cmdBuff;
         }
     private:
         bool CreateAttachments() {
-            this->m_attachments = (FrameBufferAttachment*)malloc(sizeof(FrameBufferAttachment) * m_countAttach);
+            this->m_attachments = (FrameBufferAttachment*)malloc(sizeof(FrameBufferAttachment) * m_countColorAttach);
             if (!m_attachments) {
                 VK_ERROR("Framebuffer::CreateAttachments() : failed to allocate memory!");
                 return false;
             } else
-                for (uint32_t i = 0; i < m_countAttach; i++)
+                for (uint32_t i = 0; i < m_countColorAttach; i++)
                     m_attachments[i].Init();
 
-           for (uint32_t i = 0; i < m_countAttach; i++) {
+           for (uint32_t i = 0; i < m_countColorAttach; i++) {
                m_attachments[i] = CreateAttachment(
                        m_device,
-                       m_cmdPool,
                        m_attachFormats[i],
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                        { m_width, m_height });
@@ -191,7 +190,7 @@ namespace EvoVulkan::Complexes {
                }
            }
 
-           m_depth = CreateAttachment(
+           /*m_depth = CreateAttachment(
                    m_device,
                    m_cmdPool,
                    m_depthFormat,
@@ -200,37 +199,37 @@ namespace EvoVulkan::Complexes {
            if (!m_depth.Ready()) {
                VK_ERROR("Framebuffer::CreateAttachments() : failed to create depth attachment!");
                return false;
-           }
+           }*/
 
             return true;
         }
         bool CreateRenderPass() {
             std::vector<VkAttachmentDescription> attachmentDescs = {};
-            // Init attachment properties
-            for (uint32_t i = 0; i < m_countAttach + 1; ++i) {
-                VkAttachmentDescription attachmentDesc = {};
+            VkAttachmentDescription attachmentDesc = {};
 
-                attachmentDesc.samples        = m_device->GetMSAASamples();
-                attachmentDesc.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                attachmentDesc.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
-                attachmentDesc.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            // Init attachment properties
+            for (uint32_t i = 0; i < m_countColorAttach + 1; ++i) {
+                attachmentDesc.samples = m_device->GetMSAASamples();
+                attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-                if (i == m_countAttach) {
-                    attachmentDesc.format        = m_depthFormat;
+                if (i == m_countColorAttach) {
+                    attachmentDesc.format = m_depthFormat;
                     attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                    attachmentDesc.finalLayout   = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                }
-                else {
-                    attachmentDesc.format        = m_attachFormats[i];
+                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                } else {
+                    attachmentDesc.format = m_attachFormats[i];
                     attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                    attachmentDesc.finalLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 }
 
                 attachmentDescs.push_back(attachmentDesc);
             }
 
-            this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, attachmentDescs);
+            this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, attachmentDescs,
+                                                         m_device->MultisampleEnabled());
             if (!m_renderPass.Ready()) {
                 VK_ERROR("Framebuffer::CreateRenderPass() : failed to create render pass!");
                 return false;
@@ -239,14 +238,46 @@ namespace EvoVulkan::Complexes {
             return true;
         }
         bool CreateFramebuffer() {
+            VK_GRAPH("Framebuffer::CreateFramebuffer() : create vulkan framebuffer...");
+
             std::vector<VkImageView> attachments = {};
-            for (uint32_t i = 0; i < m_countAttach; i++)
+
+            /*
+            attachments.push_back(m_multisampleTarget->GetResolve(0));
+            attachments.push_back(m_attachments[0].m_view);
+            attachments.push_back(m_multisampleTarget->GetDepth());*/
+
+            /*
+            for (uint32_t i = 0; i < m_countColorAttach; i++) {
                 attachments.push_back(m_attachments[i].m_view);
-            attachments.push_back(m_depth.m_view);
+                if (m_device->MultisampleEnabled())
+                    attachments.push_back(m_multisampleTarget->GetResolve(i));
+            }
+            */
+
+            for (uint32_t i = 0; i < m_countColorAttach; i++) {
+                if (m_device->MultisampleEnabled())
+                    attachments.push_back(m_multisampleTarget->GetResolve(i));
+                attachments.push_back(m_attachments[i].m_view);
+                /*
+                 *  0 - resolve
+                 *  1 - color
+                 *  2 - resolve
+                 *  3 - color
+                 *  ...
+                 *  n - depth
+                 */
+            }
+
+            attachments.push_back(m_multisampleTarget->GetDepth());
+
+            VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {};
+            framebufferAttachmentsCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO;
 
             VkFramebufferCreateInfo FBO_CI = {};
+            //FBO_CI.flags                   = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
             FBO_CI.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            FBO_CI.pNext                   = nullptr;
+            //FBO_CI.pNext                   = &framebufferAttachmentsCreateInfo;
             FBO_CI.renderPass              = m_renderPass.m_self;
             FBO_CI.pAttachments            = attachments.data();
             FBO_CI.attachmentCount         = static_cast<uint32_t>(attachments.size());
@@ -254,7 +285,7 @@ namespace EvoVulkan::Complexes {
             FBO_CI.height                  = m_height;
             FBO_CI.layers                  = 1;
 
-            if (vkCreateFramebuffer(*m_device, &FBO_CI, nullptr, &m_framebuffer) != VK_SUCCESS) {
+            if (vkCreateFramebuffer(*m_device, &FBO_CI, nullptr, &m_framebuffer) != VK_SUCCESS || m_framebuffer == VK_NULL_HANDLE) {
                 VK_ERROR("Framebuffer::CreateFramebuffer() : failed to create vulkan framebuffer!");
                 return false;
             }
@@ -310,14 +341,20 @@ namespace EvoVulkan::Complexes {
         }
 
         void Destroy() {
+            if (m_multisampleTarget) {
+                m_multisampleTarget->Destroy();
+                m_multisampleTarget->Free();
+                m_multisampleTarget = nullptr;
+            }
+
             if (m_attachments) {
-                for (uint32_t i = 0; i < m_countAttach; i++)
+                for (uint32_t i = 0; i < m_countColorAttach; i++)
                     m_attachments[i].Destroy();
                 free(m_attachments);
                 m_attachments = nullptr;
             }
 
-            m_depth.Destroy();
+            //m_depth.Destroy();
 
             if (m_framebuffer != VK_NULL_HANDLE) {
                 vkDestroyFramebuffer(*m_device, m_framebuffer, nullptr);
@@ -332,6 +369,12 @@ namespace EvoVulkan::Complexes {
 
         bool ReCreate(uint32_t width, uint32_t height) {
             this->Destroy();
+
+            this->m_multisampleTarget = Types::MultisampleTarget::Create(m_device, m_swapchain, width, height, m_attachFormats);
+            if (!m_multisampleTarget) {
+                VK_ERROR("Framebuffer::ReCreate() : failed to create multisample target!");
+                return false;
+            }
 
             this->m_baseWidth  = width;
             this->m_baseHeight = height;
@@ -350,6 +393,18 @@ namespace EvoVulkan::Complexes {
                 return false;
             }
 
+            /*{
+                auto copyCmd = Types::CmdBuffer::BeginSingleTime(m_device, m_cmdPool);
+
+                for (uint32_t i = 0; i < m_multisampleTarget->GetResolveCount(); i++)
+                    Tools::TransitionImageLayout(
+                            copyCmd, m_multisampleTarget->GetResolveImage(i),
+                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+
+                copyCmd->Destroy();
+                copyCmd->Free();
+            }*/
+
             return true;
         }
     public:
@@ -358,7 +413,7 @@ namespace EvoVulkan::Complexes {
                 const Types::Device* device,
                 const Types::Swapchain* swapchain,
                 const Types::CmdPool* pool,
-                const std::vector<VkFormat>& attachments,
+                const std::vector<VkFormat>& colorAttachments,
                 uint32_t width, uint32_t height,
                 float scale = 1.f)
         {
@@ -369,13 +424,13 @@ namespace EvoVulkan::Complexes {
 
             auto fbo = new FrameBuffer();
             {
-                fbo->m_scale         = scale;
-                fbo->m_cmdPool       = pool;
-                fbo->m_device        = device;
-                fbo->m_swapchain     = swapchain;
-                fbo->m_countAttach   = attachments.size();
-                fbo->m_attachFormats = attachments;
-                fbo->m_depthFormat   = Tools::GetDepthFormat(*device);
+                fbo->m_scale            = scale;
+                fbo->m_cmdPool          = pool;
+                fbo->m_device           = device;
+                fbo->m_swapchain        = swapchain;
+                fbo->m_countColorAttach = colorAttachments.size();
+                fbo->m_attachFormats    = colorAttachments;
+                fbo->m_depthFormat      = Tools::GetDepthFormat(*device);
             }
 
             auto semaphoreCI  = Tools::Initializers::SemaphoreCreateInfo();
@@ -404,7 +459,7 @@ namespace EvoVulkan::Complexes {
         [[nodiscard]] std::vector<VkDescriptorImageInfo> GetImageDescriptors() const {
             auto descriptors = std::vector<VkDescriptorImageInfo>();
 
-            for (uint32_t i = 0; i < m_countAttach; i++)
+            for (uint32_t i = 0; i < m_countColorAttach; i++)
                 descriptors.push_back(Tools::Initializers::DescriptorImageInfo(
                         m_colorSampler,
                         m_attachments[i].m_view,

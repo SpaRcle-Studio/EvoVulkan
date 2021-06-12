@@ -227,8 +227,20 @@ namespace EvoVulkan::Tools {
 
         //!=============================================================================================================
 
+        /*VkPhysicalDeviceImagelessFramebufferFeatures physicalDeviceImagelessFramebufferFeatures = {};
+        physicalDeviceImagelessFramebufferFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
+        physicalDeviceImagelessFramebufferFeatures.imagelessFramebuffer = true;
+
+        VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
+        deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        deviceFeatures2.pNext = (void*)&physicalDeviceImagelessFramebufferFeatures;
+        deviceFeatures2.features = deviceFeatures;*/
+
+        //!==========
+
         VkDeviceCreateInfo createInfo      = {};
         createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        //createInfo.pNext                   = (void*)&deviceFeatures2;
 
         createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos       = queueCreateInfos.data();
@@ -385,7 +397,8 @@ namespace EvoVulkan::Tools {
             VkFormat format, VkImageTiling tiling,
             VkImageUsageFlags usage,
             VkMemoryPropertyFlags properties,
-            VkDeviceMemory* imageMemory)
+            VkDeviceMemory* imageMemory,
+            bool multisampling = true)
     {
         VkImageCreateInfo imageInfo = {};
         imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -399,8 +412,7 @@ namespace EvoVulkan::Tools {
         imageInfo.tiling        = tiling;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.usage         = usage;
-        //imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT; // TODO: sample count 1 bit! Get from device?
-        imageInfo.samples       = device->GetMSAASamples();
+        imageInfo.samples       = (mipLevels > 1 || !multisampling) ? VK_SAMPLE_COUNT_1_BIT : device->GetMSAASamples();
         imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
         VkImage image = VK_NULL_HANDLE;
@@ -471,7 +483,15 @@ namespace EvoVulkan::Tools {
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
@@ -498,7 +518,9 @@ namespace EvoVulkan::Tools {
             const VkInstance& instance, const Types::Surface* surface,
             const std::vector<const char*>& extensions,
             const std::vector<const char*>& validationLayers,
-            const bool& enableSampleShading)
+            const bool& enableSampleShading,
+            bool multisampling,
+            uint32_t sampleCount)
     {
         Tools::VkDebug::Graph("VulkanTools::CreateDevice() : create vulkan device...");
 
@@ -583,7 +605,7 @@ namespace EvoVulkan::Tools {
             queues->SetQueue(graphics);
         }
 
-        auto finallyDevice = Types::Device::Create(physicalDevice, logicalDevice, queues, enableSampleShading);
+        auto finallyDevice = Types::Device::Create(physicalDevice, logicalDevice, queues, enableSampleShading, multisampling, sampleCount);
 
         if (finallyDevice)
             Tools::VkDebug::Log("VulkanTools::CreateDevice() : device successfully created!");

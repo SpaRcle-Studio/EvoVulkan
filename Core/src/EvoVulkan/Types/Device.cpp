@@ -10,7 +10,9 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
         const VkPhysicalDevice& physicalDevice,
         const VkDevice& logicalDevice,
         FamilyQueues* familyQueues,
-        const bool& enableSampleShading)
+        const bool& enableSampleShading,
+        bool multisampling,
+        int32_t sampleCount)
 {
     if (physicalDevice == VK_NULL_HANDLE) {
         Tools::VkDebug::Error("Device::Create() : physical device is nullptr!");
@@ -52,7 +54,27 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
     device->m_deviceName = GetDeviceName(physicalDevice);
 
     //device->m_maxCountMSAASamples = calculate...
-    device->m_maxCountMSAASamples = Tools::GetMaxUsableSampleCount(device->m_physicalDevice);
+    if (multisampling) {
+        if (sampleCount <= 0)
+            device->m_maxCountMSAASamples = Tools::GetMaxUsableSampleCount(device->m_physicalDevice);
+        else {
+            if (sampleCount == 1) {
+                VK_ERROR("Device::Create() : incorrect sample count!");
+                return nullptr;
+            }
+
+            if (sampleCount > Tools::Convert::SampleCountToInt(Tools::GetMaxUsableSampleCount(device->m_physicalDevice))) {
+                VK_ERROR("Device::Create() : incorrect sample count!");
+                return nullptr;
+            } else {
+                device->m_maxCountMSAASamples = Tools::Convert::IntToSampleCount(sampleCount);
+                if (device->m_maxCountMSAASamples == VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM) {
+                    VK_ERROR("Device::Create() : incorrect sample count!");
+                    return nullptr;
+                }
+            }
+        }
+    }
 
     return device;
 }

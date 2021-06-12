@@ -9,6 +9,32 @@
 #include <string>
 
 namespace EvoVulkan::Tools::Convert {
+    static uint32_t SampleCountToInt(VkSampleCountFlagBits samples) {
+        switch (samples) {
+            case VK_SAMPLE_COUNT_1_BIT: return 1;
+            case VK_SAMPLE_COUNT_2_BIT: return 2;
+            case VK_SAMPLE_COUNT_4_BIT: return 4;
+            case VK_SAMPLE_COUNT_8_BIT: return 8;
+            case VK_SAMPLE_COUNT_16_BIT: return 16;
+            case VK_SAMPLE_COUNT_32_BIT: return 32;
+            case VK_SAMPLE_COUNT_64_BIT: return 64;
+            default: return 0;
+        }
+    }
+
+    static VkSampleCountFlagBits IntToSampleCount(uint32_t i) {
+        switch (i) {
+            case 1: return VK_SAMPLE_COUNT_1_BIT;
+            case 2: return VK_SAMPLE_COUNT_2_BIT;
+            case 4: return VK_SAMPLE_COUNT_4_BIT;
+            case 8: return VK_SAMPLE_COUNT_8_BIT;
+            case 16: return VK_SAMPLE_COUNT_16_BIT;
+            case 32: return VK_SAMPLE_COUNT_32_BIT;
+            case 64: return VK_SAMPLE_COUNT_64_BIT;
+            default: return VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
+        }
+    }
+
     static std::string present_mode_khr_to_string(const VkPresentModeKHR present_mode) {
         switch (present_mode) {
             case VK_PRESENT_MODE_IMMEDIATE_KHR:

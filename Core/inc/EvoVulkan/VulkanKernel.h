@@ -50,11 +50,15 @@ namespace EvoVulkan::Core {
         bool                       m_isInitialized        = false;
         bool                       m_isPostInitialized    = false;
     protected:
-        VkClearValue m_clearValues[2] {
-                { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
-                { .depthStencil = { 1.0f, 0 } }
-        };
+        //VkClearValue m_clearValues[3] {
+        //        { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
+        //        { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
+        //        { .depthStencil = { 1.0f, 0 } }
+        //};
     protected:
+        bool                       m_multisampling        = false;
+        uint32_t                   m_sampleCount          = 1;
+
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
 
@@ -71,7 +75,7 @@ namespace EvoVulkan::Core {
         Types::Surface*            m_surface              = nullptr;
         Types::Swapchain*          m_swapchain            = nullptr;
         Types::CmdPool*            m_cmdPool              = nullptr;
-        Types::DepthStencil*       m_depthStencil         = nullptr;
+        //Types::DepthStencil*       m_depthStencil         = nullptr;
         Types::MultisampleTarget*  m_multisample          = nullptr;
 
         Core::DescriptorManager*   m_descriptorManager    = nullptr;
@@ -126,6 +130,8 @@ namespace EvoVulkan::Core {
             }
             return m_descriptorManager;
         }
+
+        void SetMultisampling(const uint32_t& sampleCount);
 
         inline bool SetValidationLayersEnabled(const bool& value) {
             if (m_isPreInitialized) {
