@@ -389,10 +389,10 @@ public:
                     sizeof(ModelUniformBuffer));
 
             // Setup a descriptor image info for the current texture to be used as a combined image sampler
-            VkDescriptorImageInfo textureDescriptor;
-            textureDescriptor.imageView   = m_texture->m_view;			// The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
-            textureDescriptor.sampler     = m_texture->m_sampler;		// The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
-            textureDescriptor.imageLayout = m_texture->m_imageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
+            VkDescriptorImageInfo textureDescriptor = m_texture->GetDescriptor();
+            //textureDescriptor.imageView   = m_texture->m_view;			// The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
+            //textureDescriptor.sampler     = m_texture->m_sampler;		// The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
+            //textureDescriptor.imageLayout = m_texture->m_imageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
 
             std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                     // Binding 0 : Vertex shader uniform buffer

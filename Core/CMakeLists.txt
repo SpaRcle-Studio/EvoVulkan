@@ -12,7 +12,6 @@ add_library(EvoVulkanCore STATIC
 
         src/EvoVulkan/Types/MultisampleTarget.cpp
         src/EvoVulkan/Types/Device.cpp
-        src/EvoVulkan/Types/Framebuffer.cpp
         src/EvoVulkan/Types/ImageView.cpp
         src/EvoVulkan/Types/Pipeline.cpp
         src/EvoVulkan/Types/FamilyQueues.cpp
@@ -27,6 +26,7 @@ add_library(EvoVulkanCore STATIC
 
         src/EvoVulkan/Tools/VulkanTools.cpp
 
+        src/EvoVulkan/Complexes/Framebuffer.cpp
         src/EvoVulkan/Complexes/Shader.cpp
         src/EvoVulkan/Complexes/Mesh.cpp
         )

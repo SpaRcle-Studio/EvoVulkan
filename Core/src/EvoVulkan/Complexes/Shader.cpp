@@ -109,7 +109,8 @@ bool EvoVulkan::Complexes::Shader::Compile(
         VkCullModeFlags cullMode,
         VkCompareOp depthCompare,
         VkBool32 blendEnable,
-        VkBool32 depthEnable) //, uint32_t countAttachments
+        VkBool32 depthWrite,
+        VkBool32 depthTest) //, uint32_t countAttachments
 {
     if (!this->BuildLayouts()) {
         VK_ERROR("Shader::Compile() : failed to build layouts!");
@@ -144,7 +145,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
     VkPipelineColorBlendStateCreateInfo colorBlendState =
             Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
 
-    VkPipelineDepthStencilStateCreateInfo  depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthEnable, VK_TRUE, depthCompare);
+    VkPipelineDepthStencilStateCreateInfo  depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthTest, depthWrite, depthCompare);
     VkPipelineViewportStateCreateInfo      viewportState = Tools::Initializers::PipelineViewportStateCreateInfo(1, 1, 0);
     VkPipelineMultisampleStateCreateInfo   multisampleState = Tools::Initializers::PipelineMultisampleStateCreateInfo(m_device->GetMSAASamples(), 0);
 

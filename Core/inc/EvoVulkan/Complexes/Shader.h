@@ -70,7 +70,8 @@ namespace EvoVulkan::Complexes {
                 VkCullModeFlags cullMode,
                 VkCompareOp depthCompare,
                 VkBool32 blendEnable,
-                VkBool32 depthEnable);
+                VkBool32 depthWrite,
+                VkBool32 depthTest);
 
         void Destroy();
         void Free();

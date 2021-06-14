@@ -38,6 +38,7 @@ namespace EvoVulkan::Types {
     public:
         [[nodiscard]] VkImageView GetResolve(const uint32_t& id) const noexcept { return m_resolves[id].m_view; }
         [[nodiscard]] VkImage GetResolveImage(const uint32_t& id) const noexcept { return m_resolves[id].m_image; }
+        [[nodiscard]] VkImage GetDepthImage() const noexcept { return m_depth.m_image; }
         [[nodiscard]] VkImageView GetDepth() const noexcept { return m_depth.m_view; }
         [[nodiscard]] uint32_t GetResolveCount() const noexcept { return m_countResolves; }
     public:
