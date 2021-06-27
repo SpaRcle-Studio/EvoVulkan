@@ -5,7 +5,7 @@
 #include <EvoVulkan/Complexes/Framebuffer.h>
 
 static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
-        const EvoVulkan::Types::Device* device,
+        EvoVulkan::Types::Device* device,
         VkFormat format,
         VkImageUsageFlags usage,
         VkExtent2D imageSize)
@@ -44,7 +44,7 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
             aspectMask);
 
     FBOAttachment.m_format = format;
-    FBOAttachment.m_device = *device;
+    FBOAttachment.m_device = device;
 
     return FBOAttachment;
 }
@@ -83,9 +83,9 @@ std::vector<VkDescriptorImageInfo> EvoVulkan::Complexes::FrameBuffer::GetImageDe
 }
 
 EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
-        const EvoVulkan::Types::Device *device,
-        const EvoVulkan::Types::Swapchain *swapchain,
-        const EvoVulkan::Types::CmdPool *pool,
+        EvoVulkan::Types::Device *device,
+        EvoVulkan::Types::Swapchain *swapchain,
+        EvoVulkan::Types::CmdPool *pool,
         const std::vector<VkFormat> &colorAttachments,
         uint32_t width,
         uint32_t height,

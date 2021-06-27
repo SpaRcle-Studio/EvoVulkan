@@ -30,6 +30,8 @@
 #include <EvoVulkan/Complexes/Mesh.h>
 #include <EvoVulkan/Complexes/Framebuffer.h>
 
+#include <cmp_core.h>
+
 using namespace EvoVulkan;
 
 struct ViewUniformBuffer {
@@ -166,8 +168,7 @@ public:
         glm::mat4 projectionMatrix = glm::perspective(
                 glm::radians(
                         1000.f), // The vertical Field of View, in radians: the amount of "zoom". Think "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
-                4.0f /
-                3.0f,       // Aspect Ratio. Depends on the size of your window. Notice that 4/3 == 800/600 == 1280/960, sounds familiar ?
+                1.f,       // Aspect Ratio. Depends on the size of your window. Notice that 4/3 == 800/600 == 1280/960, sounds familiar ?
                 0.1f,              // Near clipping plane. Keep as big as possible, or you'll get precision issues.
                 100.0f             // Far clipping plane. Keep as little as possible.
         );
@@ -308,19 +309,39 @@ public:
     bool LoadTexture() {
         int w, h, channels;
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\miku.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
-        uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\An exception has occured.jpg)", &w, &h, &channels, STBI_rgb_alpha);
+        //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\An exception has occured.jpg)", &w, &h, &channels, STBI_rgb_alpha);
+        //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\monika_window.jpg)", &w, &h, &channels, STBI_rgb_alpha);
+        uint8_t* pixels = stbi_load(R"(J:\C++\EvoVulkan\Resources\Textures\ladder.png)", &w, &h, &channels, STBI_rgb_alpha);
+        //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\An exception has occured.jpg)", &w, &h, &channels, STBI_rgb);
+        //uint8_t* pixels = stbi_load(R"(C:\Users\Nikita\AppData\Roaming\Skype\live#3arotaru5craft\media_messaging\emo_cache_v2\^8E63A254ED2714DA468002A2A13DCACFD605BB67B103217D55^pwin10_80_distr.png)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\akira-(been0328)-Anime-kaguya-sama-wa-kokurasetai-_tensai-tachi-no-renai-zunousen_-Shinomiya-Kaguya-5003254.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\5UyhDcR0p8g.jpg)", &w, &h, &channels, STBI_rgb_alpha);
+
+        uint32_t blockCount = (w / 4) * (h / 4);
+        auto* cmpBuffer = (uint8_t*)malloc(16 * blockCount * 4);
+        for (uint32_t col = 0; col < w / 4; col++) {
+            for (uint32_t row = 0; row < h / 4; row++)
+                CompressBlockBC7(pixels + col * 16 + row * 16 * w, 4 * w, cmpBuffer + (col * 16) + (row * w * 4));
+        }
+
         if (!pixels) {
             VK_ERROR("Example::LoadTexture() : failed to load texture! Reason: " + std::string(stbi_failure_reason()));
             return false;
         }
 
-        m_texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h, channels);
+        //S3TC_DXT1
+        //for (uint32_t i = 0; i < 40; i++)
+          //  m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h);
+        m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, cmpBuffer, VK_FORMAT_BC7_SRGB_BLOCK, w, h, VK_FILTER_NEAREST);
+           // m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_BC7_UNORM_BLOCK, w, h);
+            //m_texture = Types::Texture::LoadCompressed(m_device, m_cmdPool, pixels, VK_FORMAT_BC1_RGB_UNORM_BLOCK, w, h);
+            //m_texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h, 3);
+
         if (!m_texture)
             return false;
 
         stbi_image_free(pixels);
+        free(cmpBuffer);
 
         return true;
     }
@@ -460,6 +481,7 @@ public:
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_TRUE,
+                VK_TRUE,
                 VK_TRUE
         );
 
@@ -497,6 +519,7 @@ public:
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_TRUE,
+                VK_TRUE,
                 VK_TRUE
         );
 
@@ -532,6 +555,7 @@ public:
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_TRUE,
+                VK_TRUE,
                 VK_TRUE
         );
 
@@ -542,10 +566,15 @@ public:
         // Setup vertices for a single uv-mapped quad made from two triangles
         std::vector<VertexUV> vertices =
                 {
-                        { {1.0f,  2.0f,  0.0f}, { 1.0f, 1.0f } },
-                        { {-1.0f, 2.0f,  0.0f}, { 0.0f, 1.0f } },
-                        { {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } },
-                        { {1.0f,  -1.0f, 0.0f}, { 1.0f, 0.0f } }
+                        //{ {1.0f,  2.0f,  0.0f}, { 1.0f, 1.0f } },
+                        //{ {-1.0f, 2.0f,  0.0f}, { 0.0f, 1.0f } },
+                        //{ {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } },
+                        //{ {1.0f,  -1.0f, 0.0f}, { 1.0f, 0.0f } }
+
+                        { {2.0f,  2.0f,  0.0f}, { 1.0f, 1.0f } },
+                        { {-2.0f, 2.0f,  0.0f}, { 0.0f, 1.0f } },
+                        { {-2.0f, -2.0f, 0.0f}, { 0.0f, 0.0f } },
+                        { {2.0f,  -2.0f, 0.0f}, { 1.0f, 0.0f } }
                 };
 
         // Setup indices
@@ -738,8 +767,10 @@ public:
                 m_swapchain,
                 m_cmdPool,
                 {
-                        this->m_swapchain->GetColorFormat(),
-                        this->m_swapchain->GetColorFormat(),
+                        VK_FORMAT_R8G8B8A8_UNORM,
+                        VK_FORMAT_R8G8B8A8_UNORM,
+                        //this->m_swapchain->GetColorFormat(),
+                        //this->m_swapchain->GetColorFormat(),
                         //VK_FORMAT_R32G32B32A32_SFLOAT,
                         //VK_FORMAT_R32G32B32A32_SFLOAT,
                         //VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R32G32B32A32_SFLOAT

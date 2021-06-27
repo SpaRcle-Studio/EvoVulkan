@@ -6,8 +6,8 @@
 #include <EvoVulkan/Tools/VulkanTools.h>
 
 EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create(
-        const EvoVulkan::Types::Device *device,
-        const Swapchain* swapchain,
+        EvoVulkan::Types::Device *device,
+        Swapchain* swapchain,
         uint32_t w, uint32_t h,
         const std::vector<VkFormat>& formats)
 {
@@ -92,11 +92,11 @@ void EvoVulkan::Types::MultisampleTarget::Destroy() {
             if (m_resolves[i].m_image && m_resolves[i].m_view && m_resolves[i].m_memory) {
                 vkDestroyImage(*m_device, m_resolves[i].m_image, nullptr);
                 vkDestroyImageView(*m_device, m_resolves[i].m_view, nullptr);
-                vkFreeMemory(*m_device, m_resolves[i].m_memory, nullptr);
+                //vkFreeMemory(*m_device, m_resolves[i].m_memory, nullptr);
+                m_device->FreeMemory(&m_resolves[i].m_memory);
 
                 m_resolves[i].m_image = VK_NULL_HANDLE;
                 m_resolves[i].m_view = VK_NULL_HANDLE;
-                m_resolves[i].m_memory = VK_NULL_HANDLE;
             }
         }
         free(m_resolves);
@@ -107,10 +107,11 @@ void EvoVulkan::Types::MultisampleTarget::Destroy() {
     if (m_depth.m_image && m_depth.m_view && m_depth.m_memory) {
         vkDestroyImage(*m_device, m_depth.m_image, nullptr);
         vkDestroyImageView(*m_device, m_depth.m_view, nullptr);
-        vkFreeMemory(*m_device, m_depth.m_memory, nullptr);
+        //vkFreeMemory(*m_device, m_depth.m_memory, nullptr);
+        m_device->FreeMemory(&m_depth.m_memory);
 
         m_depth.m_image = VK_NULL_HANDLE;
         m_depth.m_view = VK_NULL_HANDLE;
-        m_depth.m_memory = VK_NULL_HANDLE;
+       // m_depth.m_memory = VK_NULL_HANDLE;
     }
 }

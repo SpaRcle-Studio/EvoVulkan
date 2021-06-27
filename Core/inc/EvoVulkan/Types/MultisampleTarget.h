@@ -12,9 +12,9 @@
 namespace EvoVulkan::Types {
     class MultisampleTarget {
         struct Image {
-            VkImage        m_image;
-            VkImageView    m_view;
-            VkDeviceMemory m_memory;
+            VkImage      m_image  = VK_NULL_HANDLE;
+            VkImageView  m_view   = VK_NULL_HANDLE;
+            DeviceMemory m_memory = {};
         };
     public:
         MultisampleTarget(const MultisampleTarget&) = delete;
@@ -22,8 +22,8 @@ namespace EvoVulkan::Types {
         MultisampleTarget() = default;
         ~MultisampleTarget() = default;
     private:
-        const Device*    m_device    = nullptr;
-        const Swapchain* m_swapchain = nullptr;
+        Device*    m_device      = nullptr;
+        Swapchain* m_swapchain   = nullptr;
 
         uint32_t m_countResolves = 0;
         std::vector<VkFormat> m_formats = {};
@@ -43,8 +43,8 @@ namespace EvoVulkan::Types {
         [[nodiscard]] uint32_t GetResolveCount() const noexcept { return m_countResolves; }
     public:
         static MultisampleTarget* Create(
-                const Device* device,
-                const Swapchain* swapchain,
+                Device* device,
+                Swapchain* swapchain,
                 uint32_t w, uint32_t h,
                 const std::vector<VkFormat>& formats);
     };

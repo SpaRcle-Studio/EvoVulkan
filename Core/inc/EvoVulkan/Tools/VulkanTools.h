@@ -261,8 +261,10 @@ namespace EvoVulkan::Tools {
         }
 
         VkDevice device = VK_NULL_HANDLE;
-        if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
-            Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : failed to create logical device!");
+        auto result = vkCreateDevice(physicalDevice, &createInfo, nullptr, &device);
+        if (result != VK_SUCCESS) {
+            Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : failed to create logical device! \n\tReason: "
+                + Tools::Convert::result_to_string(result) + "\n\tDescription: " + Tools::Convert::result_to_description(result));
             return VK_NULL_HANDLE;
         }
 
@@ -391,14 +393,15 @@ namespace EvoVulkan::Tools {
     }
 
     static VkImage CreateImage(
-            const Types::Device* device,
+            Types::Device* device,
             uint32_t width, uint32_t height,
             uint32_t mipLevels,
             VkFormat format, VkImageTiling tiling,
             VkImageUsageFlags usage,
             VkMemoryPropertyFlags properties,
-            VkDeviceMemory* imageMemory,
-            bool multisampling = true)
+            Types::DeviceMemory* imageMemory,
+            bool multisampling = true,
+            VkImageCreateFlagBits createFlagBits = VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM)
     {
         VkImageCreateInfo imageInfo = {};
         imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -414,6 +417,8 @@ namespace EvoVulkan::Tools {
         imageInfo.usage         = usage;
         imageInfo.samples       = (mipLevels > 1 || !multisampling) ? VK_SAMPLE_COUNT_1_BIT : device->GetMSAASamples();
         imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+        if (createFlagBits != VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM)
+            imageInfo.flags         = createFlagBits;
 
         VkImage image = VK_NULL_HANDLE;
         if (vkCreateImage(*device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
@@ -438,8 +443,14 @@ namespace EvoVulkan::Tools {
             }
         }
 
-        if (vkAllocateMemory(*device, &allocInfo, nullptr, imageMemory) != VK_SUCCESS) {
-            VK_ERROR("Tools::CreateImage() : failed to allocate vulkan image memory!");
+        //if (vkAllocateMemory(*device, &allocInfo, nullptr, imageMemory) != VK_SUCCESS) {
+        //    VK_ERROR("Tools::CreateImage() : failed to allocate vulkan image memory!");
+        //    return VK_NULL_HANDLE;
+        //}
+
+        *imageMemory = device->AllocateMemory(allocInfo);
+        if (!imageMemory->Ready()) {
+            VK_ERROR("Tools::CreateImage() : failed to allocate device memory!");
             return VK_NULL_HANDLE;
         }
 
@@ -580,6 +591,9 @@ namespace EvoVulkan::Tools {
         VkPhysicalDeviceFeatures deviceFeatures = {};
         deviceFeatures.fillModeNonSolid  = true;
         deviceFeatures.samplerAnisotropy = true;
+        //deviceFeatures.textureCompressionASTC_LDR = true;
+        deviceFeatures.textureCompressionBC       = true;
+        //deviceFeatures.textureCompressionETC2     = true;
 
         logicalDevice = Tools::CreateLogicalDevice(
                 physicalDevice,

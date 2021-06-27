@@ -5,20 +5,29 @@
 #include "UnitTests/Example.h"
 
 int main() {
-    EvoVulkan::Tools::VkDebug::Error = std::function<void(const std::string& msg)>([](const std::string& msg) {
-        std::cout << "[Error] "  << msg << std::endl;
+    auto* kernel = new VulkanExample();
+
+    auto printMemory = [kernel]() -> std::string {
+        if (!kernel->GetDevice())
+            return std::string();
+        else
+            return "{" + std::to_string(kernel->GetDevice()->GetAllocatedMemorySize() / 1024 / 1024) + "MB} ";
+    };
+
+    EvoVulkan::Tools::VkDebug::Error = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
+        std::cout << printMemory() << "[Error] "  << msg << std::endl;
     });
 
-    EvoVulkan::Tools::VkDebug::Graph = std::function<void(const std::string& msg)>([](const std::string& msg) {
-        std::cout << "[Graph] "  << msg << std::endl;
+    EvoVulkan::Tools::VkDebug::Graph = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
+        std::cout << printMemory() << "[Graph] "  << msg << std::endl;
     });
 
-    EvoVulkan::Tools::VkDebug::Log = std::function<void(const std::string& msg)>([](const std::string& msg) {
-        std::cout << "[Log] "  << msg << std::endl;
+    EvoVulkan::Tools::VkDebug::Log = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
+        std::cout << printMemory() << "[Log] "  << msg << std::endl;
     });
 
-    EvoVulkan::Tools::VkDebug::Warn = std::function<void(const std::string& msg)>([](const std::string& msg) {
-        std::cout << "[Warn] "  << msg << std::endl;
+    EvoVulkan::Tools::VkDebug::Warn = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
+        std::cout << printMemory() << "[Warn] "  << msg << std::endl;
     });
 
     //!=================================================================================================================
@@ -40,7 +49,6 @@ int main() {
 
     //!=================================================================================================================
 
-    auto* kernel = new VulkanExample();
     glfwSetWindowUserPointer(window, (void*)kernel);
 
     kernel->SetValidationLayersEnabled(validationEnabled);

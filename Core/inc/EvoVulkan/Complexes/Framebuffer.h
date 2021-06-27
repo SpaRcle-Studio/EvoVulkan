@@ -22,12 +22,12 @@
 
 namespace EvoVulkan::Complexes {
     struct FrameBufferAttachment {
-        VkImage        m_image;
-        VkDeviceMemory m_mem;
-        VkImageView    m_view;
-        VkFormat       m_format;
+        VkImage             m_image;
+        Types::DeviceMemory m_mem;
+        VkImageView         m_view;
+        VkFormat            m_format;
 
-        VkDevice       m_device;
+        Types::Device*      m_device;
 
         [[nodiscard]] bool Ready() const {
             return m_image  != VK_NULL_HANDLE &&
@@ -39,7 +39,7 @@ namespace EvoVulkan::Complexes {
 
         void Init() {
             m_image  = VK_NULL_HANDLE;
-            m_mem    = VK_NULL_HANDLE;
+            m_mem    = {};
             m_view   = VK_NULL_HANDLE;
             m_format = VK_FORMAT_UNDEFINED;
 
@@ -48,19 +48,18 @@ namespace EvoVulkan::Complexes {
 
         void Destroy() {
             if (m_view) {
-                vkDestroyImageView(m_device, m_view, nullptr);
+                vkDestroyImageView(*m_device, m_view, nullptr);
                 m_view = VK_NULL_HANDLE;
             }
 
             if (m_image) {
-                vkDestroyImage(m_device, m_image, nullptr);
+                vkDestroyImage(*m_device, m_image, nullptr);
                 m_image = VK_NULL_HANDLE;
             }
 
-            if (m_mem) {
-                vkFreeMemory(m_device, m_mem, nullptr);
-                m_mem = VK_NULL_HANDLE;
-            }
+            //vkFreeMemory(m_device, m_mem, nullptr);
+            //m_mem = VK_NULL_HANDLE;
+            this->m_device->FreeMemory(&m_mem);
 
             m_device = VK_NULL_HANDLE;
         }
@@ -89,9 +88,9 @@ namespace EvoVulkan::Complexes {
         float                     m_scale             = 1.f;
 
         Types::MultisampleTarget* m_multisampleTarget = nullptr;
-        const Types::Device*      m_device            = nullptr;
-        const Types::Swapchain*   m_swapchain         = nullptr;
-        const Types::CmdPool*     m_cmdPool           = nullptr;
+        Types::Device*            m_device            = nullptr;
+        Types::Swapchain*         m_swapchain         = nullptr;
+        Types::CmdPool*           m_cmdPool           = nullptr;
 
         VkRect2D                  m_scissor           = {};
         VkViewport                m_viewport          = {};
@@ -157,9 +156,9 @@ namespace EvoVulkan::Complexes {
     public:
         // depth will be auto added to end array of attachments
         static FrameBuffer* Create(
-                const Types::Device* device,
-                const Types::Swapchain* swapchain,
-                const Types::CmdPool* pool,
+                Types::Device* device,
+                Types::Swapchain* swapchain,
+                Types::CmdPool* pool,
                 const std::vector<VkFormat>& colorAttachments,
                 uint32_t width, uint32_t height,
                 float scale = 1.f);

@@ -11,7 +11,29 @@
 #include <EvoVulkan/Tools/VulkanHelper.h>
 #include <EvoVulkan/Types/FamilyQueues.h>
 
+#include <map>
+
 namespace EvoVulkan::Types {
+    class Device;
+
+    struct DeviceMemory {
+        friend class Device;
+    private:
+        uint64_t       m_size;
+        VkDeviceMemory m_memory;
+    public:
+        DeviceMemory() {
+            m_size   = 0;
+            m_memory = VK_NULL_HANDLE;
+        }
+    public:
+        [[nodiscard]] bool Ready() const { return m_memory != VK_NULL_HANDLE && m_size > 0; }
+    public:
+        operator VkDeviceMemory() const {
+            return m_memory;
+        }
+    };
+
     class Device {
     public:
         Device(const Device&) = delete;
@@ -19,6 +41,8 @@ namespace EvoVulkan::Types {
         ~Device() = default;
         Device()  = default;
     private:
+        uint64_t                         m_deviceMemoryAllocSize   = 0;
+
         VkPhysicalDevice                 m_physicalDevice          = VK_NULL_HANDLE;
         VkDevice                         m_logicalDevice           = VK_NULL_HANDLE;
 
@@ -45,6 +69,46 @@ namespace EvoVulkan::Types {
                               bool multisampling,
                               int32_t sampleCount = -1);
         void Free();
+    public:
+        [[nodiscard]] uint64_t GetAllocatedMemorySize() const { return m_deviceMemoryAllocSize; }
+
+        DeviceMemory AllocateMemory(VkMemoryAllocateInfo memoryAllocateInfo) {
+            auto memory = DeviceMemory();
+            memory.m_size = memoryAllocateInfo.allocationSize;
+            auto result = vkAllocateMemory(this->m_logicalDevice, &memoryAllocateInfo, nullptr, &memory.m_memory);
+            if (result != VK_SUCCESS || memory == VK_NULL_HANDLE) {
+                VK_ERROR("Device::AllocateMemory() : failed to allocate memory! Reason: "
+                         + Tools::Convert::result_to_description(result));
+                return DeviceMemory();
+            }
+            else {
+                this->m_deviceMemoryAllocSize += memory.m_size;
+                return memory;
+            }
+        }
+        bool FreeMemory(DeviceMemory* memory) {
+            if (!memory) {
+                Tools::VkDebug::Error("Device::FreeMemory() : memory is nullptr!");
+                return false;
+            }
+
+            if (memory->m_memory != VK_NULL_HANDLE) {
+                if (this->m_deviceMemoryAllocSize < memory->m_size) {
+                    Tools::VkDebug::Error("Device::FreeMemory() : incorrect memory size! Something went wrong...");
+                    return false;
+                }
+
+                this->m_deviceMemoryAllocSize -= memory->m_size;
+
+                vkFreeMemory(m_logicalDevice, *memory, nullptr);
+                memory->m_memory = VK_NULL_HANDLE;
+                memory->m_size   = 0;
+                return true;
+            } else {
+                Tools::VkDebug::Error("Device::FreeMemory() : vulkan memory is nullptr!");
+                return false;
+            }
+        }
     public:
         [[nodiscard]] bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
 
