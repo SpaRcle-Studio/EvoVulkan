@@ -306,33 +306,91 @@ public:
         vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
     }
 
+    static int32_t Find4(int32_t i) {
+        if (i % 4 == 0)
+            return i;
+        else
+            Find4(i - 1);
+    }
+
+    static auto MakeGoodSizes(int32_t w, int32_t h) -> auto {
+        return std::pair(Find4(w), Find4(h));
+    }
+
+    static uint8_t* ResizeToLess(uint32_t ow, uint32_t oh, uint32_t nw, uint32_t nh, uint8_t* pixels) {
+        auto* image = (uint8_t*)malloc(nw * nh * 4);
+        uint32_t dw = ow - nw;
+
+        for (uint32_t row = 0; row < nh; row++)
+            memcpy(image + (nw * 4 * row), pixels + (dw * 4 * row) + (nw * 4 * row), nw * 4);
+
+        return image;
+    }
+
+    static uint8_t* Compress(uint32_t w, uint32_t h, uint8_t* pixels) {
+        uint32_t blockCount = (w / 4) * (h / 4);
+        auto* cmpBuffer = (uint8_t*)malloc(16 * blockCount * 4);
+        for (uint32_t col = 0; col < w / 4; col++) {
+            for (uint32_t row = 0; row < h / 4; row++) {
+                uint32_t colOffs = col * 16;
+                uint32_t rowOffs = row * w;
+
+                //! BC1, BC4 - has 8-byte cmp buffer
+                CompressBlockBC1(
+                        pixels + colOffs + rowOffs * 16,    // source
+                        4 * w,                              // count bytes
+                        cmpBuffer + colOffs / 2 + (rowOffs * 4) / 2 // dst
+                );
+
+                //! other BC has 16-byte cmp buffer
+                /*CompressBlockBC7(
+                        pixels + colOffs + rowOffs * 16,    // source
+                        4 * w,                              // count bytes
+                        cmpBuffer + colOffs+ (rowOffs * 4) // dst
+                );*/
+            }
+        }
+
+        return cmpBuffer;
+    }
+
     bool LoadTexture() {
         int w, h, channels;
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\miku.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\An exception has occured.jpg)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\monika_window.jpg)", &w, &h, &channels, STBI_rgb_alpha);
-        uint8_t* pixels = stbi_load(R"(J:\C++\EvoVulkan\Resources\Textures\ladder.png)", &w, &h, &channels, STBI_rgb_alpha);
+        uint8_t* pixels = stbi_load(R"(J:\C++\EvoVulkan\Resources\Textures\brickwall2.jpg)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\DDLC\Monika\An exception has occured.jpg)", &w, &h, &channels, STBI_rgb);
         //uint8_t* pixels = stbi_load(R"(C:\Users\Nikita\AppData\Roaming\Skype\live#3arotaru5craft\media_messaging\emo_cache_v2\^8E63A254ED2714DA468002A2A13DCACFD605BB67B103217D55^pwin10_80_distr.png)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\akira-(been0328)-Anime-kaguya-sama-wa-kokurasetai-_tensai-tachi-no-renai-zunousen_-Shinomiya-Kaguya-5003254.jpeg)", &w, &h, &channels, STBI_rgb_alpha);
         //uint8_t* pixels = stbi_load(R"(J:\Photo\Arts\Miku\5UyhDcR0p8g.jpg)", &w, &h, &channels, STBI_rgb_alpha);
 
-        uint32_t blockCount = (w / 4) * (h / 4);
+        /*uint32_t blockCount = (w / 4) * (h / 4);
         auto* cmpBuffer = (uint8_t*)malloc(16 * blockCount * 4);
         for (uint32_t col = 0; col < w / 4; col++) {
             for (uint32_t row = 0; row < h / 4; row++)
                 CompressBlockBC7(pixels + col * 16 + row * 16 * w, 4 * w, cmpBuffer + (col * 16) + (row * w * 4));
-        }
+        }*/
 
         if (!pixels) {
             VK_ERROR("Example::LoadTexture() : failed to load texture! Reason: " + std::string(stbi_failure_reason()));
             return false;
         }
 
+        if (auto sz = MakeGoodSizes(w, h); sz != std::pair(w, h)) {
+            auto resized = ResizeToLess(w, h, sz.first, sz.second, pixels);
+            stbi_image_free(pixels);
+            pixels = resized;
+            w = sz.first;
+            h = sz.second;
+        }
+
+        auto cmpBuffer = Compress(w, h, pixels);
+
         //S3TC_DXT1
         //for (uint32_t i = 0; i < 40; i++)
           //  m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h);
-        m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, cmpBuffer, VK_FORMAT_BC7_SRGB_BLOCK, w, h, VK_FILTER_NEAREST);
+        m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, cmpBuffer, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, w, h, VK_FILTER_LINEAR);
            // m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_BC7_UNORM_BLOCK, w, h);
             //m_texture = Types::Texture::LoadCompressed(m_device, m_cmdPool, pixels, VK_FORMAT_BC1_RGB_UNORM_BLOCK, w, h);
             //m_texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h, 3);
@@ -340,7 +398,6 @@ public:
         if (!m_texture)
             return false;
 
-        stbi_image_free(pixels);
         free(cmpBuffer);
 
         return true;
@@ -410,7 +467,7 @@ public:
                     sizeof(ModelUniformBuffer));
 
             // Setup a descriptor image info for the current texture to be used as a combined image sampler
-            VkDescriptorImageInfo textureDescriptor = m_texture->GetDescriptor();
+            auto textureDescriptor = m_texture->GetDescriptorRef();
             //textureDescriptor.imageView   = m_texture->m_view;			// The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
             //textureDescriptor.sampler     = m_texture->m_sampler;		// The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
             //textureDescriptor.imageLayout = m_texture->m_imageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
@@ -424,7 +481,7 @@ public:
                                                             &m_viewUniformBuffer->m_descriptor),
 
                     Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
-                                                            &textureDescriptor)
+                                                            textureDescriptor)
             };
             vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
         }
