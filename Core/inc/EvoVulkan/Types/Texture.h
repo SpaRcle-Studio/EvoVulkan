@@ -87,10 +87,10 @@ namespace EvoVulkan::Types {
         bool           m_canBeDestroyed = false;
 
         Types::Device* m_device         = nullptr;
+
+        VkDescriptorImageInfo m_descriptor = {};
     public:
-        [[nodiscard]] inline VkDescriptorImageInfo GetDescriptor() const noexcept {
-            return { m_sampler, m_view, m_imageLayout };
-        }
+        [[nodiscard]] inline VkDescriptorImageInfo* GetDescriptorRef() noexcept { return &m_descriptor; }
     public:
         void Destroy() {
             if (!m_canBeDestroyed)

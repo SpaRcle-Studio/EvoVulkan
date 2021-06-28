@@ -106,6 +106,15 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
 
     //!=================================================================================================================
 
+    //! make a texture descriptor
+    texture->m_descriptor = {
+            texture->m_sampler,
+            texture->m_view,
+            texture->m_imageLayout
+    };
+
+    //!=================================================================================================================
+
     return texture;
 }
 
