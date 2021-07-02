@@ -34,6 +34,34 @@ namespace EvoVulkan::Core {
             return false;
         }
     public:
+        operator VkDescriptorPool() const { return m_pool; }
+    public:
+        static DescriptorPool* Create(
+                Types::Device* device,
+                const uint32_t maxSets,
+                const std::vector<VkDescriptorPoolSize>& pool_sizes)
+        {
+            auto* pool = new DescriptorPool(maxSets);
+
+            pool->m_layout         = VK_NULL_HANDLE;
+            pool->m_device         = *device;
+            pool->m_requestTypes   = {};
+            pool->m_descriptorSets = nullptr;
+
+            auto dSizes = pool_sizes;
+            auto descriptorPoolCI = Tools::Initializers::DescriptorPoolCreateInfo(dSizes.size(), dSizes.data(), maxSets);
+
+            descriptorPoolCI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+
+            VkResult vkRes = vkCreateDescriptorPool(*device, &descriptorPoolCI, nullptr, &pool->m_pool);
+            if (vkRes != VK_NULL_HANDLE) {
+                VK_ERROR("DescriptorPool::Create() : failed to create vulkan descriptor pool!");
+                return VK_NULL_HANDLE;
+            }
+
+            return pool;
+        }
+
         static DescriptorPool* Create(
                 const uint32_t maxSets,
                 VkDescriptorSetLayout layout,

@@ -113,7 +113,6 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         return nullptr;
     }
 
-
     fbo->m_cmdBuff    = Types::CmdBuffer::CreateSimple(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
     fbo->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
 
@@ -133,7 +132,12 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
 bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height)  {
     this->Destroy();
 
-    this->m_multisampleTarget = Types::MultisampleTarget::Create(m_device, m_swapchain, width, height, m_attachFormats);
+    this->m_multisampleTarget = Types::MultisampleTarget::Create(
+            m_device,
+            m_swapchain,
+            width, height,
+            m_attachFormats,
+            m_device->MultisampleEnabled());
     if (!m_multisampleTarget) {
         VK_ERROR("Framebuffer::ReCreate() : failed to create multisample target!");
         return false;
@@ -172,8 +176,6 @@ void EvoVulkan::Complexes::FrameBuffer::Destroy()  {
         free(m_attachments);
         m_attachments = nullptr;
     }
-
-    //m_depth.Destroy();
 
     if (m_framebuffer != VK_NULL_HANDLE) {
         vkDestroyFramebuffer(*m_device, m_framebuffer, nullptr);

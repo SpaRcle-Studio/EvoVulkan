@@ -147,3 +147,20 @@ bool EvoVulkan::Types::Device::IsSupportLinearBlitting(const VkFormat& imageForm
 
     return (formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
 }
+
+VkCommandPool EvoVulkan::Types::Device::CreateCommandPool(VkCommandPoolCreateFlags flagBits) const {
+    VkCommandPoolCreateInfo commandPoolCreateInfo = {
+            VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            nullptr,
+            flagBits,
+            this->GetQueues()->GetGraphicsIndex()
+        };
+
+    VkCommandPool cmdPool = VK_NULL_HANDLE;
+    if (vkCreateCommandPool(*this, &commandPoolCreateInfo, nullptr, &cmdPool) != VK_SUCCESS) {
+        VK_ERROR("Device::CreateCommandPool() : failed to create command pool!");
+        return VK_NULL_HANDLE;
+    }
+
+    return cmdPool;
+}

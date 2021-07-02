@@ -108,8 +108,10 @@ namespace EvoVulkan::Core {
 
         [[nodiscard]] inline VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
         [[nodiscard]] inline Types::Device* GetDevice() const { return m_device; }
+        [[nodiscard]] inline Types::MultisampleTarget* GetMultisampleTarget() const { return m_multisample; }
         [[nodiscard]] inline Types::CmdPool* GetCmdPool() const { return m_cmdPool; }
         [[nodiscard]] inline Types::Swapchain* GetSwapchain() const { return m_swapchain; }
+        [[nodiscard]] inline VkInstance GetInstance() const { return m_instance; }
 
         [[nodiscard]] inline bool HasErrors() const noexcept { return m_hasErrors; }
 

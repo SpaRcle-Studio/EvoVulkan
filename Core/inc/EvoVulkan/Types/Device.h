@@ -109,6 +109,8 @@ namespace EvoVulkan::Types {
                 return false;
             }
         }
+
+        VkCommandPool CreateCommandPool(VkCommandPoolCreateFlags flagBits) const;
     public:
         [[nodiscard]] bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
 

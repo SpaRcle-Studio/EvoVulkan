@@ -499,6 +499,18 @@ namespace EvoVulkan::Tools::Initializers {
         computePipelineCreateInfo.flags = flags;
         return computePipelineCreateInfo;
     }
+
+    static VkFramebufferCreateInfo FrameBufferCI(VkRenderPass renderPass, uint32_t width, uint32_t height) {
+        auto info = VkFramebufferCreateInfo();
+
+        info.sType      = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        info.width      = width;
+        info.height     = height;
+        info.layers     = 1;
+        info.renderPass = renderPass;
+
+        return info;
+    }
 }
 
 #endif //EVOVULKAN_VULKANINITIALIZERS_H

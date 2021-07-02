@@ -167,4 +167,22 @@ namespace EvoVulkan::Tools {
 
         return sync;
     }
+
+    VkAttachmentDescription CreateColorAttachmentDescription(
+            VkFormat format,
+            VkSampleCountFlagBits samples,
+            VkImageLayout init,
+            VkImageLayout final)
+    {
+        return {
+            .format         = format,
+            .samples        = samples,
+            .loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD, //! clear or load?
+            .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout  = init,
+            .finalLayout    = final
+        };
+    }
 }

@@ -385,12 +385,12 @@ public:
             h = sz.second;
         }
 
-        auto cmpBuffer = Compress(w, h, pixels);
+        auto cmpBuffer = pixels; //Compress(w, h, pixels);
 
         //S3TC_DXT1
         //for (uint32_t i = 0; i < 40; i++)
           //  m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h);
-        m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, cmpBuffer, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, w, h, VK_FILTER_LINEAR);
+        m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, cmpBuffer, VK_FORMAT_R8G8B8A8_SRGB, w, h, VK_FILTER_LINEAR);
            // m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_BC7_UNORM_BLOCK, w, h);
             //m_texture = Types::Texture::LoadCompressed(m_device, m_cmdPool, pixels, VK_FORMAT_BC1_RGB_UNORM_BLOCK, w, h);
             //m_texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h, 3);
@@ -834,7 +834,7 @@ public:
                 },
                 m_width,
                 m_height,
-                1);
+                1.f);
 
         if (!m_offscreen)
             return false;

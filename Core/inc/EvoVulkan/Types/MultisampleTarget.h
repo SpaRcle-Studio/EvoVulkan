@@ -25,6 +25,8 @@ namespace EvoVulkan::Types {
         Device*    m_device      = nullptr;
         Swapchain* m_swapchain   = nullptr;
 
+        bool m_multisampling = true;
+
         uint32_t m_countResolves = 0;
         std::vector<VkFormat> m_formats = {};
 
@@ -37,7 +39,7 @@ namespace EvoVulkan::Types {
         bool ReCreate(uint32_t w, uint32_t h);
     public:
         [[nodiscard]] VkImageView GetResolve(const uint32_t& id) const noexcept { return m_resolves[id].m_view; }
-        [[nodiscard]] VkImage GetResolveImage(const uint32_t& id) const noexcept { return m_resolves[id].m_image; }
+        //[[nodiscard]] VkImage GetResolveImage(const uint32_t& id) const noexcept { return m_resolves[id].m_image; }
         [[nodiscard]] VkImage GetDepthImage() const noexcept { return m_depth.m_image; }
         [[nodiscard]] VkImageView GetDepth() const noexcept { return m_depth.m_view; }
         [[nodiscard]] uint32_t GetResolveCount() const noexcept { return m_countResolves; }
@@ -46,7 +48,8 @@ namespace EvoVulkan::Types {
                 Device* device,
                 Swapchain* swapchain,
                 uint32_t w, uint32_t h,
-                const std::vector<VkFormat>& formats);
+                const std::vector<VkFormat>& formats,
+                bool multisampling);
     };
 }
 

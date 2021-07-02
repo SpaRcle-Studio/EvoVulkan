@@ -29,6 +29,11 @@
 #include <EvoVulkan/Types/VulkanBuffer.h>
 
 namespace EvoVulkan::Tools {
+    VkAttachmentDescription CreateColorAttachmentDescription(VkFormat format,
+                                                             VkSampleCountFlagBits samples,
+                                                             VkImageLayout init,
+                                                             VkImageLayout final);
+
     VkShaderModule LoadShaderModule(const char *fileName, VkDevice device);
 
     VkPipelineLayout CreatePipelineLayout(const VkDevice& device, VkDescriptorSetLayout descriptorSetLayout);
@@ -442,11 +447,6 @@ namespace EvoVulkan::Tools {
                 return VK_NULL_HANDLE;
             }
         }
-
-        //if (vkAllocateMemory(*device, &allocInfo, nullptr, imageMemory) != VK_SUCCESS) {
-        //    VK_ERROR("Tools::CreateImage() : failed to allocate vulkan image memory!");
-        //    return VK_NULL_HANDLE;
-        //}
 
         *imageMemory = device->AllocateMemory(allocInfo);
         if (!imageMemory->Ready()) {

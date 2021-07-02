@@ -187,24 +187,6 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
         return false;
     }
 
-    /*this->m_drawCmdBuffs = (Types::CmdBuffer**)malloc(sizeof(Types::CmdBuffer) * m_countDCB);
-
-    for (uint32_t i = 0; i < m_countDCB; i++) {
-        this->m_drawCmdBuffs[i] = Types::CmdBuffer::Create(
-                m_device,
-                m_cmdPool,
-
-                Tools::Initializers::CommandBufferAllocateInfo(
-                        *m_cmdPool,
-                        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                        1));
-
-        if (!m_drawCmdBuffs[i]->IsReady()) {
-            VK_ERROR("VulkanKernel::PostInit() : command buffer isn't ready!");
-            return false;
-        }
-    }*/
-
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create wait fences...");
@@ -216,26 +198,14 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     //!=================================================================================================================
 
-    /*VK_GRAPH("VulkanKernel::PostInit() : create depth stencil...");
-    this->m_depthStencil = Types::DepthStencil::Create(
-            m_device,
-            m_swapchain,
-            m_swapchain->GetSurfaceWidth(),
-            m_swapchain->GetSurfaceHeight());
-    if (!m_depthStencil || !m_depthStencil->IsReady()) {
-        VK_ERROR("VulkanKernel::PostInit() : failed to create depth stencil!");
-        return false;
-    }*/
-
-    //!=================================================================================================================
-
     VK_GRAPH("VulkanKernel::PostInit() : create multisample target...");
     this->m_multisample = Types::MultisampleTarget::Create(
             m_device,
             m_swapchain,
             m_swapchain->GetSurfaceWidth(),
             m_swapchain->GetSurfaceHeight(),
-            { this->m_swapchain->GetColorFormat() });
+            { this->m_swapchain->GetColorFormat() },
+            m_device->MultisampleEnabled());
     if (!m_multisample) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create multisample!");
         return false;
@@ -400,6 +370,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     m_frameBuffers.resize(m_countDCB);
     for (uint32_t i = 0; i < m_countDCB; i++) {
         //!attachments[0] = m_swapchain->GetBuffers()[i].m_view;
+
         attachments[m_multisampling ? 1 : 0] = m_swapchain->GetBuffers()[i].m_view;
 
         auto result = vkCreateFramebuffer(*m_device, &frameBufferCreateInfo, nullptr, &m_frameBuffers[i]);
