@@ -7,6 +7,7 @@ Currently implemented:
       * Kernel
   * Low-level:
       * Device
+          * Memory allocation control
           * Family queues
       * Swapchain
       * Surface
@@ -14,11 +15,14 @@ Currently implemented:
       * Command buffer
       * Command pool
       * Pipeline
+      * Render pass
       * Synchronization
       * Depth stencil 
+      * Multisampling
   * High-level:
       * Texture
-      * Mesh
+          * Block compression
+          * Mip-mapping 
       * Shader
       * Framebuffer
       
