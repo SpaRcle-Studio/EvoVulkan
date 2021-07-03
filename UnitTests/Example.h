@@ -434,6 +434,14 @@ public:
         vkUpdateDescriptorSets(*m_device, writeDescriptorSets1.size(), writeDescriptorSets1.data(), 0, NULL);
         vkUpdateDescriptorSets(*m_device, writeDescriptorSets2.size(), writeDescriptorSets2.data(), 0, NULL);
 
+        for (auto & _mesh : meshes) {
+            std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
+                                                            &attach1)
+            };
+            vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+        }
+
         return true;
     }
 
@@ -449,10 +457,9 @@ public:
         for (auto & _mesh : meshes) {
             _mesh.m_descrManager = m_descriptorManager;
 
-            _mesh.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(
-                    m_geometry->GetDescriptorSetLayout(),
-                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}
-            );
+            _mesh.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(m_geometry->GetDescriptorSetLayout(), {
+                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+            });
             if (_mesh.m_descriptorSet.m_self == VK_NULL_HANDLE) {
                 VK_ERROR("VulkanExample::SetupDescriptors() : failed to allocate descriptor sets!");
                 return false;
@@ -468,9 +475,6 @@ public:
 
             // Setup a descriptor image info for the current texture to be used as a combined image sampler
             auto textureDescriptor = m_texture->GetDescriptorRef();
-            //textureDescriptor.imageView   = m_texture->m_view;			// The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
-            //textureDescriptor.sampler     = m_texture->m_sampler;		// The sampler (Telling the pipeline how to sample the texture, including repeat, border, etc.)
-            //textureDescriptor.imageLayout = m_texture->m_imageLayout;	// The current layout of the image (Note: Should always fit the actual use, e.g. shader read)
 
             std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                     // Binding 0 : Vertex shader uniform buffer
@@ -480,8 +484,8 @@ public:
                     Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                                             &m_viewUniformBuffer->m_descriptor),
 
-                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
-                                                            textureDescriptor)
+                    //Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
+                    //                                        textureDescriptor)
             };
             vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
         }

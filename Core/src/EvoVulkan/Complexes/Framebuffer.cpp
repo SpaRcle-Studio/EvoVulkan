@@ -258,7 +258,7 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
     VkAttachmentDescription attachmentDesc = {};
 
     // Init attachment properties
-    for (uint32_t i = 0; i < m_countColorAttach + 1; ++i) {
+    for (uint32_t i = 0; i < m_countColorAttach + (m_depthEnabled ? 1 : 0); ++i) {
         attachmentDesc.samples = m_device->GetMSAASamples();
         attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -279,10 +279,19 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
     }
 
     this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, attachmentDescs,
-                                                 m_device->MultisampleEnabled());
+                                                 m_device->MultisampleEnabled(), m_depthEnabled);
     if (!m_renderPass.Ready()) {
         VK_ERROR("Framebuffer::CreateRenderPass() : failed to create render pass!");
         return false;
+    }
+
+    //clear values
+    {
+        this->m_clearValues.clear();
+        for (uint32_t i = 0; i < m_countColorAttach; i++) {
+            m_clearValues.emplace_back(VkClearValue{ .color = {{ 0.0, 0.0, 0.0, 0.0 }} });
+        }
+        this->m_countClearValues = m_clearValues.size();
     }
 
     return true;
@@ -330,6 +339,15 @@ std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::Alloc
         texture->m_height         = m_height;
         texture->m_canBeDestroyed = false;
         texture->m_mipLevels      = 1;
+
+        //! make a texture descriptor
+        texture->m_descriptor = {
+                texture->m_sampler,
+                texture->m_view,
+                texture->m_imageLayout
+        };
+
+        texture->RandomizeSeed();
 
         references.emplace_back(texture);
     }

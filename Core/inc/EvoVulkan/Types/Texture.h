@@ -84,6 +84,8 @@ namespace EvoVulkan::Types {
                        m_height         = 0;
         uint32_t       m_mipLevels      = 0;
 
+        uint32_t       m_seed           = 0;
+
         bool           m_canBeDestroyed = false;
 
         Types::Device* m_device         = nullptr;
@@ -91,6 +93,16 @@ namespace EvoVulkan::Types {
         VkDescriptorImageInfo m_descriptor = {};
     public:
         [[nodiscard]] inline VkDescriptorImageInfo* GetDescriptorRef() noexcept { return &m_descriptor; }
+    public:
+        void RandomizeSeed() { m_seed = rand() % 10000; }
+    public:
+        [[nodiscard]] inline VkSampler GetSampler() const { return m_sampler; }
+        [[nodiscard]] inline VkImageLayout GetLayout() const { return m_imageLayout; }
+        [[nodiscard]] inline VkImageView GetImageView() const { return m_view; }
+        [[nodiscard]] inline VkImage GetImage() const { return m_image; }
+        [[nodiscard]] inline uint32_t GetWidth() const { return m_width; }
+        [[nodiscard]] inline uint32_t GetHeight() const { return m_height; }
+        [[nodiscard]] inline uint32_t GetSeed() const { return m_seed; }
     public:
         void Destroy() {
             if (!m_canBeDestroyed)
@@ -111,10 +123,6 @@ namespace EvoVulkan::Types {
                 m_image = VK_NULL_HANDLE;
             }
 
-            /*if (m_deviceMemory != VK_NULL_HANDLE) {
-                vkFreeMemory(*m_device, m_deviceMemory, nullptr);
-                m_deviceMemory = VK_NULL_HANDLE;
-            }*/
             m_device->FreeMemory(&m_deviceMemory);
         }
 

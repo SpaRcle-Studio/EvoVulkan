@@ -96,6 +96,11 @@ namespace EvoVulkan::Complexes {
         VkViewport                m_viewport          = {};
 
         VkCommandBufferBeginInfo  m_cmdBufInfo        = {};
+
+        std::vector<VkClearValue> m_clearValues       = {};
+        uint32_t                  m_countClearValues  = 0;
+
+        bool                      m_depthEnabled      = true;
     public:
         /// \Warn Unsafe access! But it's fast.
         FrameBufferAttachment*    m_attachments       = nullptr;
@@ -103,6 +108,8 @@ namespace EvoVulkan::Complexes {
         VkSemaphore               m_semaphore         = VK_NULL_HANDLE;
 
         VkCommandBuffer           m_cmdBuff           = VK_NULL_HANDLE;
+    public:
+        operator VkFramebuffer() const { return m_framebuffer; }
     public:
         /// \Warn Slow access! But it's safe.
         [[nodiscard]] VkImageView GetAttachment(const uint32_t id) const {
@@ -114,10 +121,13 @@ namespace EvoVulkan::Complexes {
         }
 
         std::vector<Types::Texture*> AllocateColorTextureReferences();
+        [[nodiscard]] std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
 
         [[nodiscard]] inline Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
+        [[nodiscard]] inline VkRect2D GetRenderPassArea()      const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
         [[nodiscard]] inline VkCommandBuffer GetCmd()          const noexcept { return m_cmdBuff; }
-        [[nodiscard]] std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
+        [[nodiscard]] const VkClearValue* GetClearValues()     const { return m_clearValues.data(); }
+        [[nodiscard]] inline uint32_t GetCountClearValues()    const { return m_countClearValues; }
     private:
         bool CreateAttachments();
         bool CreateRenderPass();

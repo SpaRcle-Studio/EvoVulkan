@@ -151,7 +151,7 @@ namespace EvoVulkan::Core {
         VkDescriptorSet       m_self;
         VkDescriptorSetLayout m_layout;
 
-        //operator VkDescriptorSet() { return m_self; }
+        operator VkDescriptorSet() const { return m_self; }
     };
 
     class DescriptorManager {
