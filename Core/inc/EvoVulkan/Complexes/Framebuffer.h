@@ -123,6 +123,9 @@ namespace EvoVulkan::Complexes {
         std::vector<Types::Texture*> AllocateColorTextureReferences();
         [[nodiscard]] std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
 
+        [[nodiscard]] inline VkViewport GetViewport() const { return m_viewport; }
+        [[nodiscard]] inline VkRect2D GetScissor() const { return m_scissor; }
+
         [[nodiscard]] inline Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         [[nodiscard]] inline VkRect2D GetRenderPassArea()      const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
         [[nodiscard]] inline VkCommandBuffer GetCmd()          const noexcept { return m_cmdBuff; }
