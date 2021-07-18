@@ -7,6 +7,7 @@
 
 #include <EvoVulkan/Tools/StringUtils.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 
 EvoVulkan::Complexes::Shader::Shader(
         const EvoVulkan::Types::Device* device,
@@ -30,6 +31,8 @@ bool EvoVulkan::Complexes::Shader::Load(
         return false;
     }
 
+    Tools::CreatePath(Tools::FixPath(cache + "/"));
+
     auto modules_names = std::string();
     for (const auto & module : modules)
         modules_names += std::string(module.first).append(" ");
@@ -48,7 +51,7 @@ bool EvoVulkan::Complexes::Shader::Load(
     }
 
     if (!uniformSizes.empty())
-        this->m_uniformSizes   = uniformSizes;
+        this->m_uniformSizes = uniformSizes;
 
     this->m_layoutBindings = descriptorLayoutBindings;
     for (size_t t = 0; t < m_layoutBindings.size(); t++)
@@ -57,13 +60,14 @@ bool EvoVulkan::Complexes::Shader::Load(
             return false;
         }
 
-    for (auto module : modules) {
-        std::string out = cache + "/" + std::string(module.first) + ".spv";
+    for (const auto& [name, stage] : modules) {
+        std::string out = cache + "/" + std::string(name) + ".spv";
 
-        if (file_exists(out))
-            std::remove(std::string("del " + out).c_str());
+        if (Tools::FileExists(out))
+            Tools::RemoveFile(out);
+            //std::remove(std::string("del " + out).c_str());
 
-        system(std::string("glslc -c " + source + "/" + std::string(module.first) +" -o " + out).c_str());
+        system(std::string("glslc -c " + source + "/" + std::string(name) +" -o " + out).c_str());
 
         auto shaderModule = Tools::LoadShaderModule(out.c_str(), *m_device);
         if (shaderModule == VK_NULL_HANDLE) {
@@ -73,7 +77,7 @@ bool EvoVulkan::Complexes::Shader::Load(
         else {
             this->m_shaderModules.push_back(shaderModule);
             this->m_shaderStages.push_back(
-                    Tools::Initializers::PipelineShaderStageCreateInfo(shaderModule, module.second));
+                    Tools::Initializers::PipelineShaderStageCreateInfo(shaderModule, stage));
         }
     }
 

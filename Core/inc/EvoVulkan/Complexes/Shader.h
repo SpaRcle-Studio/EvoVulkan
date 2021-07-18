@@ -16,13 +16,6 @@
 #include <EvoVulkan/Types/VulkanBuffer.h>
 
 namespace EvoVulkan::Complexes {
-    inline bool file_exists (const std::string& name) {
-        struct stat buffer{};
-        return (stat (name.c_str(), &buffer) == 0);
-
-        //return ( access( name.c_str(), F_OK ) != -1 );
-    }
-
     class Shader {
     public:
         Shader(const Types::Device* device, Types::RenderPass renderPass, const VkPipelineCache& cache);

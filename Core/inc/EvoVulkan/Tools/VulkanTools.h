@@ -374,19 +374,25 @@ namespace EvoVulkan::Tools {
         return sampler;
     }
 
-    static VkImageView CreateImageView(const VkDevice& device, VkImage image, VkFormat format, uint32_t mipLevels, VkImageAspectFlags imageAspectFlags) {
+    static VkImageView CreateImageView(
+            const VkDevice& device,
+            VkImage image,
+            VkFormat format,
+            uint32_t mipLevels,
+            VkImageAspectFlags imageAspectFlags,
+            bool cubeMap = false) {
         VkImageView view = VK_NULL_HANDLE;
 
         VkImageViewCreateInfo viewCI           = Tools::Initializers::ImageViewCreateInfo();
         viewCI.image                           = image;
-        viewCI.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+        viewCI.viewType                        = cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
         viewCI.format                          = format;
         viewCI.components                      = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
         //viewCI.components                      = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
         viewCI.subresourceRange.aspectMask     = imageAspectFlags; //VK_IMAGE_ASPECT_COLOR_BIT;
         viewCI.subresourceRange.baseMipLevel   = 0;
         viewCI.subresourceRange.baseArrayLayer = 0;
-        viewCI.subresourceRange.layerCount     = 1;
+        viewCI.subresourceRange.layerCount     = cubeMap ? 6 : 1;
         viewCI.subresourceRange.levelCount     = mipLevels;
 
         if (vkCreateImageView(device, &viewCI, nullptr, &view) != VK_SUCCESS) {
@@ -406,8 +412,14 @@ namespace EvoVulkan::Tools {
             VkMemoryPropertyFlags properties,
             Types::DeviceMemory* imageMemory,
             bool multisampling = true,
-            VkImageCreateFlagBits createFlagBits = VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM)
+            VkImageCreateFlagBits createFlagBits = VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM,
+            uint32_t arrayLayers = 1)
     {
+        if (width == 0 || height == 0) {
+            VK_ERROR("VulkanTools::CreateImage() : width or height equals zero!");
+            return VK_NULL_HANDLE;
+        }
+
         VkImageCreateInfo imageInfo = {};
         imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType     = VK_IMAGE_TYPE_2D;
@@ -415,7 +427,7 @@ namespace EvoVulkan::Tools {
         imageInfo.extent.height = height;
         imageInfo.extent.depth  = 1;
         imageInfo.mipLevels     = mipLevels;
-        imageInfo.arrayLayers   = 1;
+        imageInfo.arrayLayers   = arrayLayers;
         imageInfo.format        = format;
         imageInfo.tiling        = tiling;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -423,7 +435,7 @@ namespace EvoVulkan::Tools {
         imageInfo.samples       = (mipLevels > 1 || !multisampling) ? VK_SAMPLE_COUNT_1_BIT : device->GetMSAASamples();
         imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
         if (createFlagBits != VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM)
-            imageInfo.flags         = createFlagBits;
+            imageInfo.flags = createFlagBits;
 
         VkImage image = VK_NULL_HANDLE;
         if (vkCreateImage(*device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
@@ -462,13 +474,13 @@ namespace EvoVulkan::Tools {
         return image;
     }
 
-    static bool TransitionImageLayout(Types::CmdBuffer* copyCmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
-        //Types::CmdBuffer* copyCmd = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        //if (!copyCmd | !copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
-        //    VK_ERROR("Tools::TransitionImageLayout() : failed to create/begin command buffer!");
-        //    return false;
-        //}
-
+    static bool TransitionImageLayout(
+            Types::CmdBuffer* copyCmd,
+            VkImage image,
+            VkImageLayout oldLayout,
+            VkImageLayout newLayout,
+            uint32_t mipLevels,
+            uint32_t layerCount = 1) {
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -483,7 +495,7 @@ namespace EvoVulkan::Tools {
         barrier.subresourceRange.baseMipLevel   = 0;
         barrier.subresourceRange.levelCount     = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount     = 1;
+        barrier.subresourceRange.layerCount     = layerCount;
 
         VkPipelineStageFlags sourceStage;
         VkPipelineStageFlags destinationStage;

@@ -99,6 +99,9 @@ int main() {
     if (!kernel->LoadTexture())
         return -1;
 
+    if (!kernel->LoadCubeMap())
+        return -1;
+
     if (!kernel->SetupShader())
         return -1;
 

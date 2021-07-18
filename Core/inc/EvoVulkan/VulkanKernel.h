@@ -87,6 +87,8 @@ namespace EvoVulkan::Core {
         uint32_t                   m_currentBuffer        = 0;
 
         VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+        bool                       m_GUIEnabled           = false;
     public:
         uint8_t                    m_countDCB             = 0;
         VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
@@ -138,6 +140,8 @@ namespace EvoVulkan::Core {
         }
 
         void SetMultisampling(const uint32_t& sampleCount);
+
+        void SetGUIEnabled(bool enabled) { this->m_GUIEnabled = enabled; }
 
         inline bool SetValidationLayersEnabled(const bool& value) {
             if (m_isPreInitialized) {

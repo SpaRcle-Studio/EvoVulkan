@@ -29,7 +29,7 @@ add_library(EvoVulkanCore STATIC
         src/EvoVulkan/Complexes/Framebuffer.cpp
         src/EvoVulkan/Complexes/Shader.cpp
         src/EvoVulkan/Complexes/Mesh.cpp
-        )
+        inc/EvoVulkan/Tools/FileSystem.h)
 
 target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})
 

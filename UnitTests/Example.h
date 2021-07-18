@@ -22,6 +22,8 @@
 
 #include <stbi.h>
 
+#include <array>
+
 #include <EvoVulkan/VulkanKernel.h>
 
 #include <EvoVulkan/Types/RenderPass.h>
@@ -118,6 +120,7 @@ private:
     Types::Buffer*              m_skyboxIndicesBuff   = nullptr;
 
     Types::Texture*             m_texture             = nullptr;
+    Types::Texture*             m_cubeMap             = nullptr;
 
     Complexes::FrameBuffer*     m_offscreen           = nullptr;
 
@@ -183,6 +186,8 @@ public:
         static float y = 0.f;
         static float z = 0.f;
 
+        static float yaw = 0.f;
+
         glm::mat4 view = glm::mat4(1);
         {
             view = glm::rotate(view,
@@ -190,7 +195,7 @@ public:
                     , {1, 0, 0}
             );
             view = glm::rotate(view,
-                     -glm::radians(0.f) //yaw
+                     -glm::radians(yaw) //yaw
                     , {0, 1, 0}
             );
             view = glm::rotate(view,
@@ -199,6 +204,7 @@ public:
             );
         }
 
+        yaw += 0.1;
         float speed = 0.2;
 
         if ((GetAsyncKeyState(VK_LEFT) < 0))
@@ -298,9 +304,10 @@ public:
                 sizeof(SkyboxUniformBuffer));
 
         std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-                // Binding 0 : Fragment shader uniform buffer
                 Tools::Initializers::WriteDescriptorSet(skybox.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
                                                         &skybox.m_uniformBuffer->m_descriptor),
+                Tools::Initializers::WriteDescriptorSet(skybox.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                                                        m_cubeMap->GetDescriptorRef()),
         };
 
         vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
@@ -352,6 +359,26 @@ public:
         }
 
         return cmpBuffer;
+    }
+
+    bool LoadCubeMap() {
+        //-512x512
+        int w, h, channels;
+        std::array<uint8_t*, 6> sides {
+                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\front.jpg)", &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\back.jpg)", &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\top.jpg)", &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\bottom.jpg)", &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\right.jpg)", &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\bottom.jpg)", &w, &h, &channels, STBI_rgb_alpha),
+        };
+
+        m_cubeMap = Types::Texture::LoadCubeMap(m_device, m_cmdPool, VK_FORMAT_R8G8B8A8_UNORM, w, h, sides, 1);
+
+        for (auto img : sides)
+            stbi_image_free(img);
+
+        return true;
     }
 
     bool LoadTexture() {
@@ -437,7 +464,7 @@ public:
         for (auto & _mesh : meshes) {
             std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                     Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
-                                                            &attach1)
+                                                            m_texture->GetDescriptorRef())
             };
             vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
         }
@@ -507,7 +534,7 @@ public:
         //this->m_geometry = new Complexes::Shader(GetDevice(), GetRenderPass(), GetPipelineCache());
         this->m_geometry = new Complexes::Shader(GetDevice(), m_offscreen->GetRenderPass(), GetPipelineCache());
 
-        m_geometry->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
+        m_geometry->Load("J:\\C++\\GameEngine\\Engine\\Dependences\\Framework\\Depends\\EvoVulkan\\Resources\\Shaders", "J://C++/EvoVulkan/Resources/Cache",
                          {
                                  {"geometry.vert", VK_SHADER_STAGE_VERTEX_BIT},
                                  {"geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -550,7 +577,7 @@ public:
 
         this->m_skyboxShader = new Complexes::Shader(GetDevice(), m_offscreen->GetRenderPass(), GetPipelineCache());
 
-        m_skyboxShader->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
+        m_skyboxShader->Load("J:\\C++\\GameEngine\\Engine\\Dependences\\Framework\\Depends\\EvoVulkan\\Resources\\Shaders", "J://C++/EvoVulkan/Resources/Cache",
                          {
                                  {"skybox.vert", VK_SHADER_STAGE_VERTEX_BIT},
                                  {"skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -559,9 +586,8 @@ public:
                                  Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                                  VK_SHADER_STAGE_VERTEX_BIT, 0),
 
-                                 //Tools::Initializers::DescriptorSetLayoutBinding(
-                                 //        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                 //        VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+                                 Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                                                                 VK_SHADER_STAGE_FRAGMENT_BIT, 1),
                          },
                          {
                                  sizeof(SkyboxUniformBuffer)
@@ -589,7 +615,7 @@ public:
         //this->m_postProcessing = new Complexes::Shader(GetDevice(), this->m_offscreen->GetRenderPass(), GetPipelineCache());
         this->m_postProcessing = new Complexes::Shader(GetDevice(), this->GetRenderPass(), GetPipelineCache());
 
-        m_postProcessing->Load("J://C++/EvoVulkan/Resources/Shaders", "J://C++/EvoVulkan/Resources/Cache",
+        m_postProcessing->Load("J:\\C++\\GameEngine\\Engine\\Dependences\\Framework\\Depends\\EvoVulkan\\Resources\\Shaders", "J://C++/EvoVulkan/Resources/Cache",
                                {
                                        {"post_processing.vert", VK_SHADER_STAGE_VERTEX_BIT},
                                        {"post_processing.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -796,6 +822,7 @@ public:
         EVSafeFreeObject(m_offscreen);
 
         EVSafeFreeObject(m_texture);
+        EVSafeFreeObject(m_cubeMap);
 
         EVSafeFreeObject(m_PPUniformBuffer);
         if (m_PPDescriptorSet.m_self != VK_NULL_HANDLE) {
