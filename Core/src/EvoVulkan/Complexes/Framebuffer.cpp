@@ -288,9 +288,9 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
     //clear values
     {
         this->m_clearValues.clear();
-        for (uint32_t i = 0; i < m_countColorAttach; i++) {
+        for (uint32_t i = 0; i < m_countColorAttach * (m_device->MultisampleEnabled() ? 2 : 1); i++)
             m_clearValues.emplace_back(VkClearValue{ .color = {{ 0.0, 0.0, 0.0, 0.0 }} });
-        }
+        m_clearValues.emplace_back(VkClearValue{ .depthStencil = { 0.0, 0 } }); // TODO: maybe check depth enabled?
         this->m_countClearValues = m_clearValues.size();
     }
 
@@ -312,6 +312,11 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateAttachments()  {
                 m_attachFormats[i],
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                 { m_width, m_height });
+
+        auto copyCmd = Types::CmdBuffer::BeginSingleTime(m_device, m_cmdPool);
+        Tools::TransitionImageLayout(copyCmd, m_attachments[i].m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+        copyCmd->Destroy();
+        copyCmd->Free();
 
         if (!m_attachments[i].Ready()) {
             VK_ERROR("Framebuffer::CreateAttachments() : failed to create attachment!");

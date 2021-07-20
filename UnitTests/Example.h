@@ -150,7 +150,7 @@ public:
         m_submitInfo.pCommandBuffers    = &m_offscreen->m_cmdBuff;
         auto result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &m_submitInfo, VK_NULL_HANDLE);
         if (result != VK_SUCCESS) {
-            VK_ERROR("renderFunction() : failed to first queue submit!");
+            VK_ERROR("renderFunction() : failed to submit first queue!");
             return;
         }
 
@@ -159,7 +159,7 @@ public:
         m_submitInfo.pCommandBuffers    = &m_drawCmdBuffs[m_currentBuffer];
         result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &m_submitInfo, VK_NULL_HANDLE);
         if (result != VK_SUCCESS) {
-            VK_ERROR("renderFunction() : failed to second queue submit!");
+            VK_ERROR("renderFunction() : failed to submit second queue!");
             return;
         }
 
@@ -431,8 +431,10 @@ public:
     }
 
     bool UpdatePP() {
-        auto attach0 = m_offscreen->GetImageDescriptors()[0];
-        auto attach1 = m_offscreen->GetImageDescriptors()[1];
+        auto colors = m_offscreen->AllocateColorTextureReferences();
+
+        //auto attach0 = m_offscreen->GetImageDescriptors()[0];
+        //auto attach1 = m_offscreen->GetImageDescriptors()[1];
 
         /*VkDescriptorImageInfo attach0;
         attach0.imageView   = m_texture->m_view;			// The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
@@ -447,27 +449,19 @@ public:
 
                 // Binding 1: Fragment shader sampler
                 Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                                                        &attach0),
+                                                        colors[0]->GetDescriptorRef()),
 
         };
 
         std::vector<VkWriteDescriptorSet> writeDescriptorSets2 = {
                 // Binding 2: Fragment shader sampler
                 Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
-                                                        &attach1)
+                                                        colors[1]->GetDescriptorRef())
         };
 
 
         vkUpdateDescriptorSets(*m_device, writeDescriptorSets1.size(), writeDescriptorSets1.data(), 0, NULL);
         vkUpdateDescriptorSets(*m_device, writeDescriptorSets2.size(), writeDescriptorSets2.data(), 0, NULL);
-
-        for (auto & _mesh : meshes) {
-            std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
-                                                            m_texture->GetDescriptorRef())
-            };
-            vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
-        }
 
         return true;
     }
@@ -528,7 +522,7 @@ public:
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
                 sizeof(PPUniformBuffer));
 
-        return UpdatePP();
+        return true;
     }
     bool SetupShader() {
         //this->m_geometry = new Complexes::Shader(GetDevice(), GetRenderPass(), GetPipelineCache());
@@ -761,6 +755,14 @@ public:
 
         m_offscreen->SetViewportAndScissor();
 
+        for (auto & _mesh : meshes) {
+            std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
+                                                            m_texture->GetDescriptorRef())
+            };
+            vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
+        }
+
         {
             vkCmdBindPipeline(m_offscreen->GetCmd(), VK_PIPELINE_BIND_POINT_GRAPHICS, *m_geometry);
 
@@ -775,6 +777,8 @@ public:
         }
 
         m_offscreen->End();
+
+        UpdatePP();
 
         return BuildCmdBuffersPostProcess();
     }
