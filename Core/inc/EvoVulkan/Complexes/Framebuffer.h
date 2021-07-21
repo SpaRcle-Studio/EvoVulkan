@@ -129,6 +129,9 @@ namespace EvoVulkan::Complexes {
         [[nodiscard]] inline Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         [[nodiscard]] inline VkRect2D GetRenderPassArea()      const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
         [[nodiscard]] inline VkCommandBuffer GetCmd()          const noexcept { return m_cmdBuff; }
+        [[nodiscard]] inline VkSemaphore GetSemaphore()        const noexcept { return m_semaphore; }
+        [[nodiscard]] inline VkCommandBuffer* GetCmdRef()      noexcept { return &m_cmdBuff; }
+        [[nodiscard]] inline VkSemaphore* GetSemaphoreRef()    noexcept { return &m_semaphore; }
         [[nodiscard]] const VkClearValue* GetClearValues()     const { return m_clearValues.data(); }
         [[nodiscard]] inline uint32_t GetCountClearValues()    const { return m_countClearValues; }
     private:

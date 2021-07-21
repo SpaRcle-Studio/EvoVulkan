@@ -57,45 +57,46 @@ namespace EvoVulkan::Core {
         //        { .depthStencil = { 1.0f, 0 } }
         //};
     protected:
-        bool                                 m_multisampling        = false;
-        uint32_t                             m_sampleCount          = 1;
+        bool                       m_multisampling        = false;
+        uint32_t                   m_sampleCount          = 1;
 
-        bool                                 m_hasErrors            = false;
-        bool                                 m_paused               = false;
+        bool                       m_hasErrors            = false;
+        bool                       m_paused               = false;
 
-        unsigned int                         m_newWidth             = 0;
-        unsigned int                         m_newHeight            = 0;
+        unsigned int               m_newWidth             = 0;
+        unsigned int               m_newHeight            = 0;
 
-        unsigned int                         m_width                = 0;
-        unsigned int                         m_height               = 0;
+        unsigned int               m_width                = 0;
+        unsigned int               m_height               = 0;
 
-        Types::RenderPass                    m_renderPass           = { };
-        VkPipelineCache                      m_pipelineCache        = VK_NULL_HANDLE;
+        Types::RenderPass          m_renderPass           = { };
+        VkPipelineCache            m_pipelineCache        = VK_NULL_HANDLE;
 
-        Types::Device*                       m_device               = nullptr;
-        Types::Surface*                      m_surface              = nullptr;
-        Types::Swapchain*                    m_swapchain            = nullptr;
-        Types::CmdPool*                      m_cmdPool              = nullptr;
-        //Types::DepthStencil*                 m_depthStencil         = nullptr;
-        Types::MultisampleTarget*            m_multisample          = nullptr;
+        Types::Device*             m_device               = nullptr;
+        Types::Surface*            m_surface              = nullptr;
+        Types::Swapchain*          m_swapchain            = nullptr;
+        Types::CmdPool*            m_cmdPool              = nullptr;
+        Types::MultisampleTarget*  m_multisample          = nullptr;
 
-        Core::DescriptorManager*             m_descriptorManager    = nullptr;
+        Core::DescriptorManager*   m_descriptorManager    = nullptr;
 
-        Types::Synchronization               m_syncs                = {};
-        VkSubmitInfo                         m_submitInfo           = {};
+        /// optional. Maybe nullptr
+        VkSemaphore                m_waitSemaphore        = VK_NULL_HANDLE;
+        Types::Synchronization     m_syncs                = {};
+        VkSubmitInfo               m_submitInfo           = {};
 
-        std::vector<VkFence>                 m_waitFences           = std::vector<VkFence>();
-        uint32_t                             m_currentBuffer        = 0;
+        std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
+        uint32_t                   m_currentBuffer        = 0;
 
-        std::vector<Complexes::FrameBuffer*> m_framebuffersQueue    = {};
+        std::vector<VkSubmitInfo>  m_framebuffersQueue    = {};
 
-        VkPipelineStageFlags                 m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-        bool                                 m_GUIEnabled           = false;
+        bool                       m_GUIEnabled           = false;
     public:
-        uint8_t                              m_countDCB             = 0;
-        VkCommandBuffer*                     m_drawCmdBuffs         = nullptr;
-        std::vector<VkFramebuffer>           m_frameBuffers         = std::vector<VkFramebuffer>();
+        uint8_t                    m_countDCB             = 0;
+        VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
+        std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
     private:
         bool ReCreateFrameBuffers();
         void DestroyFrameBuffers();
@@ -143,7 +144,32 @@ namespace EvoVulkan::Core {
         }
 
         void SetFramebuffersQueue(const std::vector<Complexes::FrameBuffer*>& queue) {
-            this->m_framebuffersQueue = queue;
+            auto newQueue = std::vector<VkSubmitInfo>();
+
+            VkSubmitInfo submitInfo = Tools::Initializers::SubmitInfo();
+            submitInfo.commandBufferCount   = 1;
+            submitInfo.waitSemaphoreCount   = 1;
+            submitInfo.signalSemaphoreCount = 1;
+            submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
+
+            for (uint32_t i = 0; i < queue.size(); i++) {
+                submitInfo.pCommandBuffers   = queue[i]->GetCmdRef();
+                submitInfo.pSignalSemaphores = queue[i]->GetSemaphoreRef();
+
+                if (i == 0)
+                    submitInfo.pWaitSemaphores = &m_syncs.m_presentComplete;
+                else
+                    submitInfo.pWaitSemaphores = queue[i - 1]->GetSemaphoreRef();
+
+                newQueue.push_back(submitInfo);
+            }
+
+            if (!queue.empty())
+                m_waitSemaphore = queue[queue.size() - 1]->GetSemaphore();
+            else
+                m_waitSemaphore = VK_NULL_HANDLE;
+
+            this->m_framebuffersQueue = newQueue;
         }
 
         void SetMultisampling(const uint32_t& sampleCount);
