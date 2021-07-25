@@ -7,9 +7,9 @@
 
 #include <vulkan/vulkan.h>
 #include <EvoVulkan/Types/Base/VulkanObject.h>
+#include <EvoVulkan/Types/Device.h>
 
 namespace EvoVulkan::Types {
-    class Device;
     class Swapchain;
 
     class DepthStencil : public IVkObject {
@@ -20,10 +20,10 @@ namespace EvoVulkan::Types {
         ~DepthStencil() = default;
     private:
         VkImage          m_image     = VK_NULL_HANDLE;
-        VkDeviceMemory   m_mem       = VK_NULL_HANDLE;
+        DeviceMemory     m_mem       = {};
         VkImageView      m_view      = VK_NULL_HANDLE;
 
-        const Device*    m_device    = nullptr;
+        Device*          m_device    = nullptr;
         const Swapchain* m_swapchain = nullptr;
     public:
         bool ReCreate(uint32_t width, uint32_t height);
@@ -34,7 +34,7 @@ namespace EvoVulkan::Types {
         void Destroy() override;
         void Free()    override;
     public:
-        static DepthStencil* Create(const Device* device, const Swapchain* swapchain, uint32_t width, uint32_t height);
+        static DepthStencil* Create(Device* device, const Swapchain* swapchain, uint32_t width, uint32_t height);
     };
 }
 

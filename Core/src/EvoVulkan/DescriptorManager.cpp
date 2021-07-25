@@ -10,7 +10,7 @@ EvoVulkan::Core::DescriptorSet EvoVulkan::Core::DescriptorManager::AllocateDescr
         VkDescriptorSetLayout layout,
         const std::set<VkDescriptorType>& requestTypes)
 {
-    VK_LOG("DescriptorManager::AllocateDescriptor() : allocate new descriptor...");
+    //!VK_LOG("DescriptorManager::AllocateDescriptor() : allocate new descriptor...");
 
     //VkDescriptorSet* _free  = NULL;
     int64_t          _free  = -2;
@@ -89,12 +89,13 @@ bool EvoVulkan::Core::DescriptorManager::FreeDescriptorSet(EvoVulkan::Core::Desc
 
             for (size_t i = 0; i < pool->m_maxSets; i++)
                 if (pool->m_descriptorSets[i] == descriptorSet.m_self) {
-                    vkFreeDescriptorSets(*m_device, pool->m_pool, 1, &pool->m_descriptorSets[i]);
+                    if (vkFreeDescriptorSets(*m_device, pool->m_pool, 1, &pool->m_descriptorSets[i]) != VK_SUCCESS)
+                        VK_ERROR("DescriptorManager::FreeDescriptorSet() : failed to free vulkan descriptor set!");
                     pool->m_descriptorSets[i] = VK_NULL_HANDLE;
 
                     pool->m_used--;
 
-                    VK_GRAPH("DescriptorManager::FreeDescriptorSet() : descriptor was been successfully freed!");
+                    //!VK_GRAPH("DescriptorManager::FreeDescriptorSet() : descriptor was been successfully freed!");
                     return true;
                 }
         }

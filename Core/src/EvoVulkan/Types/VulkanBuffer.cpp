@@ -19,7 +19,7 @@ namespace EvoVulkan::Types {
     * @return VkResult of the buffer mapping call
     */
     VkResult Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {
-        return vkMapMemory(m_device, m_memory, offset, size, 0, &m_mapped);
+        return vkMapMemory(*m_device, m_memory, offset, size, 0, &m_mapped);
     }
 
     /**
@@ -29,7 +29,7 @@ namespace EvoVulkan::Types {
     */
     void Buffer::Unmap() {
         if (m_mapped) {
-            vkUnmapMemory(m_device, m_memory);
+            vkUnmapMemory(*m_device, m_memory);
             m_mapped = nullptr;
         }
     }
@@ -42,7 +42,7 @@ namespace EvoVulkan::Types {
     * @return VkResult of the bindBufferMemory call
     */
     VkResult Buffer::Bind(VkDeviceSize offset) const {
-        return vkBindBufferMemory(m_device, m_buffer, m_memory, offset);
+        return vkBindBufferMemory(*m_device, m_buffer, m_memory, offset);
     }
 
     /**
@@ -71,11 +71,11 @@ namespace EvoVulkan::Types {
     }
 
     void Buffer::CopyToDevice(void *data, VkDeviceSize size) const {
-        vkMapMemory(m_device, m_memory, 0, size, 0, (void **)&m_mapped);
+        vkMapMemory(*m_device, m_memory, 0, size, 0, (void **)&m_mapped);
         memcpy(m_mapped, data, size);
         // Unmap after data has been copied
         // Note: Since we requested a host coherent memory type for the uniform buffer, the write is instantly visible to the GPU
-        vkUnmapMemory(m_device, m_memory);
+        vkUnmapMemory(*m_device, m_memory);
     }
 
     /**
@@ -94,7 +94,7 @@ namespace EvoVulkan::Types {
         mappedRange.memory = m_memory;
         mappedRange.offset = offset;
         mappedRange.size = size;
-        return vkFlushMappedMemoryRanges(m_device, 1, &mappedRange);
+        return vkFlushMappedMemoryRanges(*m_device, 1, &mappedRange);
     }
 
     /**
@@ -113,7 +113,7 @@ namespace EvoVulkan::Types {
         mappedRange.memory = m_memory;
         mappedRange.offset = offset;
         mappedRange.size = size;
-        return vkInvalidateMappedMemoryRanges(m_device, 1, &mappedRange);
+        return vkInvalidateMappedMemoryRanges(*m_device, 1, &mappedRange);
     }
 
     /**
@@ -121,23 +121,21 @@ namespace EvoVulkan::Types {
     */
     void Buffer::Destroy() {
         if (m_buffer)
-            vkDestroyBuffer(m_device, m_buffer, nullptr);
+            vkDestroyBuffer(*m_device, m_buffer, nullptr);
 
         m_buffer = VK_NULL_HANDLE;
 
-        if (m_memory)
-            vkFreeMemory(m_device, m_memory, nullptr);
-
-        m_memory = VK_NULL_HANDLE;
+        if (m_memory.Ready())
+            m_device->FreeMemory(&m_memory);
     }
 
     Buffer* Buffer::Create(
-            const Device *device,
+            Device *device,
             VkBufferUsageFlags usageFlags,
             VkMemoryPropertyFlags memoryPropertyFlags,
             VkDeviceSize size, void* data) {
         auto* buffer = new Buffer();
-        buffer->m_device = *device;
+        buffer->m_device = device;
 
         // Create the buffer handle
         VkBufferCreateInfo bufferCreateInfo = Tools::Initializers::BufferCreateInfo(usageFlags, size);
@@ -161,8 +159,8 @@ namespace EvoVulkan::Types {
             allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
             memAlloc.pNext = &allocFlagsInfo;
         }
-        result = vkAllocateMemory(*device, &memAlloc, nullptr, &buffer->m_memory);
-        if (result != VK_SUCCESS) {
+
+        if (buffer->m_memory = device->AllocateMemory(memAlloc); !buffer->m_memory.Ready()) {
             VK_ERROR("Buffer::Create() : failed to allocate vulkan memory!");
             return { };
         }
@@ -188,7 +186,7 @@ namespace EvoVulkan::Types {
         }
 
         // Initialize a default descriptor that covers the whole buffer size
-        buffer->SetupDescriptor();
+        buffer->SetupDescriptor(buffer->m_size);
 
         if (buffer->Bind() != VK_SUCCESS) {
             VK_ERROR("Buffer::Create() : failed to bind buffer!");

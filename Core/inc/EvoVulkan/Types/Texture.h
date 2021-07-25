@@ -22,7 +22,7 @@ namespace EvoVulkan::Types {
         StagingBuffer(const StagingBuffer&) = default;
         ~StagingBuffer() = default;
     private:
-        VkDeviceMemory m_stagingBufferMemory;
+        DeviceMemory   m_stagingBufferMemory;
         VkBuffer       m_stagingBuffer;
         uint64_t       m_bufferSize;
 
@@ -43,7 +43,7 @@ namespace EvoVulkan::Types {
     public:
         bool Destroy() {
             vkDestroyBuffer(*m_device, m_stagingBuffer, nullptr);
-            vkFreeMemory(*m_device, m_stagingBufferMemory, nullptr);
+            m_device->FreeMemory(&m_stagingBufferMemory);
             m_device = nullptr;
             return true;
         }

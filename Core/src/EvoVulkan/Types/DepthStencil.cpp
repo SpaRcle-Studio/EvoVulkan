@@ -8,9 +8,11 @@
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Swapchain.h>
 
-EvoVulkan::Types::DepthStencil* EvoVulkan::Types::DepthStencil::Create(const EvoVulkan::Types::Device *device,
-                                                                       const EvoVulkan::Types::Swapchain *swapchain,
-                                                                       uint32_t width, uint32_t height)
+EvoVulkan::Types::DepthStencil* EvoVulkan::Types::DepthStencil::Create(
+        EvoVulkan::Types::Device *device,
+        const EvoVulkan::Types::Swapchain *swapchain,
+        uint32_t width,
+        uint32_t height)
 {
     auto depthStencil = new DepthStencil();
     {
@@ -18,7 +20,7 @@ EvoVulkan::Types::DepthStencil* EvoVulkan::Types::DepthStencil::Create(const Evo
         depthStencil->m_swapchain = swapchain;
 
         depthStencil->m_image     = VK_NULL_HANDLE;
-        depthStencil->m_mem       = VK_NULL_HANDLE;
+        depthStencil->m_mem       = { };
         depthStencil->m_view      = VK_NULL_HANDLE;
     }
 
@@ -65,10 +67,9 @@ bool EvoVulkan::Types::DepthStencil::ReCreate(uint32_t width, uint32_t height) {
     memAlloc.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memAlloc.allocationSize       = memReqs.size;
     memAlloc.memoryTypeIndex      = m_device->GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    result = vkAllocateMemory(*m_device, &memAlloc, nullptr, &m_mem);
-    if (result != VK_SUCCESS) {
-        VK_ERROR("DepthStencil::ReCreate() : failed to allocate memory! Reason: "
-                 + Tools::Convert::result_to_description(result));
+
+    if (m_mem = m_device->AllocateMemory(memAlloc); !m_mem.Ready()) {
+        VK_ERROR("DepthStencil::ReCreate() : failed to allocate memory!");
         return false;
     }
 
@@ -120,11 +121,10 @@ void EvoVulkan::Types::DepthStencil::Destroy() {
 
     vkDestroyImageView(*m_device, m_view, nullptr);
     vkDestroyImage(*m_device, m_image, nullptr);
-    vkFreeMemory(*m_device, m_mem, nullptr);
+    m_device->FreeMemory(&m_mem);
 
     m_view  = VK_NULL_HANDLE;
     m_image = VK_NULL_HANDLE;
-    m_mem   = VK_NULL_HANDLE;
 
     this->m_swapchain = nullptr;
     this->m_device    = nullptr;

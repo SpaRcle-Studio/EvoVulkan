@@ -276,7 +276,7 @@ namespace EvoVulkan::Tools {
         return device;
     }
 
-    static VkBuffer CreateBuffer(const Types::Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkDeviceMemory& bufferMemory) {
+    static VkBuffer CreateBuffer(Types::Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, Types::DeviceMemory& bufferMemory) {
         VkBufferCreateInfo bufferCI = EvoVulkan::Tools::Initializers::BufferCreateInfo(usage, size);
         bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -293,7 +293,7 @@ namespace EvoVulkan::Tools {
         memAllocInfo.allocationSize  = memRequirements.size;
         memAllocInfo.memoryTypeIndex = device->GetMemoryType(memRequirements.memoryTypeBits, properties);
 
-        if (vkAllocateMemory(*device, &memAllocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+        if (bufferMemory = device->AllocateMemory(memAllocInfo); !bufferMemory.Ready()) {
             VK_ERROR("Tools::CreateBuffer() : failed to allocate vulkan memory!");
             return VK_NULL_HANDLE;
         }

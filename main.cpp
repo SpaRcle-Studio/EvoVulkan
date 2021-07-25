@@ -111,11 +111,22 @@ int main() {
     if (!kernel->GenerateGeometry())
         return -1;
 
+    /*std::array<Types::Buffer*, 4000> buffers = { };
+    for (auto& buffer : buffers) {
+        buffer = Types::Buffer::Create(
+                kernel->GetDevice(),
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                16);
+    }*/
+
 #ifdef EVOVULKAN_EXAMPLE_H
     kernel->LoadSkybox();
 #endif
 
     kernel->BuildCmdBuffers();
+
+    std::cout << kernel->GetDevice()->GetAllocatedHeapsCount() << std::endl;
 
     while (!glfwWindowShouldClose(window) && !kernel->HasErrors()) {
         glfwPollEvents();

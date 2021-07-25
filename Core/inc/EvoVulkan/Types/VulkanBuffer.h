@@ -8,6 +8,8 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
+#include <EvoVulkan/Types/Device.h>
+
 namespace EvoVulkan::Types {
     class Device;
     /**
@@ -22,14 +24,14 @@ namespace EvoVulkan::Types {
         Buffer(const Buffer&) = delete;
 
         static Buffer* Create(
-                const Device* device,
+                Device* device,
                 VkBufferUsageFlags usageFlags,
                 VkMemoryPropertyFlags memoryPropertyFlags,
                 VkDeviceSize size, void *data = nullptr);
 
-        VkDevice               m_device              = {};
+        Types::Device*         m_device              = nullptr;
         VkBuffer               m_buffer              = VK_NULL_HANDLE;
-        VkDeviceMemory         m_memory              = VK_NULL_HANDLE;
+        Types::DeviceMemory    m_memory              = {};
         VkDescriptorBufferInfo m_descriptor          = {};
         VkDeviceSize           m_size                = 0;
         VkDeviceSize           m_alignment           = 0;

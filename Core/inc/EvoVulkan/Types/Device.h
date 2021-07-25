@@ -42,6 +42,7 @@ namespace EvoVulkan::Types {
         Device()  = default;
     private:
         uint64_t                         m_deviceMemoryAllocSize   = 0;
+        uint32_t                         m_allocHeapsCount         = 0;
 
         VkPhysicalDevice                 m_physicalDevice          = VK_NULL_HANDLE;
         VkDevice                         m_logicalDevice           = VK_NULL_HANDLE;
@@ -71,6 +72,7 @@ namespace EvoVulkan::Types {
         void Free();
     public:
         [[nodiscard]] uint64_t GetAllocatedMemorySize() const { return m_deviceMemoryAllocSize; }
+        [[nodiscard]] uint64_t GetAllocatedHeapsCount() const { return m_allocHeapsCount;       }
 
         DeviceMemory AllocateMemory(VkMemoryAllocateInfo memoryAllocateInfo) {
             auto memory = DeviceMemory();
@@ -83,6 +85,7 @@ namespace EvoVulkan::Types {
             }
             else {
                 this->m_deviceMemoryAllocSize += memory.m_size;
+                this->m_allocHeapsCount++;
                 return memory;
             }
         }
@@ -99,6 +102,7 @@ namespace EvoVulkan::Types {
                 }
 
                 this->m_deviceMemoryAllocSize -= memory->m_size;
+                this->m_allocHeapsCount--;
 
                 vkFreeMemory(m_logicalDevice, *memory, nullptr);
                 memory->m_memory = VK_NULL_HANDLE;
