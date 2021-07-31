@@ -173,6 +173,15 @@ namespace EvoVulkan::Core {
 
         void Free() {
             VK_LOG("DescriptorManager::Free() : free descriptor manager pointer...");
+
+            if (!m_pools.empty()) {
+                std::string str;
+                for (uint32_t i = 0; i < m_pools.size(); i++)
+                    str += "\n\t[" + std::to_string(i) + "] = " + std::to_string(m_pools[i]->m_used) + " descriptor sets";
+
+                VK_WARN("DescriptorManager::Free() : not all descriptor pools have been freed!" + str);
+            }
+
             this->Reset();
             delete this;
         }

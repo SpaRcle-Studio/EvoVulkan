@@ -63,6 +63,7 @@ int main() {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
     if (!kernel->PreInit("Simple engine", "NoEngine",
+            R"(C:\VulkanSDK\1.2.170.0\Bin\glslc.exe)",
             { extensions },
             { "VK_LAYER_KHRONOS_validation" }))
     {
@@ -110,6 +111,15 @@ int main() {
 
     if (!kernel->GenerateGeometry())
         return -1;
+
+    std::vector<EvoVulkan::Core::DescriptorSet> descriptors;
+    for (uint32_t i = 0; i < 100000; i++)
+        descriptors.emplace_back(kernel->GetDescriptorManager()->AllocateDescriptorSets(
+                kernel->m_geometry->GetDescriptorSetLayout(),
+                { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER }));
+
+    for (auto& descriptor : descriptors)
+        kernel->GetDescriptorManager()->FreeDescriptorSet(descriptor);
 
     /*std::array<Types::Buffer*, 4000> buffers = { };
     for (auto& buffer : buffers) {

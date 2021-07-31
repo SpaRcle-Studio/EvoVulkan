@@ -11,13 +11,12 @@
 #include <vulkan/vulkan.h>
 
 #include "EvoVulkan/VulkanKernel.h"
-
-#include <EvoVulkan/Tools/VulkanInitializers.h>
-#include <EvoVulkan/Tools/VulkanConverter.h>
+#include <EvoVulkan/Complexes/Shader.h>
 
 bool EvoVulkan::Core::VulkanKernel::PreInit(
         const std::string& appName,
         const std::string& engineName,
+        const std::string& glslc,
         const std::vector<const char*>& instExtensions,
         const std::vector<const char*>& validationLayers)
 {
@@ -26,8 +25,9 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
     this->m_appName          = appName;
     this->m_engineName       = engineName;
     this->m_validationLayers = validationLayers;
-
     this->m_instExtensions   = instExtensions;
+
+    Complexes::Shader::SetGlslCompiler(glslc);
 
     //m_instExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 

@@ -103,7 +103,7 @@ struct mesh {
 };
 
 class VulkanExample : public Core::VulkanKernel {
-private:
+public:
     Complexes::Shader*          m_geometry            = nullptr;
     Complexes::Shader*          m_skyboxShader        = nullptr;
 

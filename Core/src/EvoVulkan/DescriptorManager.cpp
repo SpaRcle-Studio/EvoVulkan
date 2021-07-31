@@ -80,22 +80,27 @@ bool EvoVulkan::Core::DescriptorManager::FreeDescriptorSet(EvoVulkan::Core::Desc
         return false;
     }
 
-    for (DescriptorPool* pool : m_pools)
-        if (pool->m_layout == descriptorSet.m_layout) {
-            if (pool->m_used == 0) {
+    for (auto it = m_pools.begin(); it != m_pools.end(); ++it)
+        if ((*it)->m_layout == descriptorSet.m_layout) {
+            if ((*it)->m_used == 0) {
                 VK_ERROR("DescriptorManager::FreeDescriptorSet() : count used pool is zero! Something went wrong!");
                 return false;
             }
 
-            for (size_t i = 0; i < pool->m_maxSets; i++)
-                if (pool->m_descriptorSets[i] == descriptorSet.m_self) {
-                    if (vkFreeDescriptorSets(*m_device, pool->m_pool, 1, &pool->m_descriptorSets[i]) != VK_SUCCESS)
+            for (size_t i = 0; i < (*it)->m_maxSets; i++)
+                if ((*it)->m_descriptorSets[i] == descriptorSet.m_self) {
+                    if (vkFreeDescriptorSets(*m_device, (*it)->m_pool, 1, &(*it)->m_descriptorSets[i]) != VK_SUCCESS)
                         VK_ERROR("DescriptorManager::FreeDescriptorSet() : failed to free vulkan descriptor set!");
-                    pool->m_descriptorSets[i] = VK_NULL_HANDLE;
 
-                    pool->m_used--;
+                    (*it)->m_descriptorSets[i] = VK_NULL_HANDLE;
+                    (*it)->m_used--;
 
-                    //!VK_GRAPH("DescriptorManager::FreeDescriptorSet() : descriptor was been successfully freed!");
+                    if ((*it)->m_used == 0) {
+                        delete (*it);
+                        m_pools.erase(it);
+                        VK_LOG("DescriptorManager::FreeDescriptorSet() : free descriptor pool...");
+                    }
+
                     return true;
                 }
         }

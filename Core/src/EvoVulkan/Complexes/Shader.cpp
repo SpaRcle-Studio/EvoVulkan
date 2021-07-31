@@ -23,8 +23,7 @@ bool EvoVulkan::Complexes::Shader::Load(
         const std::string& source, const std::string& cache,
         const std::vector<std::pair<std::string, VkShaderStageFlagBits>> &modules,
         const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
-        const std::vector<VkDeviceSize>& uniformSizes
-        )
+        const std::vector<VkDeviceSize>& uniformSizes)
 {
     if (!this) {
         VK_ERROR("Shader::Load() : WTF!? this is nullptr!");
@@ -67,7 +66,7 @@ bool EvoVulkan::Complexes::Shader::Load(
             Tools::RemoveFile(out);
             //std::remove(std::string("del " + out).c_str());
 
-        system(std::string("glslc -c " + source + "/" + std::string(name) +" -o " + out).c_str());
+        system(std::string(g_glslc + " -c " + source + "/" + std::string(name) +" -o " + out).c_str());
 
         auto shaderModule = Tools::LoadShaderModule(out.c_str(), *m_device);
         if (shaderModule == VK_NULL_HANDLE) {
@@ -108,6 +107,59 @@ bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
     return true;
 }
 
+bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass) {
+    if (m_pipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(*m_device, m_pipeline, VK_NULL_HANDLE);
+        m_pipeline = VK_NULL_HANDLE;
+    }
+
+    m_renderPass = renderPass;
+
+    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {};
+
+    for (uint32_t i = 0; i < m_renderPass.m_countColorAttach; i++) {
+        auto writeMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        auto attch = Tools::Initializers::PipelineColorBlendAttachmentState(writeMask, m_blendEnable);
+
+        attch.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        attch.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+        attch.colorBlendOp        = VK_BLEND_OP_ADD;
+
+        attch.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        attch.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+        blendAttachmentStates.push_back(attch);
+    }
+
+    std::vector<VkDynamicState> dynamicStateEnables = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+    };
+
+    auto dynamicState       = Tools::Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
+    auto colorBlendState    = Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
+    auto pipelineCreateInfo = Tools::Initializers::PipelineCreateInfo(m_pipelineLayout, m_renderPass.m_self, 0);
+
+    pipelineCreateInfo.pVertexInputState   = &m_vertices.m_inputState;
+    pipelineCreateInfo.pInputAssemblyState = &m_inputAssemblyState;
+    pipelineCreateInfo.pRasterizationState = &m_rasterizationState;
+    pipelineCreateInfo.pColorBlendState    = &colorBlendState;
+    pipelineCreateInfo.pMultisampleState   = &m_multisampleState;
+    pipelineCreateInfo.pViewportState      = &m_viewportState;
+    pipelineCreateInfo.pDepthStencilState  = &m_depthStencilState;
+    pipelineCreateInfo.pDynamicState       = &dynamicState;
+    pipelineCreateInfo.stageCount          = static_cast<uint32_t>(m_shaderStages.size());
+    pipelineCreateInfo.pStages             = m_shaderStages.data();
+
+    if (vkCreateGraphicsPipelines(*m_device, m_cache, 1, &pipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
+        VK_ERROR("Shader::ReCreatePipeLine() : failed to create vulkan graphics pipeline!");
+        return false;
+    }
+
+    return true;
+}
+
 bool EvoVulkan::Complexes::Shader::Compile(
         VkPolygonMode polygonMode,
         VkCullModeFlags cullMode,
@@ -121,66 +173,20 @@ bool EvoVulkan::Complexes::Shader::Compile(
         return false;
     }
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = Tools::Initializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-    VkPipelineRasterizationStateCreateInfo rasterizationState = Tools::Initializers::PipelineRasterizationStateCreateInfo(polygonMode, cullMode, VK_FRONT_FACE_CLOCKWISE, 0);
+    m_blendEnable = blendEnable;
 
-    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {};
+    m_inputAssemblyState = Tools::Initializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+    m_rasterizationState = Tools::Initializers::PipelineRasterizationStateCreateInfo(polygonMode, cullMode, VK_FRONT_FACE_CLOCKWISE, 0);
 
-    for (uint32_t i = 0; i < m_renderPass.m_countColorAttach; i++) {
-        auto writeMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        auto attch = Tools::Initializers::PipelineColorBlendAttachmentState(writeMask, blendEnable);
-
-        attch.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        attch.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-
-        attch.colorBlendOp        = VK_BLEND_OP_ADD;
-
-        //attch.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        attch.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        //attch.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        attch.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-
-        blendAttachmentStates.push_back(attch);
-
-
-        //blendAttachmentStates.push_back(Tools::Initializers::PipelineColorBlendAttachmentState(0xf, blendEnable));
-    }
-
-    VkPipelineColorBlendStateCreateInfo colorBlendState =
-            Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
-
-    VkPipelineDepthStencilStateCreateInfo  depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthTest, depthWrite, depthCompare);
-    VkPipelineViewportStateCreateInfo      viewportState = Tools::Initializers::PipelineViewportStateCreateInfo(1, 1, 0);
-    VkPipelineMultisampleStateCreateInfo   multisampleState = Tools::Initializers::PipelineMultisampleStateCreateInfo(m_device->GetMSAASamples(), 0);
-
-    std::vector<VkDynamicState> dynamicStateEnables = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-    };
-
-    VkPipelineDynamicStateCreateInfo dynamicState =
-            Tools::Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
-
-    VkGraphicsPipelineCreateInfo pipelineCreateInfo =
-            Tools::Initializers::PipelineCreateInfo(m_pipelineLayout, m_renderPass.m_self, 0);
+    m_depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthTest, depthWrite, depthCompare);
+    m_viewportState = Tools::Initializers::PipelineViewportStateCreateInfo(1, 1, 0);
+    m_multisampleState = Tools::Initializers::PipelineMultisampleStateCreateInfo(m_device->GetMSAASamples(), 0);
 
     if (!m_hasVertices)
         m_vertices.m_inputState = Tools::Initializers::PipelineVertexInputStateCreateInfo();
 
-    pipelineCreateInfo.pVertexInputState = &m_vertices.m_inputState;
-
-    pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-    pipelineCreateInfo.pRasterizationState = &rasterizationState;
-    pipelineCreateInfo.pColorBlendState    = &colorBlendState;
-    pipelineCreateInfo.pMultisampleState   = &multisampleState;
-    pipelineCreateInfo.pViewportState      = &viewportState;
-    pipelineCreateInfo.pDepthStencilState  = &depthStencilState;
-    pipelineCreateInfo.pDynamicState       = &dynamicState;
-    pipelineCreateInfo.stageCount          = static_cast<uint32_t>(m_shaderStages.size());
-    pipelineCreateInfo.pStages             = m_shaderStages.data();
-
-    if (vkCreateGraphicsPipelines(*m_device, m_cache, 1, &pipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-        VK_ERROR("Shader::Compile() : failed to create vulkan graphics pipeline!");
+    if (!ReCreatePipeLine(m_renderPass)) {
+        VK_ERROR("Shader::Compile() : failed to create pipe line!");
         return false;
     }
 
@@ -230,31 +236,3 @@ void EvoVulkan::Complexes::Shader::Destroy() {
 void EvoVulkan::Complexes::Shader::Free() {
     delete this;
 }
-
-/*
-bool EvoVulkan::Complex::Shader::AutoUniformDetection(
-        const std::string &source,
-        const std::vector<std::pair<const char *, VkShaderStageFlagBits>> &modules)
-{
-    std::map<VkShaderStageFlagBits, std::vector<VkDescriptorType>> uniforms = {};
-
-    for (std::pair<const char*, VkShaderStageFlagBits> module : modules) {
-        std::string path = source + "/" + std::string(module.first);
-
-        std::ifstream is(path);
-        if (!is.is_open()) {
-            VK_ERROR("Shader::AutoUniformDetection() : could not open file! \nPath: " + path);
-            return false;
-        } else {
-            std::string line;
-            while (!is.eof()) {
-                std::getline(is, line);
-
-                if (Tools::Contains(line, "uniform")) {
-                    VkDescriptorType type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                    std::cout << line << std::endl;
-                }
-            }
-        }
-    }
-}*/

@@ -84,6 +84,7 @@ std::vector<VkDescriptorImageInfo> EvoVulkan::Complexes::FrameBuffer::GetImageDe
 
 EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         EvoVulkan::Types::Device *device,
+        Core::DescriptorManager* manager,
         EvoVulkan::Types::Swapchain *swapchain,
         EvoVulkan::Types::CmdPool *pool,
         const std::vector<VkFormat> &colorAttachments,
@@ -98,13 +99,14 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
 
     auto fbo = new FrameBuffer();
     {
-        fbo->m_scale            = scale;
-        fbo->m_cmdPool          = pool;
-        fbo->m_device           = device;
-        fbo->m_swapchain        = swapchain;
-        fbo->m_countColorAttach = colorAttachments.size();
-        fbo->m_attachFormats    = colorAttachments;
-        fbo->m_depthFormat      = Tools::GetDepthFormat(*device);
+        fbo->m_scale             = scale;
+        fbo->m_cmdPool           = pool;
+        fbo->m_device            = device;
+        fbo->m_descriptorManager = manager;
+        fbo->m_swapchain         = swapchain;
+        fbo->m_countColorAttach  = colorAttachments.size();
+        fbo->m_attachFormats     = colorAttachments;
+        fbo->m_depthFormat       = Tools::GetDepthFormat(*device);
     }
 
     auto semaphoreCI  = Tools::Initializers::SemaphoreCreateInfo();
@@ -333,17 +335,18 @@ std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::Alloc
     for (uint32_t i = 0; i < m_countColorAttach; i++) {
         auto* texture = new EvoVulkan::Types::Texture();
 
-        texture->m_deviceMemory   = m_attachments[i].m_mem;
-        texture->m_view           = m_attachments[i].m_view;
-        texture->m_image          = m_attachments[i].m_image;
-        texture->m_format         = m_attachments[i].m_format;
-        texture->m_sampler        = m_colorSampler;
-        texture->m_imageLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        texture->m_device         = m_device;
-        texture->m_width          = m_width;
-        texture->m_height         = m_height;
-        texture->m_canBeDestroyed = false;
-        texture->m_mipLevels      = 1;
+        texture->m_deviceMemory      = m_attachments[i].m_mem;
+        texture->m_view              = m_attachments[i].m_view;
+        texture->m_image             = m_attachments[i].m_image;
+        texture->m_format            = m_attachments[i].m_format;
+        texture->m_descriptorManager = m_descriptorManager;
+        texture->m_sampler           = m_colorSampler;
+        texture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        texture->m_device            = m_device;
+        texture->m_width             = m_width;
+        texture->m_height            = m_height;
+        texture->m_canBeDestroyed    = false;
+        texture->m_mipLevels         = 1;
 
         //! make a texture descriptor
         texture->m_descriptor = {

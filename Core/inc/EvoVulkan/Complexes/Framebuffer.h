@@ -22,12 +22,12 @@
 
 namespace EvoVulkan::Complexes {
     struct FrameBufferAttachment {
-        VkImage             m_image;
-        Types::DeviceMemory m_mem;
-        VkImageView         m_view;
-        VkFormat            m_format;
+        VkImage             m_image  = { };
+        Types::DeviceMemory m_mem    = { };
+        VkImageView         m_view   = VK_NULL_HANDLE;
+        VkFormat            m_format = VK_FORMAT_UNDEFINED;
 
-        Types::Device*      m_device;
+        Types::Device*      m_device = nullptr;
 
         [[nodiscard]] bool Ready() const {
             return m_image  != VK_NULL_HANDLE &&
@@ -91,6 +91,7 @@ namespace EvoVulkan::Complexes {
         Types::Device*            m_device            = nullptr;
         Types::Swapchain*         m_swapchain         = nullptr;
         Types::CmdPool*           m_cmdPool           = nullptr;
+        Core::DescriptorManager*  m_descriptorManager = nullptr;
 
         VkRect2D                  m_scissor           = {};
         VkViewport                m_viewport          = {};
@@ -173,6 +174,7 @@ namespace EvoVulkan::Complexes {
         // depth will be auto added to end array of attachments
         static FrameBuffer* Create(
                 Types::Device* device,
+                Core::DescriptorManager* manager,
                 Types::Swapchain* swapchain,
                 Types::CmdPool* pool,
                 const std::vector<VkFormat>& colorAttachments,

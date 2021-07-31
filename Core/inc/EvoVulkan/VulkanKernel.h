@@ -209,6 +209,7 @@ namespace EvoVulkan::Core {
         bool PreInit(
                 const std::string& appName,
                 const std::string& engineName,
+                const std::string& glslc,
                 const std::vector<const char*>& instExtensions,
                 const std::vector<const char*>& validationLayers
                 );

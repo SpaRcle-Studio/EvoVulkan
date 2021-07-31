@@ -68,13 +68,21 @@ namespace EvoVulkan::Complexes {
 
         void Destroy();
         void Free();
+
+        bool ReCreatePipeLine(Types::RenderPass renderPass);
     private:
         bool BuildLayouts();
+    public:
+        static void SetGlslCompiler(const std::string& glslc) {
+            g_glslc = glslc;
+        }
     public:
         operator VkPipeline() const {
             return m_pipeline;
         }
     private:
+        inline static std::string g_glslc = "None";
+
         struct {
             VkPipelineVertexInputStateCreateInfo           m_inputState;
             std::vector<VkVertexInputBindingDescription>   m_bindingDescriptions;
@@ -95,10 +103,18 @@ namespace EvoVulkan::Complexes {
         VkPipeline                                   m_pipeline            = VK_NULL_HANDLE;
         VkPipelineLayout                             m_pipelineLayout      = VK_NULL_HANDLE;
 
+        VkBool32                                     m_blendEnable         = VK_FALSE;
+
         std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages        = {};
         std::vector<VkShaderModule>                  m_shaderModules       = {};
 
         std::vector<VkDeviceSize>                    m_uniformSizes        = {};
+
+        VkPipelineInputAssemblyStateCreateInfo       m_inputAssemblyState  = {};
+        VkPipelineRasterizationStateCreateInfo       m_rasterizationState  = {};
+        VkPipelineDepthStencilStateCreateInfo        m_depthStencilState   = {};
+        VkPipelineViewportStateCreateInfo            m_viewportState       = {};
+        VkPipelineMultisampleStateCreateInfo         m_multisampleState    = {};
     };
 }
 

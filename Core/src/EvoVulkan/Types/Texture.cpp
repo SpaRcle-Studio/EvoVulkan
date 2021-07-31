@@ -44,15 +44,16 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     auto *texture = new Texture();
     {
-        texture->m_width          = width;
-        texture->m_height         = height;
-        texture->m_mipLevels      = mipLevels;
-        texture->m_format         = format;
-        texture->m_device         = device;
-        texture->m_canBeDestroyed = true;
-        texture->m_pool           = pool;
-        texture->m_filter         = VkFilter::VK_FILTER_LINEAR;
-        texture->m_cubeMap        = true;
+        texture->m_width             = width;
+        texture->m_height            = height;
+        texture->m_mipLevels         = mipLevels;
+        texture->m_format            = format;
+        texture->m_descriptorManager = nullptr;
+        texture->m_device            = device;
+        texture->m_canBeDestroyed    = true;
+        texture->m_pool              = pool;
+        texture->m_filter            = VkFilter::VK_FILTER_LINEAR;
+        texture->m_cubeMap           = true;
     }
 
     const VkDeviceSize imageSize = width * height * 4 * 6;
@@ -183,6 +184,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
 EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
         EvoVulkan::Types::Device *device,
+        Core::DescriptorManager* manager,
         EvoVulkan::Types::CmdPool *pool,
         const unsigned char *pixels,
         VkFormat format,
@@ -196,10 +198,8 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
         return nullptr;
     }
 
-    bool needBlit = true;
     if (!device->IsSupportLinearBlitting(format)) {
         VK_ERROR("Texture::Load() : device does not support linear blitting!");
-        needBlit = false;
         return nullptr;
     }
 
@@ -210,15 +210,16 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
 
     auto *texture = new Texture();
     {
-        texture->m_width          = width;
-        texture->m_height         = height;
-        texture->m_mipLevels      = mipLevels;
-        texture->m_format         = format;
-        texture->m_device         = device;
-        texture->m_canBeDestroyed = true;
-        texture->m_pool           = pool;
-        texture->m_filter         = filter;
-        texture->m_cubeMap        = false;
+        texture->m_width             = width;
+        texture->m_height            = height;
+        texture->m_mipLevels         = mipLevels;
+        texture->m_format            = format;
+        texture->m_descriptorManager = manager;
+        texture->m_device            = device;
+        texture->m_canBeDestroyed    = true;
+        texture->m_pool              = pool;
+        texture->m_filter            = filter;
+        texture->m_cubeMap           = false;
     }
 
     auto stagingBuffer = StagingBuffer::Create(device, (void*)pixels, texture->m_width, texture->m_height);
@@ -380,4 +381,60 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
     texture->m_imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     return singleBuffer->End();
+}
+
+EvoVulkan::Core::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDescriptorSetLayout layout) {
+    if (!m_descriptorManager) {
+        VK_ERROR("Texture::GetDescriptorSet() : texture have not descriptor manager!");
+        return {};
+    }
+
+    if (m_descriptorSet == VK_NULL_HANDLE) {
+        static const std::set<VkDescriptorType> type = {VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER};
+        auto vkDescriptorSet = this->m_descriptorManager->AllocateDescriptorSets(layout, type);
+
+        auto writer = EvoVulkan::Tools::Initializers::WriteDescriptorSet(
+                vkDescriptorSet,
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                0, this->GetDescriptorRef());
+
+        vkUpdateDescriptorSets(*m_device, 1, &writer, 0, nullptr);
+
+        m_descriptorSet = Core::DescriptorSet{
+                .m_self = vkDescriptorSet,
+                .m_layout = layout,
+        };
+    }
+
+    return m_descriptorSet;
+}
+
+void EvoVulkan::Types::Texture::Destroy()  {
+    m_isDestroyed = true;
+
+    if (m_descriptorManager && (m_descriptorSet != VK_NULL_HANDLE)) {
+        m_descriptorManager->FreeDescriptorSet(m_descriptorSet);
+        m_descriptorSet = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+        m_descriptorManager = nullptr;
+    }
+
+    if (!m_canBeDestroyed)
+        return;
+
+    if (m_sampler != VK_NULL_HANDLE) {
+        vkDestroySampler(*m_device, m_sampler, nullptr);
+        m_sampler = VK_NULL_HANDLE;
+    }
+
+    if (m_view != VK_NULL_HANDLE) {
+        vkDestroyImageView(*m_device, m_view, nullptr);
+        m_view = VK_NULL_HANDLE;
+    }
+
+    if (m_image != VK_NULL_HANDLE) {
+        vkDestroyImage(*m_device, m_image, nullptr);
+        m_image = VK_NULL_HANDLE;
+    }
+
+    m_device->FreeMemory(&m_deviceMemory);
 }

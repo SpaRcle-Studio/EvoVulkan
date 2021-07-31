@@ -9,6 +9,7 @@
 #include <EvoVulkan/Tools/VulkanInsert.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
+#include <EvoVulkan/DescriptorManager.h>
 #include "Device.h"
 
 namespace EvoVulkan::Complexes {
@@ -22,9 +23,9 @@ namespace EvoVulkan::Types {
         StagingBuffer(const StagingBuffer&) = default;
         ~StagingBuffer() = default;
     private:
-        DeviceMemory   m_stagingBufferMemory;
-        VkBuffer       m_stagingBuffer;
-        uint64_t       m_bufferSize;
+        DeviceMemory   m_stagingBufferMemory = {};
+        VkBuffer       m_stagingBuffer = {};
+        uint64_t       m_bufferSize    = {};
 
         Device*        m_device = nullptr;
     public:
@@ -120,11 +121,14 @@ namespace EvoVulkan::Types {
 
         bool            m_canBeDestroyed = false;
         bool            m_cubeMap        = false;
+        bool            m_isDestroyed    = false;
 
         Types::Device*  m_device         = nullptr;
         Types::CmdPool* m_pool           = nullptr;
 
-        VkDescriptorImageInfo m_descriptor = {};
+        Core::DescriptorSet      m_descriptorSet     = {};
+        Core::DescriptorManager* m_descriptorManager = nullptr;
+        VkDescriptorImageInfo    m_descriptor        = {};
     public:
         [[nodiscard]] inline VkDescriptorImageInfo* GetDescriptorRef() noexcept { return &m_descriptor; }
     public:
@@ -140,29 +144,14 @@ namespace EvoVulkan::Types {
     private:
         bool Create(StagingBuffer* stagingBuffer);
     public:
-        void Destroy() {
-            if (!m_canBeDestroyed)
-                return;
+        Core::DescriptorSet GetDescriptorSet(VkDescriptorSetLayout layout);
 
-            if (m_sampler != VK_NULL_HANDLE) {
-                vkDestroySampler(*m_device, m_sampler, nullptr);
-                m_sampler = VK_NULL_HANDLE;
-            }
-
-            if (m_view != VK_NULL_HANDLE) {
-                vkDestroyImageView(*m_device, m_view, nullptr);
-                m_view = VK_NULL_HANDLE;
-            }
-
-            if (m_image != VK_NULL_HANDLE) {
-                vkDestroyImage(*m_device, m_image, nullptr);
-                m_image = VK_NULL_HANDLE;
-            }
-
-            m_device->FreeMemory(&m_deviceMemory);
-        }
+        void Destroy();
 
         void Free() {
+            if (!m_isDestroyed)
+                VK_ERROR("Texture::Free() : texture isn't destroyed!");
+
             delete this;
         }
 
@@ -179,6 +168,7 @@ namespace EvoVulkan::Types {
 
         static Texture* Load(
                 Device *device,
+                Core::DescriptorManager* manager,
                 CmdPool *pool,
                 const unsigned char *pixels,
                 VkFormat format,
@@ -187,6 +177,7 @@ namespace EvoVulkan::Types {
 
         static Texture* LoadAutoMip(
                 Device *device,
+                Core::DescriptorManager* manager,
                 CmdPool *pool,
                 const unsigned char *pixels,
                 VkFormat format,
@@ -194,22 +185,23 @@ namespace EvoVulkan::Types {
                 uint32_t height, VkFilter filter)
         {
 #ifdef max
-            return Load(device, pool, pixels, format, width, height,
+            return Load(device, manager, pool, pixels, format, width, height,
                         static_cast<uint32_t>(std::floor(std::log2(max(width, height)))) + 1, filter);
 #else
-            return Load(device, pool, pixels, format, width, height,
+            return Load(device, manager, pool, pixels, format, width, height,
                         static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1, filter);
 #endif
         }
 
         static Texture* LoadWithoutMip(
                 Device *device,
+                Core::DescriptorManager* manager,
                 CmdPool *pool,
                 const unsigned char *pixels,
                 VkFormat format,
                 uint32_t width, uint32_t height, VkFilter filter)
         {
-            return Load(device, pool, pixels, format, width, height, 1, filter);
+            return Load(device, manager, pool, pixels, format, width, height, 1, filter);
         }
     };
 }
