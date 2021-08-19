@@ -69,6 +69,7 @@
 #ifndef ASPM_GPU
 #include <bitset>
 #include <assert.h>
+#include <cstring>
 //typedef uint8_t        byte;
 #else
 //typedef bitset       uint8_t;

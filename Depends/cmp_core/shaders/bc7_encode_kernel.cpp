@@ -42,6 +42,8 @@
 //--------------------------------------
 #include "bc7_encode_kernel.h"
 
+#include <cstring>
+
 #ifndef ASPM
 //---------------------------------------------
 // Predefinitions for GPU and CPU compiled code

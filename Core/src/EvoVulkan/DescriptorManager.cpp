@@ -2,7 +2,7 @@
 // Created by Nikita on 06.05.2021.
 //
 
-#include "EvoVulkan/DescriptorManager.h"
+#include <EvoVulkan/DescriptorManager.h>
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
 

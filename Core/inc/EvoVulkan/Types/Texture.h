@@ -30,7 +30,8 @@ namespace EvoVulkan::Types {
         Device*        m_device = nullptr;
     public:
         void* Map() {
-            if (void* data = nullptr; vkMapMemory(*m_device, m_stagingBufferMemory, 0, m_bufferSize, 0, &data) == VK_SUCCESS)
+            void* data = nullptr;
+            if (vkMapMemory(*m_device, m_stagingBufferMemory, 0, m_bufferSize, 0, &data) == VK_SUCCESS)
                 return data;
             else {
                 VK_ERROR("StagingBuffer::Map() : failed to map memory!");

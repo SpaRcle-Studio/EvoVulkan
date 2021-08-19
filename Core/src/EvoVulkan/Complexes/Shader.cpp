@@ -83,6 +83,8 @@ bool EvoVulkan::Complexes::Shader::Load(
     return true;
 }
 
+std::string EvoVulkan::Complexes::Shader::g_glslc = "None";
+
 bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
         const std::vector<VkVertexInputBindingDescription> &binding,
         const std::vector<VkVertexInputAttributeDescription> &attribute)

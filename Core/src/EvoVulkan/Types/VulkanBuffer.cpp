@@ -160,7 +160,7 @@ namespace EvoVulkan::Types {
             memAlloc.pNext = &allocFlagsInfo;
         }
 
-        if (buffer->m_memory = device->AllocateMemory(memAlloc); !buffer->m_memory.Ready()) {
+        if (!(buffer->m_memory = device->AllocateMemory(memAlloc)).Ready()) {
             VK_ERROR("Buffer::Create() : failed to allocate vulkan memory!");
             return { };
         }

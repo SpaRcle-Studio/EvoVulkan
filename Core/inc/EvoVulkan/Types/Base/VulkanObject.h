@@ -5,15 +5,17 @@
 #ifndef EVOVULKAN_VULKANOBJECT_H
 #define EVOVULKAN_VULKANOBJECT_H
 
-//#include <combaseapi.h>
+#ifdef __MINGW32__
+    #pragma GCC diagnostic ignored "-Wattributes"
+#endif
 
 namespace EvoVulkan::Types {
     struct IVkObject {
         [[nodiscard]] virtual bool IsReady()    const { return false; };
         [[nodiscard]] virtual bool IsComplete() const { return false; };
 
-        virtual void Destroy()                        { };
-        virtual void Free()                           { };
+        virtual void Destroy() { };
+        virtual void Free()    { };
     };
 }
 

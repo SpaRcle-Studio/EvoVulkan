@@ -35,8 +35,14 @@
 #ifndef _BCn_Common_Kernel_H
 #define _BCn_Common_Kernel_H
 
+#ifdef __MINGW32__
+    #pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #pragma warning(disable : 4505)  // disable warnings on unreferenced local function has been removed
 
+#include <memory>
+#include <cstring>
 #include "common_def.h"
 
 //-----------------------------------------------------------------------

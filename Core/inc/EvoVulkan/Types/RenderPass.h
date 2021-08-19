@@ -102,6 +102,7 @@ namespace EvoVulkan::Types {
                 colorReferences.push_back({i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
                 if (multisampling) {
                     VkAttachmentDescription attachmentDescription = {
+                            .flags = 0,
                             .format = attachments[i].format,
                             .samples = VK_SAMPLE_COUNT_1_BIT,
                             .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,

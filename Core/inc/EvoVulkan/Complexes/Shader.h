@@ -81,7 +81,7 @@ namespace EvoVulkan::Complexes {
             return m_pipeline;
         }
     private:
-        inline static std::string g_glslc = "None";
+        static std::string g_glslc;
 
         struct {
             VkPipelineVertexInputStateCreateInfo           m_inputState;

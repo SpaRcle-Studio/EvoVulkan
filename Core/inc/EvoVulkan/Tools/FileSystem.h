@@ -8,11 +8,9 @@
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 
 #include <EvoVulkan/Tools/StringUtils.h>
-#include <experimental/filesystem> // or #include <filesystem> for C++17 and up
 #include <fstream>
 #include <vector>
-
-namespace fs = std::experimental::filesystem;
+#include <sys/stat.h>
 
 namespace EvoVulkan::Tools {
     static bool FileExists(const std::string& path) {
@@ -25,7 +23,7 @@ namespace EvoVulkan::Tools {
     }
 
     static bool CreateFolder(const std::string& directory) {
-        return fs::create_directory(directory);
+        return mkdir(directory.c_str()) == 0;
     }
 
     static bool Copy(const std::string& src, const std::string& dst) {

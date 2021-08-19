@@ -293,7 +293,7 @@ namespace EvoVulkan::Tools {
         memAllocInfo.allocationSize  = memRequirements.size;
         memAllocInfo.memoryTypeIndex = device->GetMemoryType(memRequirements.memoryTypeBits, properties);
 
-        if (bufferMemory = device->AllocateMemory(memAllocInfo); !bufferMemory.Ready()) {
+        if (!(bufferMemory = device->AllocateMemory(memAllocInfo)).Ready()) {
             VK_ERROR("Tools::CreateBuffer() : failed to allocate vulkan memory!");
             return VK_NULL_HANDLE;
         }

@@ -25,6 +25,7 @@ add_library(EvoVulkanCore STATIC
         src/EvoVulkan/Types/Texture.cpp
 
         src/EvoVulkan/Tools/VulkanTools.cpp
+        src/EvoVulkan/Tools/VulkanDebug.cpp
 
         src/EvoVulkan/Complexes/Framebuffer.cpp
         src/EvoVulkan/Complexes/Shader.cpp
@@ -34,4 +35,5 @@ add_library(EvoVulkanCore STATIC
 target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})
 
 target_include_directories(EvoVulkanCore PUBLIC inc)
+
 #target_include_directories(EvoVulkanCore PUBLIC inc/EvoVulkan)

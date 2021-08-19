@@ -318,6 +318,7 @@ public:
             return i;
         else
             Find4(i - 1);
+        return 0;
     }
 
     static auto MakeGoodSizes(int32_t w, int32_t h) -> auto {
@@ -412,14 +413,15 @@ public:
             h = sz.second;
         }
 
-        auto cmpBuffer = pixels; //Compress(w, h, pixels);
+        auto cmpBuffer = Compress(w, h, pixels);
 
         //S3TC_DXT1
         //for (uint32_t i = 0; i < 40; i++)
           //  m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h);
-        m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, cmpBuffer, VK_FORMAT_R8G8B8A8_SRGB, w, h, VK_FILTER_LINEAR);
+        //m_texture = Types::Texture::LoadWithoutMip(m_device, m_descriptorManager, m_cmdPool, cmpBuffer, VK_FORMAT_R8G8B8A8_SRGB, w, h, VK_FILTER_LINEAR);
+        m_texture = Types::Texture::LoadWithoutMip(m_device, m_descriptorManager, m_cmdPool, cmpBuffer, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, w, h, VK_FILTER_LINEAR);
            // m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_BC7_UNORM_BLOCK, w, h);
-            //m_texture = Types::Texture::LoadCompressed(m_device, m_cmdPool, pixels, VK_FORMAT_BC1_RGB_UNORM_BLOCK, w, h);
+            //m_texture = Types::Texture::LoadCompressed(m_device, m_descriptorManager, m_cmdPool, pixels, VK_FORMAT_BC1_RGB_UNORM_BLOCK, w, h);
             //m_texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h, 3);
 
         if (!m_texture)
@@ -730,21 +732,21 @@ public:
 
     bool BuildCmdBuffers() override {
         std::vector<VkClearValue> clearValues = {
-                { .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // color
-                { .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // resolve
+                VkClearValue{ .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // color
+                VkClearValue{ .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // resolve
 
-                { .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // color
-                { .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // resolve
+                VkClearValue{ .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // color
+                VkClearValue{ .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // resolve
 
-                { .depthStencil = { 1.0f, 0 } } // depth
+                VkClearValue{ .depthStencil = { 1.0f, 0 } } // depth
         };
 
         if (!m_multisampling) {
             clearValues = {
-                    { .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // color
-                    { .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // color
+                    VkClearValue{ .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // color
+                    VkClearValue{ .color = {{0.0f, 0.0f, 0.0f, 1.0f}} }, // color
 
-                    { .depthStencil = { 1.0f, 0 } } // depth
+                    VkClearValue{ .depthStencil = { 1.0f, 0 } } // depth
             };
         }
 
@@ -856,6 +858,7 @@ public:
     bool OnComplete() override {
         this->m_offscreen = Complexes::FrameBuffer::Create(
                 m_device,
+                m_descriptorManager,
                 m_swapchain,
                 m_cmdPool,
                 {

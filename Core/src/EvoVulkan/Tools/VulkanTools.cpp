@@ -175,6 +175,7 @@ namespace EvoVulkan::Tools {
             VkImageLayout final)
     {
         return {
+            .flags          = 0,
             .format         = format,
             .samples        = samples,
             .loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD, //! clear or load?

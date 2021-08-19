@@ -5,6 +5,10 @@
 #ifndef EVOVULKAN_DEVICE_H
 #define EVOVULKAN_DEVICE_H
 
+#ifdef __MINGW32__
+    #pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #include <vulkan/vulkan.h>
 
 #include <EvoVulkan/Types/SwapChainSupportDetails.h>

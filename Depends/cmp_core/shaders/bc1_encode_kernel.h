@@ -23,8 +23,11 @@
 #ifndef BC1_ENCODE_KERNEL_H
 #define BC1_ENCODE_KERNEL_H
 
+#ifdef __MINGW32__
+    #pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #include "common_def.h"
 #include "bcn_common_kernel.h"
-
 
 #endif

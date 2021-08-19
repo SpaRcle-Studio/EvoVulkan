@@ -5,6 +5,10 @@
 #ifndef EVOVULKAN_SYNCHRONIZATION_H
 #define EVOVULKAN_SYNCHRONIZATION_H
 
+#ifdef __MINGW32__
+    #pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #include <vulkan/vulkan.h>
 
 namespace EvoVulkan::Types {

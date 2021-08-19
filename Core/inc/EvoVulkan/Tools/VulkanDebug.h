@@ -18,10 +18,10 @@ namespace EvoVulkan::Tools {
         VkDebug(const VkDebug&) = delete;
         ~VkDebug()              = delete;
     public:
-        static inline std::function<void(const std::string &msg)> Error = std::function<void(const std::string &msg)>();
-        static inline std::function<void(const std::string &msg)> Log   = std::function<void(const std::string &msg)>();
-        static inline std::function<void(const std::string &msg)> Graph = std::function<void(const std::string &msg)>();
-        static inline std::function<void(const std::string &msg)> Warn  = std::function<void(const std::string &msg)>();
+        static std::function<void(const std::string &msg)> Error;
+        static std::function<void(const std::string &msg)> Log;
+        static std::function<void(const std::string &msg)> Graph;
+        static std::function<void(const std::string &msg)> Warn;
     };
 }
 

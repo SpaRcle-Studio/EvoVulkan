@@ -68,7 +68,7 @@ bool EvoVulkan::Types::DepthStencil::ReCreate(uint32_t width, uint32_t height) {
     memAlloc.allocationSize       = memReqs.size;
     memAlloc.memoryTypeIndex      = m_device->GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if (m_mem = m_device->AllocateMemory(memAlloc); !m_mem.Ready()) {
+    if (!(m_mem = m_device->AllocateMemory(memAlloc)).Ready()) {
         VK_ERROR("DepthStencil::ReCreate() : failed to allocate memory!");
         return false;
     }
