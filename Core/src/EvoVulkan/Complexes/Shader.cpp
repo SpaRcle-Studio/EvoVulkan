@@ -20,22 +20,18 @@ EvoVulkan::Complexes::Shader::Shader(
 }
 
 bool EvoVulkan::Complexes::Shader::Load(
-        const std::string& source, const std::string& cache,
-        const std::vector<std::pair<std::string, VkShaderStageFlagBits>> &modules,
+        const std::string& cache,
+        const std::vector<SourceShader> &modules,
         const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
         const std::vector<VkDeviceSize>& uniformSizes)
 {
-    if (!this) {
-        VK_ERROR("Shader::Load() : WTF!? this is nullptr!");
-        return false;
-    }
-
     Tools::CreatePath(Tools::FixPath(cache + "/"));
 
     auto modules_names = std::string();
     for (const auto & module : modules)
-        modules_names += std::string(module.first).append(" ");
-    VK_LOG("Shader::Load() : load new shader...\n\tSource: " + source + "\n\tModules: " + modules_names);
+        modules_names += std::string(module.m_name).append(" ");
+
+    VK_LOG("Shader::Load() : load new shader... \n\tModules: " + modules_names);
 
     // check correctly uniform sizes
     {
@@ -59,14 +55,13 @@ bool EvoVulkan::Complexes::Shader::Load(
             return false;
         }
 
-    for (const auto& [name, stage] : modules) {
+    for (const auto& [name, path, stage] : modules) {
         std::string out = cache + "/" + std::string(name) + ".spv";
 
         if (Tools::FileExists(out))
             Tools::RemoveFile(out);
-            //std::remove(std::string("del " + out).c_str());
 
-        system(std::string(g_glslc + " -c " + source + "/" + std::string(name) +" -o " + out).c_str());
+        system(std::string((g_glslc + " -c ").append(path).append(" -o " + out)).c_str());
 
         auto shaderModule = Tools::LoadShaderModule(out.c_str(), *m_device);
         if (shaderModule == VK_NULL_HANDLE) {

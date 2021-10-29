@@ -16,6 +16,18 @@
 #include <EvoVulkan/Types/VulkanBuffer.h>
 
 namespace EvoVulkan::Complexes {
+    struct SourceShader {
+        std::string m_name;
+        std::string m_path;
+        VkShaderStageFlagBits m_type;
+
+        SourceShader(const std::string& name, const std::string& path, VkShaderStageFlagBits type) {
+            m_name = name;
+            m_path = path;
+            m_type = type;
+        }
+    };
+
     class Shader {
     public:
         Shader(const Types::Device* device, Types::RenderPass renderPass, const VkPipelineCache& cache);
@@ -51,8 +63,8 @@ namespace EvoVulkan::Complexes {
         }
     public:
         bool Load(
-                const std::string& source, const std::string& cache,
-                const std::vector<std::pair<std::string, VkShaderStageFlagBits>>& modules,
+                const std::string& cache,
+                const std::vector<SourceShader>& modules,
                 const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
                 const std::vector<VkDeviceSize>& uniformSizes);
         bool SetVertexDescriptions(
