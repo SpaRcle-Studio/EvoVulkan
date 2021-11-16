@@ -76,7 +76,8 @@ namespace EvoVulkan::Complexes {
                 VkCompareOp depthCompare,
                 VkBool32 blendEnable,
                 VkBool32 depthWrite,
-                VkBool32 depthTest);
+                VkBool32 depthTest,
+                VkPrimitiveTopology topology);
 
         void Destroy();
         void Free();

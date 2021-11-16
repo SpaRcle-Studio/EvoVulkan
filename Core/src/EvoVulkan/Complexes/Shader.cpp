@@ -163,7 +163,8 @@ bool EvoVulkan::Complexes::Shader::Compile(
         VkCompareOp depthCompare,
         VkBool32 blendEnable,
         VkBool32 depthWrite,
-        VkBool32 depthTest) //, uint32_t countAttachments
+        VkBool32 depthTest,
+        VkPrimitiveTopology topology)
 {
     if (!this->BuildLayouts()) {
         VK_ERROR("Shader::Compile() : failed to build layouts!");
@@ -172,7 +173,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
 
     m_blendEnable = blendEnable;
 
-    m_inputAssemblyState = Tools::Initializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+    m_inputAssemblyState = Tools::Initializers::PipelineInputAssemblyStateCreateInfo(topology, 0, VK_FALSE);
     m_rasterizationState = Tools::Initializers::PipelineRasterizationStateCreateInfo(polygonMode, cullMode, VK_FRONT_FACE_CLOCKWISE, 0);
 
     m_depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthTest, depthWrite, depthCompare);
