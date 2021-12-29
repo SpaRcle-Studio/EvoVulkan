@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <mutex>
 
 #include <EvoVulkan/Tools/VulkanConverter.h>
 

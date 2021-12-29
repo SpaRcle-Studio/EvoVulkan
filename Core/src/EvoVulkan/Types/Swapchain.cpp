@@ -67,12 +67,12 @@ bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int heigh
 
     //! TODO: see VS example
     if (surfCaps.currentExtent.width != width || surfCaps.currentExtent.height != height) {
-        Tools::VkDebug::Warn("Swapchain::ReSize() : swap chain size different! "
+        Tools::VkDebug::Assert("Swapchain::ReSize() : swap chain size different! "
                               "\n\tWidth  surface: " + std::to_string(surfCaps.currentExtent.width) +
                               "\n\tHeight surface: " + std::to_string(surfCaps.currentExtent.height) +
                               "\n\tWidth   window: " + std::to_string(width) +
                               "\n\tHeight  window: " + std::to_string(height));
-        //return false;
+        return false;
     }
 
     this->m_surfaceWidth  = surfCaps.currentExtent.width;

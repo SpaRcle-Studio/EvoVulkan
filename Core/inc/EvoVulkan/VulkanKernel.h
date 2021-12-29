@@ -25,7 +25,11 @@
 
 namespace EvoVulkan::Core {
     enum class FrameResult {
-        Error = 0, Success = 1, OutOfDate = 2
+        Error = 0, Success = 1, OutOfDate = 2, DeviceLost = 3
+    };
+
+    enum class RenderResult {
+        Success = 0, Fatal = 1, Error = 2
     };
 
     class VulkanKernel {
@@ -57,14 +61,16 @@ namespace EvoVulkan::Core {
         //        { .depthStencil = { 1.0f, 0 } }
         //};
     protected:
+        std::mutex                 m_mutex                = std::mutex();
+
         bool                       m_multisampling        = false;
         uint32_t                   m_sampleCount          = 1;
 
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
 
-        unsigned int               m_newWidth             = 0;
-        unsigned int               m_newHeight            = 0;
+        int32_t                    m_newWidth             = -1;
+        int32_t                    m_newHeight            = -1;
 
         unsigned int               m_width                = 0;
         unsigned int               m_height               = 0;
@@ -102,10 +108,10 @@ namespace EvoVulkan::Core {
         void DestroyFrameBuffers();
     public:
         FrameResult PrepareFrame();
-        void        NextFrame();
+        RenderResult NextFrame();
         FrameResult SubmitFrame();
     protected:
-        virtual void Render() { /* nothing */ }
+        virtual RenderResult Render() { return RenderResult::Fatal; /* nothing */ }
     public:
         virtual bool BuildCmdBuffers() = 0;
     public:
@@ -186,19 +192,7 @@ namespace EvoVulkan::Core {
 
             return true;
         }
-        inline void SetSize(unsigned int width, unsigned int height) {
-            this->m_newWidth  = width;
-            this->m_newHeight = height;
-
-            bool oldPause = m_paused;
-            m_paused = m_newHeight == 0 || m_newWidth == 0;
-            if (oldPause != m_paused) {
-                if (m_paused)
-                    VK_LOG("VulkanKernel::SetSize() : window has been collapsed!");
-                else
-                    VK_LOG("VulkanKernel::SetSize() : window has been expend!");
-            }
-        }
+        void SetSize(uint32_t width, uint32_t height);
         bool ResizeWindow();
     public:
         //static VulkanKernel* Create();

@@ -391,16 +391,16 @@ void EvoVulkan::Core::VulkanKernel::DestroyFrameBuffers() {
     m_frameBuffers.clear();
 }
 
-void EvoVulkan::Core::VulkanKernel::NextFrame() {
+EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
     if (m_paused)
-        return;
+        return EvoVulkan::Core::RenderResult::Success;
 
     //if (viewUpdated) {
     //    viewUpdated = false;
     //    viewChanged();
     //}
 
-    this->Render();
+    return this->Render();
 
     //camera.update(frameTimer);
     //if (camera.moving())
@@ -450,6 +450,9 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
         VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue wait idle! Reason: " +
                  Tools::Convert::result_to_description(result));
 
+        if (result == VK_ERROR_DEVICE_LOST)
+            return FrameResult::DeviceLost;
+
         return FrameResult::Error;
     }
 
@@ -457,6 +460,17 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
+    VK_LOG("VulkanKernel::ResizeWindow() : waiting for a change in the size of the client window...");
+
+    // ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
+    while(true) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_newWidth != -1 && m_newHeight != -1)
+            break;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
     VK_LOG("VulkanKernel::ResizeWindow() : set new sizes: width = " +
         std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
 
@@ -469,6 +483,9 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
 
     this->m_width  = m_newWidth;
     this->m_height = m_newHeight;
+
+    m_newWidth = -1;
+    m_newHeight = -1;
 
     if (!m_swapchain->SurfaceIsAvailable())
         return true;
@@ -505,4 +522,22 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
 void EvoVulkan::Core::VulkanKernel::SetMultisampling(const uint32_t &sampleCount) {
     this->m_multisampling = sampleCount > 1;
     this->m_sampleCount   = sampleCount;
+}
+
+void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    VK_LOG("VulkanKernel::SetSize() : set new sizes: " + std::to_string(width) + "x" + std::to_string(height));
+
+    this->m_newWidth  = width;
+    this->m_newHeight = height;
+
+    bool oldPause = m_paused;
+    m_paused = m_newHeight == 0 || m_newWidth == 0;
+    if (oldPause != m_paused) {
+        if (m_paused)
+            VK_LOG("VulkanKernel::SetSize() : window has been collapsed!");
+        else
+            VK_LOG("VulkanKernel::SetSize() : window has been expend!");
+    }
 }

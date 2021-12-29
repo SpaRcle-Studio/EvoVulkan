@@ -22,6 +22,7 @@ namespace EvoVulkan::Tools {
         static std::function<void(const std::string &msg)> Log;
         static std::function<void(const std::string &msg)> Graph;
         static std::function<void(const std::string &msg)> Warn;
+        static std::function<void(const std::string &msg)> Assert;
     };
 }
 
@@ -30,5 +31,7 @@ namespace EvoVulkan::Tools {
 #define VK_WARN(msg)  EvoVulkan::Tools::VkDebug::Warn(msg)
 #define VK_ERROR(msg) EvoVulkan::Tools::VkDebug::Error(msg)
 #define VK_GRAPH(msg) EvoVulkan::Tools::VkDebug::Graph(msg)
+#define VK_ASSERT(msg) EvoVulkan::Tools::VkDebug::Assert(msg)
+#define VK_ASSERT2(expr, msg) { if (!(expr)) EvoVulkan::Tools::VkDebug::Assert(msg); }
 
 #endif //EVOVULKAN_VULKANDEBUG_H
