@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(Vulkan REQUIRED FATAL_ERROR)
 include_directories(${Vulkan_INCLUDE_DIRS})
 
-add_library(EvoVulkanCore STATIC
-        src/EvoVulkan/VulkanKernel.cpp
+add_library(EvoVulkanCore STATIC EvoVulkan.cxx
+        #[[src/EvoVulkan/VulkanKernel.cpp
         src/EvoVulkan/DescriptorManager.cpp
 
         src/EvoVulkan/Types/MultisampleTarget.cpp
@@ -30,7 +30,8 @@ add_library(EvoVulkanCore STATIC
         src/EvoVulkan/Complexes/Framebuffer.cpp
         src/EvoVulkan/Complexes/Shader.cpp
         src/EvoVulkan/Complexes/Mesh.cpp
-        inc/EvoVulkan/Tools/FileSystem.h)
+        inc/EvoVulkan/Tools/FileSystem.h]]
+        )
 
 target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})
 

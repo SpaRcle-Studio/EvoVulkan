@@ -386,24 +386,19 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
 EvoVulkan::Core::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDescriptorSetLayout layout) {
     if (!m_descriptorManager) {
         VK_ERROR("Texture::GetDescriptorSet() : texture have not descriptor manager!");
-        return {};
+        return Core::DescriptorSet();
     }
 
     if (m_descriptorSet == VK_NULL_HANDLE) {
         static const std::set<VkDescriptorType> type = {VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER};
-        auto vkDescriptorSet = this->m_descriptorManager->AllocateDescriptorSets(layout, type);
+        m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(layout, type);
 
         auto writer = EvoVulkan::Tools::Initializers::WriteDescriptorSet(
-                vkDescriptorSet,
+                m_descriptorSet,
                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 0, this->GetDescriptorRef());
 
         vkUpdateDescriptorSets(*m_device, 1, &writer, 0, nullptr);
-
-        m_descriptorSet = Core::DescriptorSet{
-                .m_self = vkDescriptorSet,
-                .m_layout = layout,
-        };
     }
 
     return m_descriptorSet;
@@ -414,7 +409,7 @@ void EvoVulkan::Types::Texture::Destroy()  {
 
     if (m_descriptorManager && (m_descriptorSet != VK_NULL_HANDLE)) {
         m_descriptorManager->FreeDescriptorSet(m_descriptorSet);
-        m_descriptorSet = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+        m_descriptorSet = Core::DescriptorSet();
         m_descriptorManager = nullptr;
     }
 

@@ -6,6 +6,8 @@
 #define EVOVULKAN_DESCRIPTORMANAGER_H
 
 #include <EvoVulkan/Types/Device.h>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace EvoVulkan::Core {
     const std::vector<std::pair<VkDescriptorType, float>> g_poolSizes = {
@@ -102,21 +104,12 @@ namespace EvoVulkan::Core {
             return pool;
         }
     private:
-        DescriptorPool(const uint32_t maxSets) : m_maxSets(maxSets) {
+        explicit DescriptorPool(const uint32_t maxSets) : m_maxSets(maxSets) {
 
         }
     public:
-        ~DescriptorPool() {
-            if (m_descriptorSets) {
-                free(m_descriptorSets);
-                m_descriptorSets = nullptr;
-            }
+        ~DescriptorPool();
 
-            if (m_pool != VK_NULL_HANDLE) {
-                vkDestroyDescriptorPool(m_device, m_pool, nullptr);
-                m_pool = VK_NULL_HANDLE;
-            }
-        }
     public:
         bool Equal(const std::set<VkDescriptorType>& requestTypes) {
             return requestTypes.size() == m_requestTypes.size()
@@ -147,8 +140,21 @@ namespace EvoVulkan::Core {
     };
 
     struct DescriptorSet {
+        DescriptorSet()
+            : DescriptorSet(VK_NULL_HANDLE, VK_NULL_HANDLE, nullptr, UINT32_MAX)
+        { }
+
+        DescriptorSet(VkDescriptorSet set, VkDescriptorSetLayout layout, DescriptorPool* pool, uint32_t id)
+            : m_self(set)
+            , m_layout(layout)
+            , m_pool(pool)
+            , m_id(id)
+        { }
+
         VkDescriptorSet       m_self;
         VkDescriptorSetLayout m_layout;
+        DescriptorPool*       m_pool;
+        uint32_t              m_id;
 
         operator VkDescriptorSet() const { return m_self; }
     };
@@ -160,9 +166,9 @@ namespace EvoVulkan::Core {
         DescriptorManager()  = default;
         ~DescriptorManager() = default;
     private:
-        uint32_t                        m_countDescriptorsAllocate = 1000;
-        const EvoVulkan::Types::Device* m_device                   = nullptr;
-        std::vector<DescriptorPool*>    m_pools                    = std::vector<DescriptorPool*>();
+        uint32_t                            m_countDescriptorsAllocate = 1000;
+        const EvoVulkan::Types::Device*     m_device                   = nullptr;
+        std::unordered_set<DescriptorPool*> m_pools                    = std::unordered_set<DescriptorPool*>();
     public:
         static DescriptorManager* Create(const EvoVulkan::Types::Device* device) {
             auto manager = new DescriptorManager();
@@ -175,8 +181,11 @@ namespace EvoVulkan::Core {
 
             if (!m_pools.empty()) {
                 std::string str;
-                for (uint32_t i = 0; i < m_pools.size(); i++)
-                    str += "\n\t[" + std::to_string(i) + "] = " + std::to_string(m_pools[i]->m_used) + " descriptor sets";
+                uint32_t index = 0;
+                for (const auto& pool : m_pools) {
+                    str += "\n\t[" + std::to_string(index) + "] = " + std::to_string(pool->m_used) + " descriptor sets";
+                    ++index;
+                }
 
                 VK_WARN("DescriptorManager::Free() : not all descriptor pools have been freed!" + str);
             }

@@ -25,6 +25,11 @@ bool EvoVulkan::Complexes::Shader::Load(
         const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
         const std::vector<VkDeviceSize>& uniformSizes)
 {
+    if (modules.empty()) {
+        VK_ERROR("Shader::Load() : empty modules list!");
+        return false;
+    }
+
     Tools::CreatePath(Tools::FixPath(cache + "/"));
 
     auto modules_names = std::string();
