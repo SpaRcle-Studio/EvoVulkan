@@ -3,9 +3,6 @@ project(EvoVulkanCore)
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(Vulkan REQUIRED FATAL_ERROR)
-include_directories(${Vulkan_INCLUDE_DIRS})
-
 add_library(EvoVulkanCore STATIC EvoVulkan.cxx
         #[[src/EvoVulkan/VulkanKernel.cpp
         src/EvoVulkan/DescriptorManager.cpp
@@ -33,8 +30,13 @@ add_library(EvoVulkanCore STATIC EvoVulkan.cxx
         inc/EvoVulkan/Tools/FileSystem.h]]
         )
 
-target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})
+if (CYGWIN)
+    #find_package(Vulkan REQUIRED FATAL_ERROR)
+   # target_link_libraries(EvoVulkanCore "$ENV{VULKAN_SDK}/Lib/vulkan-1.lib")
+else()
+    find_package(Vulkan REQUIRED FATAL_ERROR)
+    target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})
+    include_directories(${Vulkan_INCLUDE_DIRS})
+endif()
 
 target_include_directories(EvoVulkanCore PUBLIC inc)
-
-#target_include_directories(EvoVulkanCore PUBLIC inc/EvoVulkan)

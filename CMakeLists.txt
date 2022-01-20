@@ -12,8 +12,8 @@ add_subdirectory(Depends/glfw)
 add_subdirectory(Depends/stbi)
 add_subdirectory(Depends/cmp_core)
 
-find_package(Vulkan REQUIRED FATAL_ERROR)
-include_directories(${Vulkan_INCLUDE_DIRS})
+#find_package(Vulkan REQUIRED FATAL_ERROR)
+#include_directories(${Vulkan_INCLUDE_DIRS})
 
 add_executable(EvoVulkanTest main.cpp)
 target_link_libraries(EvoVulkanTest EvoVulkanCore glfw stbi CMP_Core)
