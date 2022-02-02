@@ -17,86 +17,6 @@ namespace EvoVulkan::Complexes {
 }
 
 namespace EvoVulkan::Types {
-    class StagingBuffer {
-    private:
-        StagingBuffer() = default;
-        StagingBuffer(const StagingBuffer&) = default;
-        ~StagingBuffer() = default;
-    private:
-        DeviceMemory   m_stagingBufferMemory = {};
-        VkBuffer       m_stagingBuffer = {};
-        uint64_t       m_bufferSize    = {};
-
-        Device*        m_device = nullptr;
-    public:
-        void* Map() {
-            void* data = nullptr;
-            if (vkMapMemory(*m_device, m_stagingBufferMemory, 0, m_bufferSize, 0, &data) == VK_SUCCESS)
-                return data;
-            else {
-                VK_ERROR("StagingBuffer::Map() : failed to map memory!");
-                return nullptr;
-            }
-        }
-
-        void Unmap() {
-            vkUnmapMemory(*m_device, m_stagingBufferMemory);
-        }
-    public:
-        bool Destroy() {
-            vkDestroyBuffer(*m_device, m_stagingBuffer, nullptr);
-            m_device->FreeMemory(&m_stagingBufferMemory);
-            m_device = nullptr;
-            return true;
-        }
-
-        void Free() {
-            delete this;
-        }
-
-        operator VkBuffer() const { return m_stagingBuffer; }
-    public:
-        static StagingBuffer* Create(Device* device, void* pixels, uint32_t width, uint32_t height) {
-            const int bytesPerPixel = 4;
-            uint64_t imageSize = width * height * bytesPerPixel;
-
-            auto buffer = new StagingBuffer();
-
-            buffer->m_bufferSize = imageSize;
-            buffer->m_device = device;
-
-            buffer->m_stagingBuffer = Tools::CreateBuffer(
-                    device,
-                    imageSize,
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    buffer->m_stagingBufferMemory);
-
-            void* data;
-            vkMapMemory(*device, buffer->m_stagingBufferMemory, 0, imageSize, 0, &data);
-            memcpy(data, pixels, static_cast<size_t>(imageSize));
-            vkUnmapMemory(*device, buffer->m_stagingBufferMemory);
-
-            return buffer;
-        }
-
-        static StagingBuffer* Create(Device* device, uint64_t bufferSize) {
-            auto buffer = new StagingBuffer();
-
-            buffer->m_device = device;
-            buffer->m_bufferSize = bufferSize;
-
-            buffer->m_stagingBuffer = Tools::CreateBuffer(
-                    device,
-                    bufferSize,
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    buffer->m_stagingBufferMemory);
-
-            return buffer;
-        }
-    };
-
     struct Texture {
         friend class EvoVulkan::Complexes::FrameBuffer;
     private:
@@ -143,7 +63,7 @@ namespace EvoVulkan::Types {
         [[nodiscard]] inline uint32_t GetHeight() const { return m_height; }
         [[nodiscard]] inline uint32_t GetSeed() const { return m_seed; }
     private:
-        bool Create(StagingBuffer* stagingBuffer);
+        bool Create(Buffer* stagingBuffer);
     public:
         Core::DescriptorSet GetDescriptorSet(VkDescriptorSetLayout layout);
 

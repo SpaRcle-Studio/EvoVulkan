@@ -133,7 +133,8 @@ namespace EvoVulkan::Types {
             Device *device,
             VkBufferUsageFlags usageFlags,
             VkMemoryPropertyFlags memoryPropertyFlags,
-            VkDeviceSize size, void* data) {
+            VkDeviceSize size, void* data)
+    {
         auto* buffer = new Buffer();
         buffer->m_device = device;
 
@@ -195,5 +196,23 @@ namespace EvoVulkan::Types {
 
         // Attach the memory to the buffer object
         return buffer;
+    }
+
+    Buffer *Buffer::Create(Device *device, VkDeviceSize size, void *data) {
+        return Create(device, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, size, data);
+    }
+
+    void *Buffer::MapData()  {
+        void* data = nullptr;
+        if (vkMapMemory(*m_device, m_memory, 0, m_size, 0, &data) == VK_SUCCESS)
+            return data;
+        else {
+            VK_ERROR("Buffer::Map() : failed to map memory!");
+            return nullptr;
+        }
+    }
+
+    void Buffer::Free() {
+        delete this;
     }
 }

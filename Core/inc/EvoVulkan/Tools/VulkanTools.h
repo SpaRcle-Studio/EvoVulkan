@@ -28,6 +28,7 @@
 #include <functional>
 #include <fstream>
 #include <EvoVulkan/Types/VulkanBuffer.h>
+#include "DeviceTools.h"
 
 namespace EvoVulkan::Tools {
     VkAttachmentDescription CreateColorAttachmentDescription(VkFormat format,
@@ -221,13 +222,13 @@ namespace EvoVulkan::Tools {
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = { pQueues->GetGraphicsIndex(), pQueues->GetPresentIndex() };
 
-        float queuePriority = 1.0f;
+        std::vector<float_t> queuePriorities = { 1.0f, 1.0f };
         for (uint32_t queueFamily : uniqueQueueFamilies) {
             VkDeviceQueueCreateInfo queueCreateInfo{};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex = queueFamily;
-            queueCreateInfo.queueCount = 1;
-            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfo.queueCount = queuePriorities.size();
+            queueCreateInfo.pQueuePriorities = queuePriorities.data();
             queueCreateInfos.push_back(queueCreateInfo);
         }
 
@@ -481,7 +482,8 @@ namespace EvoVulkan::Tools {
             VkImageLayout oldLayout,
             VkImageLayout newLayout,
             uint32_t mipLevels,
-            uint32_t layerCount = 1) {
+            uint32_t layerCount = 1)
+    {
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -569,20 +571,20 @@ namespace EvoVulkan::Tools {
         }
 
         for (const auto& device : devices)
-            Tools::VkDebug::Log("VulkanTools::CreateDevice() : found device - " + Types::GetDeviceName(device));
+            Tools::VkDebug::Log("VulkanTools::CreateDevice() : found device - " + Tools::GetDeviceName(device));
 
         for (auto physDev : devices) {
-            if (Types::IsDeviceSuitable(physDev, (*surface), extensions)) {
+            if (Tools::IsDeviceSuitable(physDev, (*surface), extensions)) {
                 if (physicalDevice == VK_NULL_HANDLE) {
                     physicalDevice = physDev;
                     continue;
                 }
 
-                if (Types::Device::IsBetterThan(physDev, physicalDevice))
+                if (Tools::IsBetterThan(physDev, physicalDevice))
                     physicalDevice = physDev;
-            } else
-                Tools::VkDebug::Warn("VulkanTools::CreateDevice() : device \"" +
-                    Types::GetDeviceName(physDev) + "\" isn't suitable!");
+            }
+            else
+                Tools::VkDebug::Warn("VulkanTools::CreateDevice() : device \"" + Tools::GetDeviceName(physDev) + "\" isn't suitable!");
         }
 
         if (physicalDevice == VK_NULL_HANDLE) {
@@ -596,9 +598,9 @@ namespace EvoVulkan::Tools {
             Tools::VkDebug::Error("VulkanTools::CreateDevice() : not found suitable device! \nExtensions: " + msg);
 
             return nullptr;
-        } else
-            Tools::VkDebug::Log("VulkanTools::CreateDevice() : select \""
-                + Types::GetDeviceName(physicalDevice) + "\" device.");
+        }
+        else
+            Tools::VkDebug::Log("VulkanTools::CreateDevice() : select \"" + Tools::GetDeviceName(physicalDevice) + "\" device.");
 
         queues = Types::FamilyQueues::Find(physicalDevice, surface);
         if (!queues->IsComplete()) {
@@ -630,23 +632,32 @@ namespace EvoVulkan::Tools {
         Tools::VkDebug::Graph("VulkanTools::CreateDevice() : set logical device queues...");
         {
             VkQueue graphics = VK_NULL_HANDLE;
-            //VkQueue present  = VK_NULL_HANDLE;
+            VkQueue present  = VK_NULL_HANDLE;
 
             vkGetDeviceQueue(logicalDevice, queues->GetGraphicsIndex(), 0, &graphics);
-            //vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 0, &present);
+            vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 1, &present);
 
-            //queues->SetQueues(graphics, present);
             queues->SetQueue(graphics);
+            queues->SetPresentQueue(present);
         }
 
-        auto finallyDevice = Types::Device::Create(physicalDevice, logicalDevice, queues, enableSampleShading, multisampling, sampleCount);
+        Types::EvoDeviceCreateInfo createInfo = {
+                physicalDevice,
+                logicalDevice,
+                instance,
+                queues,
+                enableSampleShading,
+                multisampling,
+                static_cast<int32_t>(sampleCount)
+        };
 
-        if (finallyDevice)
+        if (auto finallyDevice = Types::Device::Create(createInfo)) {
             Tools::VkDebug::Log("VulkanTools::CreateDevice() : device successfully created!");
-        else
-            Tools::VkDebug::Error("VulkanTools::CreateDevice() : failed to create device!");
+            return finallyDevice;
+        }
 
-        return finallyDevice;
+        Tools::VkDebug::Error("VulkanTools::CreateDevice() : failed to create device!");
+        return nullptr;
     }
 
     //VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain, std::vector<VkAttachmentDescription> attachments = {});

@@ -5,8 +5,7 @@
 #ifndef EVOVULKAN_SWAPCHAINSUPPORTDETAILS_H
 #define EVOVULKAN_SWAPCHAINSUPPORTDETAILS_H
 
-#include <vector>
-#include <vulkan/vulkan.h>
+#include <EvoVulkan/macros.h>
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>

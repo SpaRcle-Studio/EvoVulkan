@@ -17,6 +17,9 @@
 
 #include "src/EvoVulkan/Tools/VulkanTools.cpp"
 #include "src/EvoVulkan/Tools/VulkanDebug.cpp"
+#include "src/EvoVulkan/Tools/DeviceTools.cpp"
+
+#include "src/EvoVulkan/Memory/Allocator.cpp"
 
 #include "src/EvoVulkan/Complexes/Framebuffer.cpp"
 #include "src/EvoVulkan/Complexes/Shader.cpp"

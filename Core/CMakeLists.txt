@@ -3,6 +3,8 @@ project(EvoVulkanCore)
 
 set(CMAKE_CXX_STANDARD 20)
 
+add_subdirectory(libs/VMA)
+
 add_library(EvoVulkanCore STATIC EvoVulkan.cxx
         #[[src/EvoVulkan/VulkanKernel.cpp
         src/EvoVulkan/DescriptorManager.cpp
@@ -35,7 +37,7 @@ if (CYGWIN)
    # target_link_libraries(EvoVulkanCore "$ENV{VULKAN_SDK}/Lib/vulkan-1.lib")
 else()
     find_package(Vulkan REQUIRED FATAL_ERROR)
-    target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY})
+    target_link_libraries(EvoVulkanCore ${Vulkan_LIBRARY} VulkanMemoryAllocator)
     include_directories(${Vulkan_INCLUDE_DIRS})
 endif()
 

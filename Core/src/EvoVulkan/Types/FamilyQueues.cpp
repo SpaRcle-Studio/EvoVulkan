@@ -13,8 +13,8 @@
 }
 
 bool EvoVulkan::Types::FamilyQueues::IsReady() const {
-    //return IsComplete() && (m_presentQueue != VK_NULL_HANDLE && m_graphicsQueue != VK_NULL_HANDLE);
-    return IsComplete() && (m_graphicsQueue != VK_NULL_HANDLE);
+    return IsComplete() && (m_presentQueue != VK_NULL_HANDLE && m_graphicsQueue != VK_NULL_HANDLE);
+    //return IsComplete() && (m_graphicsQueue != VK_NULL_HANDLE);
 }
 
 EvoVulkan::Types::FamilyQueues* EvoVulkan::Types::FamilyQueues::Find(
@@ -28,6 +28,16 @@ EvoVulkan::Types::FamilyQueues* EvoVulkan::Types::FamilyQueues::Find(
 
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+    for (const VkQueueFamilyProperties& queueFamily : queueFamilies) {
+        VK_LOG("FamilyQueues::Find() : Found queue family: "
+                          "\n\tCount queues: " + std::to_string(queueFamily.queueCount) +
+                          "\n\tTimestamp valid bits: " + std::to_string(queueFamily.timestampValidBits) +
+                          "\n\tGraphics: " + std::string(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT ? "True" : "False") +
+                          "\n\tCompute: " + std::string(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT ? "True" : "False") +
+                          "\n\tTransfer: " + std::string(queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT ? "True" : "False") +
+                          "\n\tProtected: " + std::string(queueFamily.queueFlags & VK_QUEUE_PROTECTED_BIT ? "True" : "False"));
+    }
 
     int i = 0;
     for (const auto& queueFamily : queueFamilies) {
@@ -56,7 +66,7 @@ void EvoVulkan::Types::FamilyQueues::Destroy() {
         return;
 
     m_graphicsQueue = VK_NULL_HANDLE;
-    //m_presentQueue  = VK_NULL_HANDLE;
+    m_presentQueue  = VK_NULL_HANDLE;
 
     m_iPresent  = -2;
     m_iGraphics = -2;

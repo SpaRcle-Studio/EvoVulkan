@@ -5,10 +5,6 @@
 #ifndef EVOVULKAN_FRAMEBUFFER_H
 #define EVOVULKAN_FRAMEBUFFER_H
 
-#include <vulkan/vulkan.h>
-
-#include <vector>
-
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Texture.h>
 #include <EvoVulkan/Types/RenderPass.h>

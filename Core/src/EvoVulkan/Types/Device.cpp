@@ -5,42 +5,38 @@
 #include "EvoVulkan/Types/Device.h"
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Memory/Allocator.h>
+#include <EvoVulkan/Tools/DeviceTools.h>
 
-EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
-        const VkPhysicalDevice& physicalDevice,
-        const VkDevice& logicalDevice,
-        FamilyQueues* familyQueues,
-        const bool& enableSampleShading,
-        bool multisampling,
-        int32_t sampleCount)
-{
-    if (physicalDevice == VK_NULL_HANDLE) {
+EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(const EvoDeviceCreateInfo& info) {
+    if (info.physicalDevice == VK_NULL_HANDLE) {
         Tools::VkDebug::Error("Device::Create() : physical device is nullptr!");
         return nullptr;
     }
 
-    if (logicalDevice == VK_NULL_HANDLE) {
+    if (info.logicalDevice == VK_NULL_HANDLE) {
         Tools::VkDebug::Error("Device::Create() : logical device is nullptr!");
         return nullptr;
     }
 
-    if (familyQueues == nullptr) {
+    if (info.familyQueues == nullptr) {
         Tools::VkDebug::Error("Device::Create() : family queues is nullptr!");
         return nullptr;
     }
 
     auto* device = new Device();
 
-    device->m_physicalDevice      = physicalDevice;
-    device->m_logicalDevice       = logicalDevice;
-    device->m_familyQueues        = familyQueues;
-    device->m_enableSampleShading = enableSampleShading;
+    device->m_instance            = info.instance;
+    device->m_physicalDevice      = info.physicalDevice;
+    device->m_logicalDevice       = info.logicalDevice;
+    device->m_familyQueues        = info.familyQueues;
+    device->m_enableSampleShading = info.enableSampleShading;
 
-    // Gather physical device memory properties
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &device->m_memoryProperties);
+    /// Gather physical device memory properties
+    vkGetPhysicalDeviceMemoryProperties(info.physicalDevice, &device->m_memoryProperties);
 
     VkPhysicalDeviceFeatures deviceFeatures;
-    vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+    vkGetPhysicalDeviceFeatures(info.physicalDevice, &deviceFeatures);
     {
         device->m_enableSamplerAnisotropy = deviceFeatures.samplerAnisotropy;
     }
@@ -51,23 +47,23 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(
         device->m_maxSamplerAnisotropy = deviceProperties.limits.maxSamplerAnisotropy;
     }
 
-    device->m_deviceName = GetDeviceName(physicalDevice);
+    device->m_deviceName = Tools::GetDeviceName(info.physicalDevice);
 
-    //device->m_maxCountMSAASamples = calculate...
-    if (multisampling) {
-        if (sampleCount <= 0)
+    /// device->m_maxCountMSAASamples = calculate...
+    if (info.multisampling) {
+        if (info.sampleCount <= 0)
             device->m_maxCountMSAASamples = Tools::GetMaxUsableSampleCount(device->m_physicalDevice);
         else {
-            if (sampleCount == 1) {
+            if (info.sampleCount == 1) {
                 VK_ERROR("Device::Create() : incorrect sample count!");
                 return nullptr;
             }
 
-            if (sampleCount > Tools::Convert::SampleCountToInt(Tools::GetMaxUsableSampleCount(device->m_physicalDevice))) {
+            if (info.sampleCount > Tools::Convert::SampleCountToInt(Tools::GetMaxUsableSampleCount(device->m_physicalDevice))) {
                 VK_ERROR("Device::Create() : incorrect sample count!");
                 return nullptr;
             } else {
-                device->m_maxCountMSAASamples = Tools::Convert::IntToSampleCount(sampleCount);
+                device->m_maxCountMSAASamples = Tools::Convert::IntToSampleCount(info.sampleCount);
                 if (device->m_maxCountMSAASamples == VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM) {
                     VK_ERROR("Device::Create() : incorrect sample count!");
                     return nullptr;
@@ -141,7 +137,7 @@ uint32_t EvoVulkan::Types::Device::GetMemoryType(
 }
 
 bool EvoVulkan::Types::Device::IsSupportLinearBlitting(const VkFormat& imageFormat) const {
-    // Check if image format supports linear blitting
+    /// Check if image format supports linear blitting
     VkFormatProperties formatProperties;
     vkGetPhysicalDeviceFormatProperties(m_physicalDevice, imageFormat, &formatProperties);
 
@@ -163,4 +159,46 @@ VkCommandPool EvoVulkan::Types::Device::CreateCommandPool(VkCommandPoolCreateFla
     }
 
     return cmdPool;
+}
+
+EvoVulkan::Types::DeviceMemory EvoVulkan::Types::Device::AllocateMemory(VkMemoryAllocateInfo memoryAllocateInfo) {
+    auto memory = DeviceMemory();
+    memory.m_size = memoryAllocateInfo.allocationSize;
+    auto result = vkAllocateMemory(this->m_logicalDevice, &memoryAllocateInfo, nullptr, &memory.m_memory);
+    if (result != VK_SUCCESS || memory == VK_NULL_HANDLE) {
+        VK_ERROR("Device::AllocateMemory() : failed to allocate memory! Reason: "
+                 + Tools::Convert::result_to_description(result));
+        return DeviceMemory();
+    }
+    else {
+        this->m_deviceMemoryAllocSize += memory.m_size;
+        this->m_allocHeapsCount++;
+        return memory;
+    }
+}
+
+bool EvoVulkan::Types::Device::FreeMemory(EvoVulkan::Types::DeviceMemory *memory)  {
+    if (!memory) {
+        Tools::VkDebug::Error("Device::FreeMemory() : memory is nullptr!");
+        return false;
+    }
+
+    if (memory->m_memory != VK_NULL_HANDLE) {
+        if (this->m_deviceMemoryAllocSize < memory->m_size) {
+            Tools::VkDebug::Error("Device::FreeMemory() : incorrect memory size! Something went wrong...");
+            return false;
+        }
+
+        this->m_deviceMemoryAllocSize -= memory->m_size;
+        this->m_allocHeapsCount--;
+
+        vkFreeMemory(m_logicalDevice, *memory, nullptr);
+        memory->m_memory = VK_NULL_HANDLE;
+        memory->m_size   = 0;
+        return true;
+    }
+    else {
+        Tools::VkDebug::Error("Device::FreeMemory() : vulkan memory is nullptr!");
+        return false;
+    }
 }

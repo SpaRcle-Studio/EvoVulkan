@@ -58,11 +58,12 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     const VkDeviceSize imageSize = width * height * 4 * 6;
 
-    auto stagingBuffer = StagingBuffer::Create(device, imageSize * 2); // TODO: imageSize * 2? Check correctly or fix
-    if (void* data = stagingBuffer->Map(); !data) {
+    auto stagingBuffer = Buffer::Create(device, imageSize * 2); // TODO: imageSize * 2? Check correctly or fix
+    if (void* data = stagingBuffer->MapData(); !data) {
         VK_ERROR("Texture::LoadCubeMap() : failed to map memory!");
         return nullptr;
-    } else {
+    }
+    else {
         const uint64_t layerSize = imageSize / 6;
         for (uint8_t i = 0; i < 6; ++i)
             memcpy(static_cast<uint8_t*>(data) + (layerSize * i), sides[i], layerSize);
@@ -222,7 +223,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
         texture->m_cubeMap           = false;
     }
 
-    auto stagingBuffer = StagingBuffer::Create(device, (void*)pixels, texture->m_width, texture->m_height);
+    auto stagingBuffer = Buffer::Create(device, texture->m_width * texture->m_height * 4, (void*)pixels);
     if (!texture->Create(stagingBuffer)) {
         VK_ERROR("Texture::Load() : failed to create!");
         return nullptr;
@@ -231,7 +232,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
     return texture;
 }
 
-bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::StagingBuffer *stagingBuffer) {
+bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::Buffer *stagingBuffer) {
     m_image = Tools::CreateImage(
             m_device,
             m_width, m_height,

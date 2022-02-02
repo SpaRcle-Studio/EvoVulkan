@@ -24,6 +24,7 @@ namespace EvoVulkan::Types {
         int m_iPresent  = -1;
     public:
         VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+        VkQueue m_presentQueue  = VK_NULL_HANDLE;
     public:
         [[nodiscard]] bool IsComplete() const override;
         [[nodiscard]] bool IsReady()    const override;
@@ -32,8 +33,12 @@ namespace EvoVulkan::Types {
             this->m_graphicsQueue = graphics;
         }
 
-        [[nodiscard]] unsigned int GetGraphicsIndex() const noexcept { return (unsigned int)m_iGraphics; }
-        [[nodiscard]] unsigned int GetPresentIndex()  const noexcept { return (unsigned int)m_iPresent;  }
+        void SetPresentQueue(const VkQueue& graphics) {
+            this->m_presentQueue = graphics;
+        }
+
+        [[nodiscard]] uint32_t GetGraphicsIndex() const noexcept { return (unsigned int)m_iGraphics; }
+        [[nodiscard]] uint32_t GetPresentIndex()  const noexcept { return (unsigned int)m_iPresent;  }
     public:
         static FamilyQueues* Find(const VkPhysicalDevice& device, const Surface* surface);
 
