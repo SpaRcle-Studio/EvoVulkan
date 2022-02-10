@@ -40,7 +40,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 
     Tools::VkDebug::Graph("VulkanKernel::PreInit() : create vulkan instance...");
 
-    this->m_instance = Tools::CreateInstance(
+    m_instance = Types::Instance::Create(
             m_appName,
             m_engineName,
             m_instExtensions,
@@ -53,7 +53,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
     }
 
     if (m_validationEnabled) {
-        this->m_debugMessenger = Tools::SetupDebugMessenger(m_instance);
+        m_debugMessenger = Tools::SetupDebugMessenger(*m_instance);
         if (m_debugMessenger == VK_NULL_HANDLE) {
             Tools::VkDebug::Error("VulkanKernel::PreInit() : failed to setup debug messenger!");
             return false;
@@ -74,10 +74,12 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 {
     VK_GRAPH("VulkanKernel::Init() : initializing Evo Vulkan kernel...");
 
+    //const auto extensions = Tools::GetSupportedExtensions();
+
     //!=============================================[Create surface]====================================================
 
     VK_GRAPH("VulkanKernel::Init() : create vulkan surface...");
-    this->m_surface = Tools::CreateSurface(m_instance, platformCreate);
+    this->m_surface = Tools::CreateSurface(*m_instance, platformCreate);
     if (!m_surface) {
         VK_ERROR("VulkanKernel::Init() : failed create vulkan surface!");
         return false;
@@ -106,6 +108,11 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     VK_LOG("VulkanKernel::Init() : count MSAA samples is "
         + std::to_string(m_device->GetMSAASamples()));
+
+    //!=============================================[Create allocator]==================================================
+
+    VK_LOG("VulkanKernel::Init() : create allocator...");
+    m_allocator = Memory::Allocator::Create(m_device);
 
     //!========================================[Create descriptor manager]==============================================
 
@@ -140,7 +147,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     this->m_height = m_newHeight;
 
     this->m_swapchain = Types::Swapchain::Create(
-            m_instance,
+            *m_instance,
             m_surface,
             m_device,
             vsync,
@@ -201,6 +208,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     VK_GRAPH("VulkanKernel::PostInit() : create multisample target...");
     this->m_multisample = Types::MultisampleTarget::Create(
             m_device,
+            m_allocator,
             m_swapchain,
             m_swapchain->GetSurfaceWidth(),
             m_swapchain->GetSurfaceHeight(),
@@ -290,12 +298,6 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_renderPass.Ready())
         Types::DestroyRenderPass(m_device, &m_renderPass);
 
-    /*if (m_depthStencil) {
-        this->m_depthStencil->Destroy();
-        this->m_depthStencil->Free();
-        this->m_depthStencil = nullptr;
-    }*/
-
     if (!m_waitFences.empty()) {
         Tools::DestroyFences(*m_device, m_waitFences);
         m_waitFences.clear();
@@ -304,26 +306,18 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_drawCmdBuffs)
         Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
 
-    /*if (m_drawCmdBuffs) {
-        for (uint32_t i = 0; i < m_countDCB; i++) {
-            m_drawCmdBuffs[i]->Destroy();
-            m_drawCmdBuffs[i]->Free();
-            m_drawCmdBuffs[i] = nullptr;
-        }
-        free(m_drawCmdBuffs);
-    }*/
-
     EVSafeFreeObject(m_swapchain);
     EVSafeFreeObject(m_surface);
     EVSafeFreeObject(m_cmdPool);
+    EVSafeFreeObject(m_allocator);
     EVSafeFreeObject(m_device);
 
     if (m_validationEnabled) {
-        Tools::DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
+        Tools::DestroyDebugUtilsMessengerEXT(*m_instance, m_debugMessenger, nullptr);
         this->m_debugMessenger = VK_NULL_HANDLE;
     }
 
-    Tools::DestroyInstance(&m_instance);
+    EVSafeFreeObject(m_instance);
 
     Tools::VkDebug::Log("VulkanKernel::Destroy() : all resources has been freed!");
 

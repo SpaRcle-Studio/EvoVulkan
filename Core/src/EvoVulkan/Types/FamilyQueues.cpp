@@ -13,8 +13,8 @@
 }
 
 bool EvoVulkan::Types::FamilyQueues::IsReady() const {
-    return IsComplete() && (m_presentQueue != VK_NULL_HANDLE && m_graphicsQueue != VK_NULL_HANDLE);
-    //return IsComplete() && (m_graphicsQueue != VK_NULL_HANDLE);
+    //return IsComplete() && (m_presentQueue != VK_NULL_HANDLE && m_graphicsQueue != VK_NULL_HANDLE);
+    return IsComplete() && (m_graphicsQueue != VK_NULL_HANDLE);
 }
 
 EvoVulkan::Types::FamilyQueues* EvoVulkan::Types::FamilyQueues::Find(

@@ -126,17 +126,19 @@ namespace EvoVulkan::Types {
         m_buffer = VK_NULL_HANDLE;
 
         if (m_memory.Ready())
-            m_device->FreeMemory(&m_memory);
+            m_allocator->FreeMemory(&m_memory);
     }
 
     Buffer* Buffer::Create(
             Device *device,
+            Memory::Allocator* allocator,
             VkBufferUsageFlags usageFlags,
             VkMemoryPropertyFlags memoryPropertyFlags,
             VkDeviceSize size, void* data)
     {
         auto* buffer = new Buffer();
         buffer->m_device = device;
+        buffer->m_allocator = allocator;
 
         // Create the buffer handle
         VkBufferCreateInfo bufferCreateInfo = Tools::Initializers::BufferCreateInfo(usageFlags, size);
@@ -161,7 +163,7 @@ namespace EvoVulkan::Types {
             memAlloc.pNext = &allocFlagsInfo;
         }
 
-        if (!(buffer->m_memory = device->AllocateMemory(memAlloc)).Ready()) {
+        if (!(buffer->m_memory = allocator->AllocateMemory(memAlloc)).Ready()) {
             VK_ERROR("Buffer::Create() : failed to allocate vulkan memory!");
             return { };
         }
@@ -198,14 +200,14 @@ namespace EvoVulkan::Types {
         return buffer;
     }
 
-    Buffer *Buffer::Create(Device *device, VkDeviceSize size, void *data) {
-        return Create(device, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, size, data);
+    Buffer *Buffer::Create(Device *device, Memory::Allocator* allocator, VkDeviceSize size, void *data) {
+        return Create(device, allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, size, data);
     }
 
     void *Buffer::MapData()  {
-        void* data = nullptr;
-        if (vkMapMemory(*m_device, m_memory, 0, m_size, 0, &data) == VK_SUCCESS)
-            return data;
+        //void* data = nullptr;
+        if (vkMapMemory(*m_device, m_memory, 0, m_size, 0, &m_mapped) == VK_SUCCESS)
+            return m_mapped;
         else {
             VK_ERROR("Buffer::Map() : failed to map memory!");
             return nullptr;

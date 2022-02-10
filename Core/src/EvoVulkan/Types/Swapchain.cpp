@@ -53,7 +53,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
     return swapchain;
 }
 
-bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int height) {
+bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height) {
     Tools::VkDebug::Graph("Swapchain::ReSetup() : re-setup vulkan swapchain...");
 
     VkSwapchainKHR oldSwapchain = m_swapchain;
@@ -98,13 +98,13 @@ bool EvoVulkan::Types::Swapchain::ReSetup(unsigned int width, unsigned int heigh
     // Find a supported composite alpha format (not all devices support alpha opaque)
     VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     // Simply select the first composite alpha format available
-    std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
+    const std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
             VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
             VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
             VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
     };
-    for (auto& compositeAlphaFlag : compositeAlphaFlags) {
+    for (const auto& compositeAlphaFlag : compositeAlphaFlags) {
         if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag) {
             compositeAlpha = compositeAlphaFlag;
             break;

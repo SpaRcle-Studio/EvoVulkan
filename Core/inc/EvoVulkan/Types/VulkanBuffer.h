@@ -6,6 +6,7 @@
 #define EVOVULKAN_VULKANBUFFER_H
 
 #include <EvoVulkan/Types/Device.h>
+#include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Types {
     class Device;
@@ -20,11 +21,12 @@ namespace EvoVulkan::Types {
     public:
         static Buffer* Create(
                 Device* device,
+                Memory::Allocator* allocator,
                 VkBufferUsageFlags usageFlags,
                 VkMemoryPropertyFlags memoryPropertyFlags,
                 VkDeviceSize size, void *data = nullptr);
 
-        static Buffer* Create(Device* device, VkDeviceSize size, void *data = nullptr);
+        static Buffer* Create(Device* device, Memory::Allocator* allocator, VkDeviceSize size, void *data = nullptr);
 
     public:
         operator VkBuffer() const { return m_buffer; }
@@ -51,8 +53,9 @@ namespace EvoVulkan::Types {
 
     private:
         Types::Device*         m_device              = nullptr;
+        Memory::Allocator*     m_allocator           = nullptr;
         VkBuffer               m_buffer              = VK_NULL_HANDLE;
-        Types::DeviceMemory    m_memory              = {};
+        Memory::RawMemory      m_memory              = {};
         VkDescriptorBufferInfo m_descriptor          = {};
         VkDeviceSize           m_size                = 0;
         VkDeviceSize           m_alignment           = 0;

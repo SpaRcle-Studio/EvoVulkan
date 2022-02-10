@@ -14,6 +14,7 @@
 
 #include <EvoVulkan/Tools/VulkanTools.h>
 #include <EvoVulkan/Tools/VulkanInsert.h>
+#include <EvoVulkan/Types/Instance.h>
 
 #include <EvoVulkan/Types/VulkanBuffer.h>
 
@@ -22,13 +23,14 @@
 #include <EvoVulkan/Complexes/Framebuffer.h>
 
 #include <EvoVulkan/Types/MultisampleTarget.h>
+#include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Core {
-    enum class FrameResult {
+    enum class FrameResult : uint8_t {
         Error = 0, Success = 1, OutOfDate = 2, DeviceLost = 3
     };
 
-    enum class RenderResult {
+    enum class RenderResult : uint8_t {
         Success = 0, Fatal = 1, Error = 2
     };
 
@@ -45,8 +47,6 @@ namespace EvoVulkan::Core {
         std::string                m_appName              = "Unknown";
         std::string                m_engineName           = "NoEngine";
 
-        VkInstance                 m_instance             = VK_NULL_HANDLE;
-
         VkDebugUtilsMessengerEXT   m_debugMessenger       = VK_NULL_HANDLE;
 
         bool                       m_validationEnabled    = false;
@@ -54,12 +54,7 @@ namespace EvoVulkan::Core {
         bool                       m_isPreInitialized     = false;
         bool                       m_isInitialized        = false;
         bool                       m_isPostInitialized    = false;
-    protected:
-        //VkClearValue m_clearValues[3] {
-        //        { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
-        //        { .color = {{0.5f, 0.5f, 0.5f, 1.0f}} },
-        //        { .depthStencil = { 1.0f, 0 } }
-        //};
+
     protected:
         std::mutex                 m_mutex                = std::mutex();
 
@@ -78,7 +73,9 @@ namespace EvoVulkan::Core {
         Types::RenderPass          m_renderPass           = { };
         VkPipelineCache            m_pipelineCache        = VK_NULL_HANDLE;
 
+        Types::Instance*           m_instance             = nullptr;
         Types::Device*             m_device               = nullptr;
+        Memory::Allocator*         m_allocator            = nullptr;
         Types::Surface*            m_surface              = nullptr;
         Types::Swapchain*          m_swapchain            = nullptr;
         Types::CmdPool*            m_cmdPool              = nullptr;
@@ -120,10 +117,11 @@ namespace EvoVulkan::Core {
 
         [[nodiscard]] inline VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
         [[nodiscard]] inline Types::Device* GetDevice() const { return m_device; }
+        [[nodiscard]] inline Memory::Allocator* GetAllocator() const { return m_allocator; }
         [[nodiscard]] inline Types::MultisampleTarget* GetMultisampleTarget() const { return m_multisample; }
         [[nodiscard]] inline Types::CmdPool* GetCmdPool() const { return m_cmdPool; }
         [[nodiscard]] inline Types::Swapchain* GetSwapchain() const { return m_swapchain; }
-        [[nodiscard]] inline VkInstance GetInstance() const { return m_instance; }
+        [[nodiscard]] inline VkInstance GetInstance() const { return *m_instance; }
 
         [[nodiscard]] inline bool HasErrors() const noexcept { return m_hasErrors; }
 

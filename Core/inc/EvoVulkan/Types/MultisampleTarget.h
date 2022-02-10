@@ -8,13 +8,19 @@
 #include <vulkan/vulkan.h>
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Swapchain.h>
+#include <EvoVulkan/Types/Image.h>
+
+namespace EvoVulkan::Memory {
+    class Allocator;
+}
 
 namespace EvoVulkan::Types {
     class MultisampleTarget {
         struct Image {
-            VkImage      m_image  = VK_NULL_HANDLE;
+            Types::Image m_image;
+            //VkImage      m_image  = VK_NULL_HANDLE;
             VkImageView  m_view   = VK_NULL_HANDLE;
-            DeviceMemory m_memory = {};
+            //DeviceMemory m_memory = {};
         };
     public:
         MultisampleTarget(const MultisampleTarget&) = delete;
@@ -22,8 +28,9 @@ namespace EvoVulkan::Types {
         MultisampleTarget() = default;
         ~MultisampleTarget() = default;
     private:
-        Device*    m_device      = nullptr;
-        Swapchain* m_swapchain   = nullptr;
+        Device*            m_device    = nullptr;
+        Memory::Allocator* m_allocator = nullptr;
+        Swapchain*         m_swapchain = nullptr;
 
         bool m_multisampling = true;
 
@@ -31,7 +38,7 @@ namespace EvoVulkan::Types {
         std::vector<VkFormat> m_formats = {};
 
         Image* m_resolves = nullptr;
-        Image  m_depth  = {};
+        Image m_depth;
     public:
         void Destroy();
         void Free() { delete this; }
@@ -46,6 +53,7 @@ namespace EvoVulkan::Types {
     public:
         static MultisampleTarget* Create(
                 Device* device,
+                Memory::Allocator* allocator,
                 Swapchain* swapchain,
                 uint32_t w, uint32_t h,
                 const std::vector<VkFormat>& formats,

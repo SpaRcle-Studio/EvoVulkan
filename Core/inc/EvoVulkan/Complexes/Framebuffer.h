@@ -10,32 +10,37 @@
 #include <EvoVulkan/Types/RenderPass.h>
 #include <EvoVulkan/Types/CmdPool.h>
 #include <EvoVulkan/Types/Swapchain.h>
+#include <EvoVulkan/Types/Image.h>
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
 
 #include <EvoVulkan/DescriptorManager.h>
 #include <EvoVulkan/Types/MultisampleTarget.h>
+#include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Complexes {
     struct FrameBufferAttachment {
-        VkImage             m_image  = { };
-        Types::DeviceMemory m_mem    = { };
-        VkImageView         m_view   = VK_NULL_HANDLE;
-        VkFormat            m_format = VK_FORMAT_UNDEFINED;
+        //VkImage             m_image  = { };
+        //Types::DeviceMemory m_mem    = { };
+        Types::Image        m_image     = Types::Image();
+        VkImageView         m_view      = VK_NULL_HANDLE;
+        VkFormat            m_format    = VK_FORMAT_UNDEFINED;
 
-        Types::Device*      m_device = nullptr;
+        Types::Device*      m_device    = nullptr;
+        EvoVulkan::Memory::Allocator* m_allocator = nullptr;
 
         [[nodiscard]] bool Ready() const {
-            return m_image  != VK_NULL_HANDLE &&
-                   m_mem    != VK_NULL_HANDLE &&
+            return m_image.Valid() &&
+                   //m_mem    != VK_NULL_HANDLE &&
                    m_view   != VK_NULL_HANDLE &&
                    m_device != VK_NULL_HANDLE &&
                    m_format != VK_FORMAT_UNDEFINED;
         }
 
         void Init() {
-            m_image  = VK_NULL_HANDLE;
-            m_mem    = {};
+            m_image  = Types::Image();
+            //m_image  = VK_NULL_HANDLE;
+            //m_mem    = {};
             m_view   = VK_NULL_HANDLE;
             m_format = VK_FORMAT_UNDEFINED;
 
@@ -48,16 +53,16 @@ namespace EvoVulkan::Complexes {
                 m_view = VK_NULL_HANDLE;
             }
 
-            if (m_image) {
-                vkDestroyImage(*m_device, m_image, nullptr);
-                m_image = VK_NULL_HANDLE;
+            if (m_image.Valid()) {
+                m_allocator->FreeImage(m_image);
+                //vkDestroyImage(*m_device, m_image, nullptr);
+                //m_image = VK_NULL_HANDLE;
             }
 
-            //vkFreeMemory(m_device, m_mem, nullptr);
-            //m_mem = VK_NULL_HANDLE;
-            this->m_device->FreeMemory(&m_mem);
+            //this->m_device->FreeMemory(&m_mem);
 
-            m_device = VK_NULL_HANDLE;
+            m_device = nullptr;
+            m_allocator = nullptr;
         }
     };
 
@@ -85,6 +90,7 @@ namespace EvoVulkan::Complexes {
 
         Types::MultisampleTarget* m_multisampleTarget = nullptr;
         Types::Device*            m_device            = nullptr;
+        Memory::Allocator*        m_allocator         = nullptr;
         Types::Swapchain*         m_swapchain         = nullptr;
         Types::CmdPool*           m_cmdPool           = nullptr;
         Core::DescriptorManager*  m_descriptorManager = nullptr;
@@ -170,6 +176,7 @@ namespace EvoVulkan::Complexes {
         // depth will be auto added to end array of attachments
         static FrameBuffer* Create(
                 Types::Device* device,
+                EvoVulkan::Memory::Allocator* allocator,
                 Core::DescriptorManager* manager,
                 Types::Swapchain* swapchain,
                 Types::CmdPool* pool,

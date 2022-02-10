@@ -10,6 +10,7 @@
 #include <EvoVulkan/Types/SwapChainSupportDetails.h>
 #include <EvoVulkan/Tools/VulkanHelper.h>
 #include <EvoVulkan/Types/FamilyQueues.h>
+#include <EvoVulkan/Types/Instance.h>
 
 #include <map>
 #include <EvoVulkan/Tools/NonCopyable.h>
@@ -21,28 +22,10 @@ namespace EvoVulkan::Memory {
 namespace EvoVulkan::Types {
     class Device;
 
-    struct DeviceMemory {
-        friend class Device;
-    private:
-        uint64_t       m_size;
-        VkDeviceMemory m_memory;
-    public:
-        DeviceMemory() {
-            m_size   = 0;
-            m_memory = VK_NULL_HANDLE;
-        }
-    public:
-        [[nodiscard]] bool Ready() const { return m_memory != VK_NULL_HANDLE && m_size > 0; }
-    public:
-        operator VkDeviceMemory() const {
-            return m_memory;
-        }
-    };
-
     struct EvoDeviceCreateInfo {
         VkPhysicalDevice physicalDevice;
         VkDevice logicalDevice;
-        VkInstance instance;
+        Types::Instance* instance;
         FamilyQueues* familyQueues;
         bool enableSampleShading;
         bool multisampling;
@@ -61,12 +44,6 @@ namespace EvoVulkan::Types {
     public:
         static Device* Create(const EvoDeviceCreateInfo& info);
         void Free();
-    public:
-        [[nodiscard]] uint64_t GetAllocatedMemorySize() const { return m_deviceMemoryAllocSize; }
-        [[nodiscard]] uint64_t GetAllocatedHeapsCount() const { return m_allocHeapsCount;       }
-
-        DeviceMemory AllocateMemory(VkMemoryAllocateInfo memoryAllocateInfo);
-        bool FreeMemory(DeviceMemory* memory);
 
         [[nodiscard]] VkCommandPool CreateCommandPool(VkCommandPoolCreateFlags flagBits) const;
 
@@ -75,8 +52,9 @@ namespace EvoVulkan::Types {
         [[nodiscard]] EVK_INLINE bool SamplerAnisotropyEnabled() const noexcept { return m_enableSamplerAnisotropy; }
         [[nodiscard]] EVK_INLINE float GetMaxSamplerAnisotropy() const noexcept { return m_maxSamplerAnisotropy;    }
         [[nodiscard]] EVK_INLINE VkQueue GetGraphicsQueue()  const noexcept { return m_familyQueues->m_graphicsQueue;  }
+        [[nodiscard]] EVK_INLINE VkQueue GetPresentQueue()  const noexcept { return m_familyQueues->m_presentQueue;  }
         [[nodiscard]] EVK_INLINE bool MultisampleEnabled()  const noexcept { return m_maxCountMSAASamples != VK_SAMPLE_COUNT_1_BIT;  }
-        [[nodiscard]] EVK_INLINE VkInstance GetInstance() const { return m_instance; }
+        [[nodiscard]] EVK_INLINE Instance* GetInstance() const { return m_instance; }
         [[nodiscard]] EVK_INLINE VkSampleCountFlagBits GetMSAASamples() const { return (VkSampleCountFlagBits)m_maxCountMSAASamples; }
         [[nodiscard]] EVK_INLINE VkPhysicalDeviceMemoryProperties GetMemoryProperties() const { return m_memoryProperties; }
 
@@ -91,13 +69,9 @@ namespace EvoVulkan::Types {
     public:
         FamilyQueues*                    m_familyQueues            = nullptr;
 
-    private:
-        uint64_t                         m_deviceMemoryAllocSize   = 0;
-        uint32_t                         m_allocHeapsCount         = 0;
-
         VkPhysicalDevice                 m_physicalDevice          = VK_NULL_HANDLE;
         VkDevice                         m_logicalDevice           = VK_NULL_HANDLE;
-        VkInstance                       m_instance                = VK_NULL_HANDLE;
+        Types::Instance*                 m_instance                = nullptr;
 
         bool                             m_enableSamplerAnisotropy = false;
         float                            m_maxSamplerAnisotropy    = 0.f;

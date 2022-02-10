@@ -2,14 +2,19 @@
 // Created by Nikita on 04.05.2021.
 //
 
-#include <EvoVulkan/Types/DepthStencil.h>
-#include <EvoVulkan/Tools/VulkanDebug.h>
+#if defined(EVO_VULKAN_EEPTH_STENCIL)
 
+#include <EvoVulkan/Types/DepthStencil.h>
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Swapchain.h>
 
+#include <EvoVulkan/Tools/VulkanDebug.h>
+
+#include <EvoVulkan/Memory/Allocator.h>
+
 EvoVulkan::Types::DepthStencil* EvoVulkan::Types::DepthStencil::Create(
         EvoVulkan::Types::Device *device,
+        Memory::Allocator* allocator,
         const EvoVulkan::Types::Swapchain *swapchain,
         uint32_t width,
         uint32_t height)
@@ -17,6 +22,7 @@ EvoVulkan::Types::DepthStencil* EvoVulkan::Types::DepthStencil::Create(
     auto depthStencil = new DepthStencil();
     {
         depthStencil->m_device    = device;
+        depthStencil->m_alloc     = allocator;
         depthStencil->m_swapchain = swapchain;
 
         depthStencil->m_image     = VK_NULL_HANDLE;
@@ -134,3 +140,5 @@ void EvoVulkan::Types::DepthStencil::Free() {
     VK_LOG("DepthStencil::Free() : free depth stencil pointer...");
     delete this;
 }
+
+#endif

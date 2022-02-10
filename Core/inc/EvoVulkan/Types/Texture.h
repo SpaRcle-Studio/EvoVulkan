@@ -10,7 +10,13 @@
 #include <EvoVulkan/Tools/VulkanDebug.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
 #include <EvoVulkan/DescriptorManager.h>
+#include <EvoVulkan/Types/Image.h>
+#include <EvoVulkan/Types/VmaBuffer.h>
 #include "Device.h"
+
+namespace EvoVulkan::Memory {
+    class Allocator;
+}
 
 namespace EvoVulkan::Complexes {
     class FrameBuffer;
@@ -25,27 +31,30 @@ namespace EvoVulkan::Types {
     public:
         Texture(const Texture&) = delete;
     private:
-        DeviceMemory    m_deviceMemory   = {};
-        VkImage         m_image          = VK_NULL_HANDLE;
-        VkImageView     m_view           = VK_NULL_HANDLE;
+        //DeviceMemory    m_deviceMemory   = {};
+        //VkImage         m_image          = VK_NULL_HANDLE;
+        Types::Image       m_image          = Types::Image();
+        VkImageView        m_view           = VK_NULL_HANDLE;
 
-        VkFilter        m_filter         = VkFilter::VK_FILTER_MAX_ENUM;
-        VkSampler       m_sampler        = VK_NULL_HANDLE;
+        VkFilter           m_filter         = VkFilter::VK_FILTER_MAX_ENUM;
+        VkSampler          m_sampler        = VK_NULL_HANDLE;
 
-        VkImageLayout   m_imageLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
-        VkFormat        m_format         = VK_FORMAT_UNDEFINED;
-        uint32_t        m_width          = 0,
-                        m_height         = 0;
-        uint32_t        m_mipLevels      = 0;
+        VkImageLayout      m_imageLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkFormat           m_format         = VK_FORMAT_UNDEFINED;
+        uint32_t           m_width          = 0,
+                           m_height         = 0;
+        uint32_t           m_mipLevels      = 0;
 
-        uint32_t        m_seed           = 0;
+        uint32_t           m_seed           = 0;
 
-        bool            m_canBeDestroyed = false;
-        bool            m_cubeMap        = false;
-        bool            m_isDestroyed    = false;
+        bool               m_canBeDestroyed = false;
+        bool               m_cubeMap        = false;
+        bool               m_isDestroyed    = false;
+        bool               m_cpuUsage       = false;
 
-        Types::Device*  m_device         = nullptr;
-        Types::CmdPool* m_pool           = nullptr;
+        Types::Device*     m_device         = nullptr;
+        Types::CmdPool*    m_pool           = nullptr;
+        Memory::Allocator* m_allocator      = nullptr;
 
         Core::DescriptorSet      m_descriptorSet     = {};
         Core::DescriptorManager* m_descriptorManager = nullptr;
@@ -63,7 +72,7 @@ namespace EvoVulkan::Types {
         [[nodiscard]] inline uint32_t GetHeight() const { return m_height; }
         [[nodiscard]] inline uint32_t GetSeed() const { return m_seed; }
     private:
-        bool Create(Buffer* stagingBuffer);
+        bool Create(VmaBuffer* stagingBuffer);
     public:
         Core::DescriptorSet GetDescriptorSet(VkDescriptorSetLayout layout);
 
@@ -80,49 +89,57 @@ namespace EvoVulkan::Types {
 
         static Texture* LoadCubeMap(
                 Device* device,
+                Memory::Allocator *allocator,
                 CmdPool* pool,
                 VkFormat format,
                 uint32_t width,
                 uint32_t height,
                 const std::array<uint8_t*, 6>& sides,
-                uint32_t mipLevels = 0);
+                uint32_t mipLevels = 0,
+                bool cpuUsage = false);
 
         static Texture* Load(
                 Device *device,
+                Memory::Allocator *allocator,
                 Core::DescriptorManager* manager,
                 CmdPool *pool,
                 const unsigned char *pixels,
                 VkFormat format,
                 uint32_t width, uint32_t height,
-                uint32_t mipLevels, VkFilter filter);
+                uint32_t mipLevels, VkFilter,
+                bool cpuUsage = false);
 
         static Texture* LoadAutoMip(
                 Device *device,
+                Memory::Allocator *allocator,
                 Core::DescriptorManager* manager,
                 CmdPool *pool,
                 const unsigned char *pixels,
                 VkFormat format,
                 uint32_t width,
-                uint32_t height, VkFilter filter)
+                uint32_t height, VkFilter filter,
+                bool cpuUsage = false)
         {
 #ifdef max
-            return Load(device, manager, pool, pixels, format, width, height,
-                        static_cast<uint32_t>(std::floor(std::log2(max(width, height)))) + 1, filter);
+            return Load(device, allocator, manager, pool, pixels, format, width, height,
+                        static_cast<uint32_t>(std::floor(std::log2(max(width, height)))) + 1, filter, cpuUsage);
 #else
-            return Load(device, manager, pool, pixels, format, width, height,
-                        static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1, filter);
+            return Load(device, allocator, manager, pool, pixels, format, width, height,
+                        static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1, filter, cpuUsage);
 #endif
         }
 
         static Texture* LoadWithoutMip(
                 Device *device,
+                Memory::Allocator *allocator,
                 Core::DescriptorManager* manager,
                 CmdPool *pool,
                 const unsigned char *pixels,
                 VkFormat format,
-                uint32_t width, uint32_t height, VkFilter filter)
+                uint32_t width, uint32_t height, VkFilter filter,
+                bool cpuUsage = false)
         {
-            return Load(device, manager, pool, pixels, format, width, height, 1, filter);
+            return Load(device, allocator, manager, pool, pixels, format, width, height, 1, filter, cpuUsage);
         }
     };
 }

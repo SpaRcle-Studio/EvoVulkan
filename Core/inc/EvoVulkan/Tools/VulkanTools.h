@@ -12,6 +12,7 @@
 #include <EvoVulkan/Types/Swapchain.h>
 #include <EvoVulkan/Types/DepthStencil.h>
 #include <EvoVulkan/Types/Synchronization.h>
+#include <EvoVulkan/Types/Instance.h>
 #include <EvoVulkan/Types/Pipeline.h>
 
 #include <EvoVulkan/Tools/VulkanInitializers.h>
@@ -29,6 +30,7 @@
 #include <fstream>
 #include <EvoVulkan/Types/VulkanBuffer.h>
 #include "DeviceTools.h"
+#include "EvoVulkan/Types/Instance.h"
 
 namespace EvoVulkan::Tools {
     VkAttachmentDescription CreateColorAttachmentDescription(VkFormat format,
@@ -122,80 +124,6 @@ namespace EvoVulkan::Tools {
         return debugMessenger;
     }
 
-    static VkInstance CreateInstance(
-            const std::string& appName, const std::string& engineName,
-            std::vector<const char*> extensions,
-            const std::vector<const char*>& layers, const bool& validationEnabled)
-    {
-        Tools::VkDebug::Graph("VulkanTools::CreateInstance() : create vulkan instance...");
-
-        static bool exists = false;
-
-        if (exists) {
-            Tools::VkDebug::Error("VulkanTools::CreateInstance() : instance already exists!");
-            return VK_NULL_HANDLE;
-        } else
-            exists = true;
-
-        if (extensions.empty()) {
-            Tools::VkDebug::Error("VulkanTools::CreateInstance() : extensions is empty!");
-            return VK_NULL_HANDLE;
-        }
-
-        if (validationEnabled)
-            extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-
-        VkApplicationInfo appInfo  = {};
-        appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName   = appName.c_str();
-        appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
-        appInfo.engineVersion      = 1;
-        appInfo.pEngineName        = engineName.c_str();
-        //appInfo.apiVersion         = VK_API_VERSION_1_0;
-        appInfo.apiVersion         = VK_API_VERSION_1_2;//VK_MAKE_VERSION(1, 0, 2);
-
-        VkInstanceCreateInfo instInfo = {};
-        instInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        instInfo.pApplicationInfo = &appInfo;
-
-        instInfo.enabledExtensionCount   = (uint32_t)extensions.size();
-        instInfo.ppEnabledExtensionNames = extensions.data();
-
-        if (validationEnabled) {
-            static VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
-
-            if (layers.empty()) {
-                Tools::VkDebug::Error("VulkanTools::CreateInstance() : layers is empty!");
-                return VK_NULL_HANDLE;
-            }
-
-            instInfo.enabledLayerCount   = (uint32_t)layers.size();
-            instInfo.ppEnabledLayerNames = layers.data();
-
-            Tools::PopulateDebugMessengerCreateInfo(debugCreateInfo);
-            instInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
-        } else {
-            instInfo.enabledLayerCount = 0;
-            instInfo.pNext = nullptr;
-        }
-
-        VkInstance instance = VK_NULL_HANDLE;
-        VkResult result = vkCreateInstance(&instInfo, NULL, &instance);
-        if (result != VK_SUCCESS) {
-            VkDebug::Error("VulkanTools::CreateInstance() : failed create vulkan instance! Reason: " + Tools::Convert::result_to_description(result));
-            return VK_NULL_HANDLE;
-        }
-
-        Tools::VkDebug::Graph("VulkanTools::CreateInstance() : instance successfully created!");
-
-        return instance;
-    }
-    static bool DestroyInstance(VkInstance* instance) {
-        vkDestroyInstance(*instance, nullptr);
-        *instance = VK_NULL_HANDLE;
-        return true;
-    }
-
     static Types::Surface* CreateSurface(const VkInstance& instance, const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate) {
         VkSurfaceKHR surfaceKhr = platformCreate(instance);
         if (surfaceKhr == VK_NULL_HANDLE) {
@@ -222,7 +150,7 @@ namespace EvoVulkan::Tools {
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = { pQueues->GetGraphicsIndex(), pQueues->GetPresentIndex() };
 
-        std::vector<float_t> queuePriorities = { 1.0f, 1.0f };
+        std::vector<float_t> queuePriorities = { 1.0f }; //, 1.0f
         for (uint32_t queueFamily : uniqueQueueFamilies) {
             VkDeviceQueueCreateInfo queueCreateInfo{};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -276,35 +204,6 @@ namespace EvoVulkan::Tools {
         }
 
         return device;
-    }
-
-    static VkBuffer CreateBuffer(Types::Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, Types::DeviceMemory& bufferMemory) {
-        VkBufferCreateInfo bufferCI = EvoVulkan::Tools::Initializers::BufferCreateInfo(usage, size);
-        bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        VkBuffer buffer = VK_NULL_HANDLE;
-        if (vkCreateBuffer(*device, &bufferCI, nullptr, &buffer) != VK_SUCCESS) {
-            VK_ERROR("Texture::CreateBuffer() : failed to create vulkan buffer!");
-            return VK_NULL_HANDLE;
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(*device, buffer, &memRequirements);
-
-        VkMemoryAllocateInfo memAllocInfo = Tools::Initializers::MemoryAllocateInfo();
-        memAllocInfo.allocationSize  = memRequirements.size;
-        memAllocInfo.memoryTypeIndex = device->GetMemoryType(memRequirements.memoryTypeBits, properties);
-
-        if (!(bufferMemory = device->AllocateMemory(memAllocInfo)).Ready()) {
-            VK_ERROR("Tools::CreateBuffer() : failed to allocate vulkan memory!");
-            return VK_NULL_HANDLE;
-        }
-        if (vkBindBufferMemory(*device, buffer, bufferMemory, 0) != VK_SUCCESS) {
-            VK_ERROR("Tools::CreateBuffer() : failed to bind vulkan buffer!");
-            return VK_NULL_HANDLE;
-        }
-
-        return buffer;
     }
 
     static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
@@ -376,6 +275,18 @@ namespace EvoVulkan::Tools {
         return sampler;
     }
 
+    static std::set<std::string> GetSupportedExtensions() {
+        uint32_t count;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr); //get number of extensions
+        std::vector<VkExtensionProperties> extensions(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data()); //populate buffer
+        std::set<std::string> results;
+        for (auto & extension : extensions) {
+            results.insert(extension.extensionName);
+        }
+        return results;
+    }
+
     static VkImageView CreateImageView(
             const VkDevice& device,
             VkImage image,
@@ -405,6 +316,7 @@ namespace EvoVulkan::Tools {
         return view;
     }
 
+    /*
     static VkImage CreateImage(
             Types::Device* device,
             uint32_t width, uint32_t height,
@@ -474,7 +386,7 @@ namespace EvoVulkan::Tools {
         }
 
         return image;
-    }
+    }*/
 
     static bool TransitionImageLayout(
             Types::CmdBuffer* copyCmd,
@@ -548,7 +460,7 @@ namespace EvoVulkan::Tools {
     }
 
     static Types::Device* CreateDevice(
-            const VkInstance& instance, const Types::Surface* surface,
+            Types::Instance* instance, const Types::Surface* surface,
             const std::vector<const char*>& extensions,
             const std::vector<const char*>& validationLayers,
             const bool& enableSampleShading,
@@ -564,7 +476,7 @@ namespace EvoVulkan::Tools {
 
         //!=============================================================================================================
 
-        auto devices = Tools::GetAllDevices(instance);
+        auto devices = Tools::GetAllDevices(*instance);
         if (devices.empty()) {
             Tools::VkDebug::Error("VulkanTools::CreateDevice() : not found device with vulkan support!");
             return nullptr;
@@ -632,13 +544,13 @@ namespace EvoVulkan::Tools {
         Tools::VkDebug::Graph("VulkanTools::CreateDevice() : set logical device queues...");
         {
             VkQueue graphics = VK_NULL_HANDLE;
-            VkQueue present  = VK_NULL_HANDLE;
+            //VkQueue present  = VK_NULL_HANDLE;
 
             vkGetDeviceQueue(logicalDevice, queues->GetGraphicsIndex(), 0, &graphics);
-            vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 1, &present);
+            //vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 1, &present);
 
             queues->SetQueue(graphics);
-            queues->SetPresentQueue(present);
+            //queues->SetPresentQueue(present);
         }
 
         Types::EvoDeviceCreateInfo createInfo = {

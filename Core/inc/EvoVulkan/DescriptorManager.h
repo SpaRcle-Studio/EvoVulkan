@@ -144,6 +144,8 @@ namespace EvoVulkan::Core {
             : DescriptorSet(VK_NULL_HANDLE, VK_NULL_HANDLE, nullptr, UINT32_MAX)
         { }
 
+        DescriptorSet(void* _null) : DescriptorSet() { }
+
         DescriptorSet(VkDescriptorSet set, VkDescriptorSetLayout layout, DescriptorPool* pool, uint32_t id)
             : m_self(set)
             , m_layout(layout)

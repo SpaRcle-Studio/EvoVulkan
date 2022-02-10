@@ -14,6 +14,8 @@
 #include "src/EvoVulkan/Types/VulkanBuffer.cpp"
 #include "src/EvoVulkan/Types/DepthStencil.cpp"
 #include "src/EvoVulkan/Types/Texture.cpp"
+#include "src/EvoVulkan/Types/Image.cpp"
+#include "src/EvoVulkan/Types/VmaBuffer.cpp"
 
 #include "src/EvoVulkan/Tools/VulkanTools.cpp"
 #include "src/EvoVulkan/Tools/VulkanDebug.cpp"

@@ -5,10 +5,29 @@
 #ifndef EVOVULKAN_VULKANCONVERTER_H
 #define EVOVULKAN_VULKANCONVERTER_H
 
-#include <vulkan/vulkan.h>
-#include <string>
+#include <EvoVulkan/macros.h>
 
 namespace EvoVulkan::Tools::Convert {
+    [[maybe_unused]] static VkMemoryPropertyFlags VmaMemoryUsageToVkMemoryProperty(VmaMemoryUsage usage) {
+        switch(usage)  {
+            case VMA_MEMORY_USAGE_GPU_ONLY:
+                return VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            case VMA_MEMORY_USAGE_CPU_ONLY:
+                return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+            case VMA_MEMORY_USAGE_CPU_TO_GPU:
+                return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            case VMA_MEMORY_USAGE_GPU_TO_CPU:
+                return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+            case VMA_MEMORY_USAGE_CPU_COPY:
+                return VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            case VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED:
+                return VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+            case VMA_MEMORY_USAGE_UNKNOWN:
+            default:
+                return VK_MEMORY_PROPERTY_FLAG_BITS_MAX_ENUM;
+        }
+    }
+
     static VkFormat CompressedFormatToDecodedFormat(VkFormat format) {
         switch (format) {
             case VK_FORMAT_BC1_RGB_SRGB_BLOCK:

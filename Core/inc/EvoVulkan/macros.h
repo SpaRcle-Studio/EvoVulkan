@@ -9,6 +9,9 @@
     #pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
+#define EVK_DEBUG
+#define EVK_UNUSED [[maybe_unused]]
+
 #define EVK_INLINE inline
 
 #include <vk_mem_alloc.h>

@@ -4,9 +4,11 @@
 
 #include <EvoVulkan/Types/MultisampleTarget.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
+#include <EvoVulkan/Memory/Allocator.h>
 
 EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create(
         EvoVulkan::Types::Device *device,
+        Memory::Allocator* allocator,
         Swapchain* swapchain,
         uint32_t w, uint32_t h,
         const std::vector<VkFormat>& formats,
@@ -14,6 +16,7 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
 {
     auto multisample = new MultisampleTarget();
     multisample->m_device        = device;
+    multisample->m_allocator     = allocator;
     multisample->m_swapchain     = swapchain;
     multisample->m_countResolves = formats.size();
     multisample->m_formats       = formats;
@@ -42,23 +45,21 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
 
     m_resolves = (Image*)malloc(sizeof(Image) * m_countResolves);
 
-    for (uint32_t i = 0; i < m_countResolves; i++) {
-        m_resolves[i].m_image = Tools::CreateImage(
-                m_device, w, h, 1,
-                m_formats[i],
-                VK_IMAGE_TILING_OPTIMAL,
-                //VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
-                &m_resolves[i].m_memory,
-                m_multisampling);
-        if (m_resolves[i].m_image == VK_NULL_HANDLE) {
+    auto imageCI = Types::ImageCreateInfo(
+            m_device, m_allocator, w, h,
+            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            m_multisampling);
+
+    for (uint32_t i = 0; i < m_countResolves; ++i) {
+        imageCI.format = m_formats[i];
+
+        if (!(m_resolves[i].m_image = Types::Image::Create(imageCI)).Valid()) {
             VK_ERROR("MultisampleTarget::ReCreate() : failed to create resolve image!");
             return false;
         }
 
-        m_resolves[i].m_view = Tools::CreateImageView(*m_device, m_resolves[i].m_image, m_formats[i], 1,
-                                                VK_IMAGE_ASPECT_COLOR_BIT);
+        m_resolves[i].m_view = Tools::CreateImageView(*m_device, m_resolves[i].m_image, m_formats[i], 1, VK_IMAGE_ASPECT_COLOR_BIT);
+
         if (m_resolves[i].m_view == VK_NULL_HANDLE) {
             VK_ERROR("MultisampleTarget::ReCreate() : failed to create resolve image view!");
             return false;
@@ -67,14 +68,10 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
 
     //! ----------------------------------- Depth target -----------------------------------
 
-    m_depth.m_image = Tools::CreateImage(
-            m_device, w, h, 1,
-            m_swapchain->GetDepthFormat(),
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
-            &m_depth.m_memory);
-    if (m_depth.m_image == VK_NULL_HANDLE) {
+    imageCI.format = m_swapchain->GetDepthFormat();
+    imageCI.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    if (!(m_depth.m_image = Types::Image::Create(imageCI)).Valid()) {
         VK_ERROR("MultisampleTarget::ReCreate() : failed to create depth image!");
         return false;
     }
@@ -91,13 +88,10 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
 void EvoVulkan::Types::MultisampleTarget::Destroy() {
     // Destroy MSAA target
     if (m_resolves) {
-        for (uint32_t i = 0; i < m_countResolves; i++) {
-            if (m_resolves[i].m_image && m_resolves[i].m_view && m_resolves[i].m_memory) {
-                vkDestroyImage(*m_device, m_resolves[i].m_image, nullptr);
+        for (uint32_t i = 0; i < m_countResolves; ++i) {
+            if (m_resolves[i].m_image && m_resolves[i].m_view && m_resolves[i].m_image.Valid()) {
                 vkDestroyImageView(*m_device, m_resolves[i].m_view, nullptr);
-                m_device->FreeMemory(&m_resolves[i].m_memory);
-
-                m_resolves[i].m_image = VK_NULL_HANDLE;
+                m_allocator->FreeImage(m_resolves[i].m_image);
                 m_resolves[i].m_view = VK_NULL_HANDLE;
             }
         }
@@ -106,12 +100,9 @@ void EvoVulkan::Types::MultisampleTarget::Destroy() {
         //m_countResolves = dont touch
     }
 
-    if (m_depth.m_image && m_depth.m_view && m_depth.m_memory) {
-        vkDestroyImage(*m_device, m_depth.m_image, nullptr);
+    if (m_depth.m_image && m_depth.m_view && m_depth.m_image.Valid()) {
         vkDestroyImageView(*m_device, m_depth.m_view, nullptr);
-        m_device->FreeMemory(&m_depth.m_memory);
-
-        m_depth.m_image = VK_NULL_HANDLE;
+        m_allocator->FreeImage(m_depth.m_image);
         m_depth.m_view = VK_NULL_HANDLE;
     }
 }

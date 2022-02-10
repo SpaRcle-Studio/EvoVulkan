@@ -60,9 +60,7 @@ namespace EvoVulkan::Types {
 
         bool SurfaceIsAvailable();
 
-        bool ReSetup(
-            unsigned int width,
-            unsigned int height);
+        bool ReSetup(uint32_t width, uint32_t height);
 
         [[nodiscard]] SwapChainBuffer* GetBuffers()   const { return m_buffers;       }
         [[nodiscard]] uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;  }
@@ -100,12 +98,20 @@ namespace EvoVulkan::Types {
             presentInfo.swapchainCount   = 1;
             presentInfo.pSwapchains      = &m_swapchain;
             presentInfo.pImageIndices    = &imageIndex;
-            // Check if a wait semaphore has been specified to wait for before presenting the image
+
+            /// Check if a wait semaphore has been specified to wait for before presenting the image
             if (waitSemaphore != VK_NULL_HANDLE) {
                 presentInfo.pWaitSemaphores    = &waitSemaphore;
                 presentInfo.waitSemaphoreCount = 1;
             }
-            return vkQueuePresentKHR(queue, &presentInfo);
+
+            try {
+                return vkQueuePresentKHR(queue, &presentInfo);
+            }
+            catch (const std::exception& ex) {
+                VK_ERROR("Swapchain::QueuePresent() : an exception has been occurred! \n\tMessage: " + std::string(ex.what()));
+                return VK_ERROR_UNKNOWN;
+            }
         }
     public:
         static Swapchain* Create(

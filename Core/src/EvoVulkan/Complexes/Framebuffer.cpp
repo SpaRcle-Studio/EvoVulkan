@@ -6,6 +6,7 @@
 
 static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
         EvoVulkan::Types::Device* device,
+        EvoVulkan::Memory::Allocator* allocator,
         VkFormat format,
         VkImageUsageFlags usage,
         VkExtent2D imageSize)
@@ -24,7 +25,7 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
 
     EvoVulkan::Complexes::FrameBufferAttachment FBOAttachment = {};
 
-    FBOAttachment.m_image = EvoVulkan::Tools::CreateImage(
+    /*FBOAttachment.m_image = EvoVulkan::Tools::CreateImage(
             device,
             imageSize.width,
             imageSize.height,
@@ -34,7 +35,12 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
             usage,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             &FBOAttachment.m_mem,
-            false);
+            false);*/
+
+    auto imageCI = EvoVulkan::Types::ImageCreateInfo(device, allocator, imageSize.width,
+            imageSize.height, format, usage, false);
+
+    FBOAttachment.m_image = EvoVulkan::Types::Image::Create(imageCI);
 
     FBOAttachment.m_view = EvoVulkan::Tools::CreateImageView(
             *device,
@@ -43,8 +49,9 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
             1,
             aspectMask);
 
-    FBOAttachment.m_format = format;
-    FBOAttachment.m_device = device;
+    FBOAttachment.m_format    = format;
+    FBOAttachment.m_device    = device;
+    FBOAttachment.m_allocator = allocator;
 
     return FBOAttachment;
 }
@@ -84,6 +91,7 @@ std::vector<VkDescriptorImageInfo> EvoVulkan::Complexes::FrameBuffer::GetImageDe
 
 EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         EvoVulkan::Types::Device *device,
+        Memory::Allocator* allocator,
         Core::DescriptorManager* manager,
         EvoVulkan::Types::Swapchain *swapchain,
         EvoVulkan::Types::CmdPool *pool,
@@ -102,6 +110,7 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         fbo->m_scale             = scale;
         fbo->m_cmdPool           = pool;
         fbo->m_device            = device;
+        fbo->m_allocator         = allocator;
         fbo->m_descriptorManager = manager;
         fbo->m_swapchain         = swapchain;
         fbo->m_countColorAttach  = colorAttachments.size();
@@ -136,10 +145,13 @@ bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height
 
     this->m_multisampleTarget = Types::MultisampleTarget::Create(
             m_device,
+            m_allocator,
             m_swapchain,
             width, height,
             m_attachFormats,
-            m_device->MultisampleEnabled());
+            m_device->MultisampleEnabled()
+    );
+
     if (!m_multisampleTarget) {
         VK_ERROR("Framebuffer::ReCreate() : failed to create multisample target!");
         return false;
@@ -311,6 +323,7 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateAttachments()  {
     for (uint32_t i = 0; i < m_countColorAttach; i++) {
         m_attachments[i] = CreateAttachment(
                 m_device,
+                m_allocator,
                 m_attachFormats[i],
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                 { m_width, m_height });
@@ -335,7 +348,7 @@ std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::Alloc
     for (uint32_t i = 0; i < m_countColorAttach; i++) {
         auto* texture = new EvoVulkan::Types::Texture();
 
-        texture->m_deviceMemory      = m_attachments[i].m_mem;
+        //texture->m_deviceMemory      = m_attachments[i].m_mem;
         texture->m_view              = m_attachments[i].m_view;
         texture->m_image             = m_attachments[i].m_image;
         texture->m_format            = m_attachments[i].m_format;
@@ -343,6 +356,7 @@ std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::Alloc
         texture->m_sampler           = m_colorSampler;
         texture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         texture->m_device            = m_device;
+        texture->m_allocator         = m_allocator;
         texture->m_width             = m_width;
         texture->m_height            = m_height;
         texture->m_canBeDestroyed    = false;
