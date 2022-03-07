@@ -68,6 +68,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 
 bool EvoVulkan::Core::VulkanKernel::Init(
         const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
+        void* windowHandle,
         const std::vector<const char*>& deviceExtensions,
         const bool& enableSampleShading,
         bool vsync)
@@ -79,7 +80,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     //!=============================================[Create surface]====================================================
 
     VK_GRAPH("VulkanKernel::Init() : create vulkan surface...");
-    this->m_surface = Tools::CreateSurface(*m_instance, platformCreate);
+    this->m_surface = Tools::CreateSurface(*m_instance, platformCreate, windowHandle);
     if (!m_surface) {
         VK_ERROR("VulkanKernel::Init() : failed create vulkan surface!");
         return false;

@@ -124,7 +124,7 @@ namespace EvoVulkan::Tools {
         return debugMessenger;
     }
 
-    static Types::Surface* CreateSurface(const VkInstance& instance, const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate) {
+    static Types::Surface* CreateSurface(const VkInstance& instance, const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate, void* windowHandle) {
         VkSurfaceKHR surfaceKhr = platformCreate(instance);
         if (surfaceKhr == VK_NULL_HANDLE) {
             Tools::VkDebug::Error("VulkanTools::CreateSurface() : failed platform-create vulkan surface!");
@@ -133,7 +133,8 @@ namespace EvoVulkan::Tools {
 
         Types::Surface* surface = Types::Surface::Create(
                 surfaceKhr,
-                instance);
+                instance,
+                windowHandle);
 
         return surface;
     }

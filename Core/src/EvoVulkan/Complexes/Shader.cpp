@@ -119,7 +119,7 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
 
     std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {};
 
-    for (uint32_t i = 0; i < m_renderPass.m_countColorAttach; i++) {
+    for (uint32_t i = 0; i < m_renderPass.m_countColorAttach; ++i) {
         auto writeMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         auto attch = Tools::Initializers::PipelineColorBlendAttachmentState(writeMask, m_blendEnable);
 
@@ -130,6 +130,8 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
 
         attch.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         attch.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+        attch.alphaBlendOp        = VK_BLEND_OP_ADD;
 
         blendAttachmentStates.push_back(attch);
     }

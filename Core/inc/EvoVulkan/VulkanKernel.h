@@ -121,6 +121,7 @@ namespace EvoVulkan::Core {
         [[nodiscard]] inline Types::MultisampleTarget* GetMultisampleTarget() const { return m_multisample; }
         [[nodiscard]] inline Types::CmdPool* GetCmdPool() const { return m_cmdPool; }
         [[nodiscard]] inline Types::Swapchain* GetSwapchain() const { return m_swapchain; }
+        [[nodiscard]] inline Types::Surface* GetSurface() const { return m_surface; }
         [[nodiscard]] inline VkInstance GetInstance() const { return *m_instance; }
 
         [[nodiscard]] inline bool HasErrors() const noexcept { return m_hasErrors; }
@@ -208,9 +209,11 @@ namespace EvoVulkan::Core {
 
         bool Init(
                 const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
+                void* windowHandle,
                 const std::vector<const char*>& deviceExtensions, const bool& enableSampleShading,
                 bool vsync
                 );
+
         bool PostInit();
     };
 }

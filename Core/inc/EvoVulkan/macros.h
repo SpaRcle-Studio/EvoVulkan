@@ -14,6 +14,10 @@
 
 #define EVK_INLINE inline
 
+#ifdef WIN32
+    #include <vulkan/vulkan_win32.h>
+#endif
+
 #include <vk_mem_alloc.h>
 #include <string>
 #include <vector>
