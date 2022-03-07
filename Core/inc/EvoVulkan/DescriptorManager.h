@@ -55,7 +55,7 @@ namespace EvoVulkan::Core {
             descriptorPoolCI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
             VkResult vkRes = vkCreateDescriptorPool(*device, &descriptorPoolCI, nullptr, &pool->m_pool);
-            if (vkRes != VK_NULL_HANDLE) {
+            if (vkRes != VK_SUCCESS) {
                 VK_ERROR("DescriptorPool::Create() : failed to create vulkan descriptor pool!");
                 return VK_NULL_HANDLE;
             }
@@ -96,7 +96,7 @@ namespace EvoVulkan::Core {
             descriptorPoolCI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
             VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &pool->m_pool);
-            if (vkRes != VK_NULL_HANDLE) {
+            if (vkRes != VK_SUCCESS) {
                 VK_ERROR("DescriptorPool::Create() : failed to create vulkan descriptor pool!");
                 return VK_NULL_HANDLE;
             }
