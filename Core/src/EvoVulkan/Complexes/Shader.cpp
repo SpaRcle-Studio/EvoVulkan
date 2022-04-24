@@ -3,20 +3,15 @@
 //
 
 #include <EvoVulkan/Complexes/Shader.h>
-#include <fstream>
 
 #include <EvoVulkan/Tools/StringUtils.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
 #include <EvoVulkan/Tools/FileSystem.h>
 
-EvoVulkan::Complexes::Shader::Shader(
-        const EvoVulkan::Types::Device* device,
-        Types::RenderPass renderPass,
-        const VkPipelineCache& cache)
-{
-    this->m_device     = device;
-    this->m_renderPass = renderPass;
-    this->m_cache      = cache;
+EvoVulkan::Complexes::Shader::Shader(const EvoVulkan::Types::Device* device, Types::RenderPass renderPass, const VkPipelineCache& cache) {
+    m_device     = device;
+    m_renderPass = renderPass;
+    m_cache      = cache;
 }
 
 bool EvoVulkan::Complexes::Shader::Load(
@@ -30,53 +25,48 @@ bool EvoVulkan::Complexes::Shader::Load(
         return false;
     }
 
-    Tools::CreatePath(Tools::FixPath(cache + "/"));
+    auto modulePatches = std::string();
+    for (const auto& module : modules)
+        modulePatches += "\n\t" + module.m_path;
 
-    auto modules_names = std::string();
-    for (const auto & module : modules)
-        modules_names += std::string(module.m_name).append(" ");
+    VK_LOG("Shader::Load() : load new shader! Modules:" + modulePatches);
 
-    VK_LOG("Shader::Load() : load new shader... \n\tModules: " + modules_names);
-
-    // check correctly uniform sizes
-    {
-        uint32_t count = 0;
-        for (auto bind : descriptorLayoutBindings)
-            if (bind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-                count++;
-        if (count != uniformSizes.size()) {
-            VK_ERROR("Shader::Load() : incorrect uniform sizes!");
-            return false;
-        }
-    }
-
-    if (!uniformSizes.empty())
-        this->m_uniformSizes = uniformSizes;
-
-    this->m_layoutBindings = descriptorLayoutBindings;
-    for (size_t t = 0; t < m_layoutBindings.size(); t++)
-        if (t != m_layoutBindings[t].binding) {
-            VK_ERROR("Shader::Load() : incorrect layout bindings! Binding: " + std::to_string(t));
-            return false;
-        }
+    m_uniformSizes = uniformSizes;
+    m_layoutBindings = descriptorLayoutBindings;
 
     for (const auto& [name, path, stage] : modules) {
-        std::string out = cache + "/" + std::string(name) + ".spv";
+        const auto&& outFolder = std::string(cache).append("/") + name;
 
-        if (Tools::FileExists(out))
-            Tools::RemoveFile(out);
+        std::string file;
 
-        system(std::string((g_glslc + " -c ").append(path).append(" -o " + out)).c_str());
+        switch (stage) {
+            case VK_SHADER_STAGE_VERTEX_BIT:
+                file = outFolder + "/vertex.spv";
+                break;
+            case VK_SHADER_STAGE_FRAGMENT_BIT:
+                file = outFolder + "/fragment.spv";
+                break;
+            default:
+                VK_ERROR("Shader::Load() : unknown shader stage!");
+                return false;
+        }
 
-        auto shaderModule = Tools::LoadShaderModule(out.c_str(), *m_device);
+        if (Tools::FileExists(file)) {
+            Tools::RemoveFile(file);
+        }
+
+        Tools::CreatePath(outFolder);
+
+        system(std::string((g_glslc + " -c ").append(path).append(" -o " + file)).c_str());
+
+        auto shaderModule = Tools::LoadShaderModule(file.c_str(), *m_device);
         if (shaderModule == VK_NULL_HANDLE) {
-            VK_ERROR("Shader::Load() : failed to load shader module! \n\tPath: " + out);
+            VK_ERROR("Shader::Load() : failed to load shader module! \n\tPath: " + file);
             return false;
         }
         else {
-            this->m_shaderModules.push_back(shaderModule);
-            this->m_shaderStages.push_back(
-                    Tools::Initializers::PipelineShaderStageCreateInfo(shaderModule, stage));
+            m_shaderModules.push_back(shaderModule);
+            m_shaderStages.push_back(Tools::Initializers::PipelineShaderStageCreateInfo(shaderModule, stage));
         }
     }
 
@@ -95,8 +85,8 @@ bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
             return false;
         }
 
-    this->m_vertices.m_bindingDescriptions   = binding;
-    this->m_vertices.m_attributeDescriptions = attribute;
+    m_vertices.m_bindingDescriptions   = binding;
+    m_vertices.m_attributeDescriptions = attribute;
 
     m_vertices.m_inputState = Tools::Initializers::PipelineVertexInputStateCreateInfo();
     m_vertices.m_inputState.vertexBindingDescriptionCount   = static_cast<uint32_t>(m_vertices.m_bindingDescriptions.size());
@@ -104,7 +94,7 @@ bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
     m_vertices.m_inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_vertices.m_attributeDescriptions.size());
     m_vertices.m_inputState.pVertexAttributeDescriptions    = m_vertices.m_attributeDescriptions.data();
 
-    this->m_hasVertices = true;
+    m_hasVertices = true;
 
     return true;
 }
@@ -141,9 +131,9 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
             VK_DYNAMIC_STATE_SCISSOR
     };
 
-    auto dynamicState       = Tools::Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
-    auto colorBlendState    = Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
-    auto pipelineCreateInfo = Tools::Initializers::PipelineCreateInfo(m_pipelineLayout, m_renderPass.m_self, 0);
+    auto&& dynamicState       = Tools::Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
+    auto&& colorBlendState    = Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
+    auto&& pipelineCreateInfo = Tools::Initializers::PipelineCreateInfo(m_pipelineLayout, m_renderPass.m_self, 0);
 
     pipelineCreateInfo.pVertexInputState   = &m_vertices.m_inputState;
     pipelineCreateInfo.pInputAssemblyState = &m_inputAssemblyState;
@@ -173,7 +163,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
         VkBool32 depthTest,
         VkPrimitiveTopology topology)
 {
-    if (!this->BuildLayouts()) {
+    if (!BuildLayouts()) {
         VK_ERROR("Shader::Compile() : failed to build layouts!");
         return false;
     }
@@ -199,14 +189,14 @@ bool EvoVulkan::Complexes::Shader::Compile(
 }
 
 bool EvoVulkan::Complexes::Shader::BuildLayouts() {
-    this->m_descriptorSetLayout = Tools::CreateDescriptorLayout(*m_device, m_layoutBindings);
-    if (this->m_descriptorSetLayout == VK_NULL_HANDLE) {
+    m_descriptorSetLayout = Tools::CreateDescriptorLayout(*m_device, m_layoutBindings);
+    if (m_descriptorSetLayout == VK_NULL_HANDLE) {
         VK_ERROR("Shader::BuildLayouts() : failed to create descriptor layout!");
         return false;
     }
 
-    this->m_pipelineLayout = Tools::CreatePipelineLayout(*m_device, m_descriptorSetLayout);
-    if (this->m_pipelineLayout == VK_NULL_HANDLE) {
+    m_pipelineLayout = Tools::CreatePipelineLayout(*m_device, m_descriptorSetLayout);
+    if (m_pipelineLayout == VK_NULL_HANDLE) {
         VK_ERROR("Shader::BuildLayouts() : failed to create pipeline layout!");
         return false;
     }
@@ -225,17 +215,17 @@ void EvoVulkan::Complexes::Shader::Destroy() {
         m_pipelineLayout = VK_NULL_HANDLE;
     }
 
-    for (auto module : m_shaderModules) {
+    for (auto&& module : m_shaderModules) {
         vkDestroyShaderModule(*m_device, module, nullptr);
-        m_shaderModules.clear();
     }
+    m_shaderModules.clear();
 
     if (m_pipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(*m_device, m_pipeline, nullptr);
         m_pipeline = VK_NULL_HANDLE;
     }
 
-    this->m_cache = VK_NULL_HANDLE;
+    m_cache = VK_NULL_HANDLE;
 }
 
 void EvoVulkan::Complexes::Shader::Free() {

@@ -420,7 +420,10 @@ EvoVulkan::Core::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDes
     }
 
     if (m_descriptorSet == VK_NULL_HANDLE) {
-        static const std::set<VkDescriptorType> type = {VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER};
+        static const std::set<VkDescriptorType> type = {
+                VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        };
+
         m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(layout, type);
 
         auto writer = EvoVulkan::Tools::Initializers::WriteDescriptorSet(

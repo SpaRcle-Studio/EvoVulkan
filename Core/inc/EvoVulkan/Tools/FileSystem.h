@@ -48,7 +48,13 @@ namespace EvoVulkan::Tools {
     }
 
     //! path must be a fix
-    static void CreatePath(const std::string& path, uint32_t offset = 0) {
+    static void CreatePath(std::string path, uint32_t offset = 0) {
+        if (path.empty())
+            return;
+
+        if (path.back() != '/')
+            path.append("/");
+
         auto pos = path.find('/', offset);
         if (pos != std::string::npos) {
             auto dir = Tools::Read(path, pos);

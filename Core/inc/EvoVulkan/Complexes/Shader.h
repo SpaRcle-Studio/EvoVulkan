@@ -39,13 +39,6 @@ namespace EvoVulkan::Complexes {
             return m_descriptorSetLayout;
         }
 
-        [[nodiscard]] inline std::set<VkDescriptorType> GetDescriptorTypes() const {
-            auto types = std::set<VkDescriptorType>();
-            for (VkDescriptorSetLayoutBinding binding : m_layoutBindings)
-                types.insert(binding.descriptorType);
-            return types;
-        }
-
         [[nodiscard]] inline std::vector<VkDeviceSize> GetUniformSizes() const {
             return m_uniformSizes;
         }
