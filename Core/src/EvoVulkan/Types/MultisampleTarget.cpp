@@ -2,9 +2,9 @@
 // Created by Nikita on 11.06.2021.
 //
 
+#include <EvoVulkan/Memory/Allocator.h>
 #include <EvoVulkan/Types/MultisampleTarget.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
-#include <EvoVulkan/Memory/Allocator.h>
 
 EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create(
         EvoVulkan::Types::Device *device,

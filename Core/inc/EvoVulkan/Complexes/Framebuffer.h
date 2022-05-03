@@ -16,7 +16,6 @@
 
 #include <EvoVulkan/DescriptorManager.h>
 #include <EvoVulkan/Types/MultisampleTarget.h>
-#include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Complexes {
     struct FrameBufferAttachment {

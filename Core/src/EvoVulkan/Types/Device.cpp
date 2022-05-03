@@ -2,10 +2,9 @@
 // Created by Nikita on 12.04.2021.
 //
 
-#include "EvoVulkan/Types/Device.h"
+#include <EvoVulkan/Types/Device.h>
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
-#include <EvoVulkan/Memory/Allocator.h>
 #include <EvoVulkan/Tools/DeviceTools.h>
 
 EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(const EvoDeviceCreateInfo& info) {

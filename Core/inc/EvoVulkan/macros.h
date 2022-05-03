@@ -18,8 +18,13 @@
     #include <vulkan/vulkan_win32.h>
 #endif
 
-#include <vk_mem_alloc.h>
 #include <string>
+#include <iostream>
+#include <functional>
+#include <set>
 #include <vector>
+#include <map>
+#include <algorithm>
+#include <mutex>
 
 #endif //EVOVULKAN_MACROS_H

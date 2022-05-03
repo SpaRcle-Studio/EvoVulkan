@@ -5,11 +5,7 @@
 #ifndef EVOVULKAN_VULKANDEBUG_H
 #define EVOVULKAN_VULKANDEBUG_H
 
-#include <iostream>
-#include <string>
-#include <functional>
-#include <set>
-#include <vector>
+#include <EvoVulkan/Tools/NonCopyable.h>
 
 namespace EvoVulkan::Tools {
     class VkDebug {
@@ -22,16 +18,19 @@ namespace EvoVulkan::Tools {
         static std::function<void(const std::string &msg)> Log;
         static std::function<void(const std::string &msg)> Graph;
         static std::function<void(const std::string &msg)> Warn;
-        static std::function<void(const std::string &msg)> Assert;
+        static std::function<bool(const std::string &msg)> Assert;
     };
 }
+
+#define EVK_MAKE_ASSERT(msg) std::string(msg).append("\nFile: ")           \
+            .append(__FILE__).append("\nLine: ").append(std::to_string(__LINE__)) \
 
 #define VK_LOG(msg)   EvoVulkan::Tools::VkDebug::Log(msg)
 #define VK_INFO(msg)  EvoVulkan::Tools::VkDebug::Log(msg) // todo!
 #define VK_WARN(msg)  EvoVulkan::Tools::VkDebug::Warn(msg)
 #define VK_ERROR(msg) EvoVulkan::Tools::VkDebug::Error(msg)
 #define VK_GRAPH(msg) EvoVulkan::Tools::VkDebug::Graph(msg)
-#define VK_ASSERT(msg) EvoVulkan::Tools::VkDebug::Assert(msg)
-#define VK_ASSERT2(expr, msg) { if (!(expr)) EvoVulkan::Tools::VkDebug::Assert(msg); }
+#define VK_ASSERT2(expr, msg) (!!(expr) || EvoVulkan::Tools::VkDebug::Assert(EVK_MAKE_ASSERT(msg)))
+#define VK_ASSERT(expr) VK_ASSERT2(expr, "An exception has been occured.")
 
 #endif //EVOVULKAN_VULKANDEBUG_H

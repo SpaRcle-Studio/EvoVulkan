@@ -4,13 +4,13 @@
 
 #if defined(EVO_VULKAN_EEPTH_STENCIL)
 
+#include <EvoVulkan/Memory/Allocator.h>
+
 #include <EvoVulkan/Types/DepthStencil.h>
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Swapchain.h>
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
-
-#include <EvoVulkan/Memory/Allocator.h>
 
 EvoVulkan::Types::DepthStencil* EvoVulkan::Types::DepthStencil::Create(
         EvoVulkan::Types::Device *device,

@@ -5,14 +5,13 @@
 #ifndef EVOVULKAN_DEVICE_H
 #define EVOVULKAN_DEVICE_H
 
-#include <EvoVulkan/macros.h>
+#include <EvoVulkan/Memory/Allocator.h>
 
 #include <EvoVulkan/Types/SwapChainSupportDetails.h>
 #include <EvoVulkan/Tools/VulkanHelper.h>
 #include <EvoVulkan/Types/FamilyQueues.h>
 #include <EvoVulkan/Types/Instance.h>
 
-#include <map>
 #include <EvoVulkan/Tools/NonCopyable.h>
 
 namespace EvoVulkan::Memory {

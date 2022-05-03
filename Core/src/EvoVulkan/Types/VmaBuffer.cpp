@@ -2,8 +2,8 @@
 // Created by Monika on 09.02.2022.
 //
 
-#include <EvoVulkan/Types/VmaBuffer.h>
 #include <EvoVulkan/Memory/Allocator.h>
+#include <EvoVulkan/Types/VmaBuffer.h>
 
 EvoVulkan::Types::VmaBuffer* EvoVulkan::Types::VmaBuffer::Create(
         EvoVulkan::Memory::Allocator* allocator,

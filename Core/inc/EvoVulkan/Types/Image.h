@@ -5,7 +5,7 @@
 #ifndef EVOVULKAN_IMAGE_H
 #define EVOVULKAN_IMAGE_H
 
-#include <EvoVulkan/macros.h>
+#include <EvoVulkan/Types/Device.h>
 
 namespace EvoVulkan::Memory {
     class Allocator;

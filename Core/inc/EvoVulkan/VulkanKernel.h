@@ -5,12 +5,7 @@
 #ifndef EVOVULKAN_VULKANKERNEL_H
 #define EVOVULKAN_VULKANKERNEL_H
 
-/*
-    1. helper
-    2. types
-    3. tools
-    4. core
- */
+#include <EvoVulkan/Memory/Allocator.h>
 
 #include <EvoVulkan/Tools/VulkanTools.h>
 #include <EvoVulkan/Tools/VulkanInsert.h>
@@ -23,7 +18,6 @@
 #include <EvoVulkan/Complexes/Framebuffer.h>
 
 #include <EvoVulkan/Types/MultisampleTarget.h>
-#include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Core {
     enum class FrameResult : uint8_t {

@@ -2,8 +2,8 @@
 // Created by Nikita on 16.05.2021.
 //
 
-#include <EvoVulkan/Types/Texture.h>
 #include <EvoVulkan/Memory/Allocator.h>
+#include <EvoVulkan/Types/Texture.h>
 
 uint64_t GetDataSize(uint32_t w, uint32_t h, uint8_t level) {
     uint64_t dataSize = 0;

@@ -22,10 +22,10 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 {
     Tools::VkDebug::Graph("VulkanKernel::PreInit() : pre-initializing Evo Vulkan kernel...");
 
-    this->m_appName          = appName;
-    this->m_engineName       = engineName;
-    this->m_validationLayers = validationLayers;
-    this->m_instExtensions   = instExtensions;
+    m_appName          = appName;
+    m_engineName       = engineName;
+    m_validationLayers = validationLayers;
+    m_instExtensions   = instExtensions;
 
     Complexes::Shader::SetGlslCompiler(glslc);
 

@@ -163,25 +163,45 @@ namespace EvoVulkan::Tools {
 
         //!=============================================================================================================
 
-        /*VkPhysicalDeviceImagelessFramebufferFeatures physicalDeviceImagelessFramebufferFeatures = {};
+        VkPhysicalDeviceImagelessFramebufferFeatures physicalDeviceImagelessFramebufferFeatures = {};
         physicalDeviceImagelessFramebufferFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
         physicalDeviceImagelessFramebufferFeatures.imagelessFramebuffer = true;
 
+        //!=============================================================================================================
+
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT floatFeatures;
+        floatFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
+        floatFeatures.pNext = nullptr;
+        floatFeatures.shaderBufferFloat32AtomicAdd = VK_TRUE;
+        floatFeatures.shaderBufferFloat32Atomics = VK_TRUE;
+        floatFeatures.shaderBufferFloat64Atomics = VK_FALSE;
+        floatFeatures.shaderBufferFloat64AtomicAdd = VK_FALSE;
+        floatFeatures.shaderSharedFloat32Atomics = VK_FALSE;
+        floatFeatures.shaderSharedFloat32AtomicAdd = VK_FALSE;
+        floatFeatures.shaderSharedFloat64Atomics = VK_FALSE;
+        floatFeatures.shaderSharedFloat64AtomicAdd = VK_FALSE;
+        floatFeatures.shaderImageFloat32Atomics = VK_FALSE;
+        floatFeatures.shaderImageFloat32AtomicAdd = VK_FALSE;
+        floatFeatures.sparseImageFloat32Atomics = VK_FALSE;
+        floatFeatures.sparseImageFloat32AtomicAdd = VK_FALSE;
+
+        //!=============================================================================================================
+
         VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
         deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-        deviceFeatures2.pNext = (void*)&physicalDeviceImagelessFramebufferFeatures;
-        deviceFeatures2.features = deviceFeatures;*/
+        deviceFeatures2.pNext = nullptr; //(void*)&floatFeatures;
+        deviceFeatures2.features = deviceFeatures;
 
-        //!==========
+        //!=============================================================================================================
 
         VkDeviceCreateInfo createInfo      = {};
         createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        //createInfo.pNext                   = (void*)&deviceFeatures2;
+        createInfo.pNext                   = (void*)&deviceFeatures2;
 
         createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos       = queueCreateInfos.data();
 
-        createInfo.pEnabledFeatures        = &deviceFeatures;
+        //createInfo.pEnabledFeatures        = &deviceFeatures;
 
         createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
@@ -189,7 +209,8 @@ namespace EvoVulkan::Tools {
         if (validLayers.empty()) {
             Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : validation layers disabled.");
             createInfo.enabledLayerCount = 0;
-        } else {
+        }
+        else {
             Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : validation layers enabled.");
 
             createInfo.enabledLayerCount   = static_cast<uint32_t>(validLayers.size());

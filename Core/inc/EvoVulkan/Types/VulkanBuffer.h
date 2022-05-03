@@ -6,7 +6,6 @@
 #define EVOVULKAN_VULKANBUFFER_H
 
 #include <EvoVulkan/Types/Device.h>
-#include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Types {
     class Device;

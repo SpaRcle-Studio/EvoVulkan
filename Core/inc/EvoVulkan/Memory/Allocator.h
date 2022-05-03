@@ -5,13 +5,12 @@
 #ifndef EVOVULKAN_ALLOCATOR_H
 #define EVOVULKAN_ALLOCATOR_H
 
+#include <EvoVulkan/Tools/VulkanDebug.h>
 #include "vk_mem_alloc.h"
-
-#include <EvoVulkan/Tools/NonCopyable.h>
-#include <EvoVulkan/Types/Image.h>
 
 namespace EvoVulkan::Types {
     class Device;
+    class Image;
 }
 
 namespace EvoVulkan::Memory {

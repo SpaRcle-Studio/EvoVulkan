@@ -5,6 +5,8 @@
 #ifndef EVOVULKAN_INSTANCE_H
 #define EVOVULKAN_INSTANCE_H
 
+#include <EvoVulkan/macros.h>
+
 namespace EvoVulkan::Types {
     class Instance {
     private:

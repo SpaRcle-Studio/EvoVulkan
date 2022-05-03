@@ -156,6 +156,8 @@ namespace EvoVulkan::Tools::Initializers {
             VkDescriptorBufferInfo* bufferInfo,
             uint32_t descriptorCount = 1)
     {
+        VK_ASSERT(binding != static_cast<uint32_t>(-1));
+
         if (bufferInfo->buffer == VK_NULL_HANDLE)
             VK_WARN("Initializers::WriteDescriptorSet() : buffer is NULL! You must create uniform buffer.");
 

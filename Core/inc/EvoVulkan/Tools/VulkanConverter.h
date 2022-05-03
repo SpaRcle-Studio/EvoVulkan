@@ -5,7 +5,7 @@
 #ifndef EVOVULKAN_VULKANCONVERTER_H
 #define EVOVULKAN_VULKANCONVERTER_H
 
-#include <EvoVulkan/macros.h>
+#include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Tools::Convert {
     [[maybe_unused]] static VkMemoryPropertyFlags VmaMemoryUsageToVkMemoryProperty(VmaMemoryUsage usage) {

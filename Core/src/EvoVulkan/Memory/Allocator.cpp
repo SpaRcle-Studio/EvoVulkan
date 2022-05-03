@@ -2,9 +2,12 @@
 // Created by Monika on 01.02.2022.
 //
 
-#define VMA_IMPLEMENTATION
 #include <EvoVulkan/Memory/Allocator.h>
-#include <EvoVulkan/Tools/VulkanDebug.h>
+
+#define VMA_IMPLEMENTATION
+
+#define VMA_ASSERT(expr) VK_ASSERT(expr)
+#include "vk_mem_alloc.h"
 
 EvoVulkan::Memory::Allocator *EvoVulkan::Memory::Allocator::Create(EvoVulkan::Types::Device *device) {
     auto allocator = new Allocator(device);
