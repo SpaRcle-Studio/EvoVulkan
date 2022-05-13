@@ -14,6 +14,10 @@
 
 #define EVK_INLINE inline
 
+#define EVK_MAX(a, b) (a > b ? a : b)
+#define EVK_MIN(a, b) (a < b ? a : b)
+#define EVK_CLAMP(x, upper, lower) (EVK_MIN(upper, EVK_MAX(x, lower)))
+
 #ifdef WIN32
     #include <vulkan/vulkan_win32.h>
 #endif

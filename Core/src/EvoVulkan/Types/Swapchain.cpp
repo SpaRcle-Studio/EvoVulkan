@@ -18,8 +18,9 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
         EvoVulkan::Types::Surface *surface,
         EvoVulkan::Types::Device *device,
         bool vsync,
-        unsigned int width,
-        unsigned int height)
+        uint32_t width,
+        uint32_t height,
+        uint32_t imagesCount)
 {
     VK_GRAPH("Swapchain::Create() : create vulkan swapchain...");
 
@@ -43,7 +44,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
         return nullptr;
     }
 
-    if (!swapchain->ReSetup(width, height)) {
+    if (!swapchain->ReSetup(width, height, imagesCount)) {
         Tools::VkDebug::Error("Swapchain::Create() : failed to setup swapchain!");
         return nullptr;
     }
@@ -53,7 +54,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
     return swapchain;
 }
 
-bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height) {
+bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint32_t countImages) {
     Tools::VkDebug::Graph("Swapchain::ReSetup() : re-setup vulkan swapchain...");
 
     VkSwapchainKHR oldSwapchain = m_swapchain;
@@ -75,14 +76,14 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height) {
         return false;
     }
 
-    this->m_surfaceWidth  = surfCaps.currentExtent.width;
-    this->m_surfaceHeight = surfCaps.currentExtent.height;
+    m_surfaceWidth  = surfCaps.currentExtent.width;
+    m_surfaceHeight = surfCaps.currentExtent.height;
 
     VK_GRAPH("Swapchain::ReSetup() : get present mode...");
-    this->m_presentMode = Tools::GetPresentMode(*m_device, *m_surface, m_vsync);
+    m_presentMode = Tools::GetPresentMode(*m_device, *m_surface, m_vsync);
 
-    // Determine the number of images
-    uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
+    /// Determine the number of images
+    uint32_t desiredNumberOfSwapchainImages = EVK_MAX(surfCaps.minImageCount, countImages);
     VkSurfaceTransformFlagsKHR preTransform;
     {
         if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
@@ -159,15 +160,24 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height) {
     Tools::VkDebug::Graph("Swapchain::ReSetup() : create images...");
     if (m_swapchainImages) { // images data automatic destroy after destroying swapchain
         free(m_swapchainImages);
-        this->m_countImages = 0;
+        m_countImages = 0;
         m_swapchainImages   = nullptr;
     }
-    this->CreateImages();
+
+    if (!CreateImages()) {
+        VK_ERROR("Swapchain::ReSetup() : failed to create images!");
+        return false;
+    }
 
     Tools::VkDebug::Graph("Swapchain::ReSetup() : create buffers...");
-    if (m_buffers)
-        this->DestroyBuffers();
-    this->CreateBuffers();
+    if (m_buffers) {
+        DestroyBuffers();
+    }
+
+    if (!CreateBuffers()) {
+        VK_ERROR("Swapchain::ReSetup() : failed to create buffers!");
+        return false;
+    }
 
     Tools::VkDebug::Graph("Swapchain::ReSetup() : swapchain successfully re-configured!");
 
@@ -187,27 +197,27 @@ void EvoVulkan::Types::Swapchain::Destroy() {
         return;
     }
 
-    this->DestroyBuffers();
+    DestroyBuffers();
 
     vkDestroySwapchainKHR(*m_device, m_swapchain, nullptr);
-    this->m_swapchain = VK_NULL_HANDLE;
+    m_swapchain = VK_NULL_HANDLE;
 
-    this->m_device      = nullptr;
-    this->m_surface     = nullptr;
-    this->m_presentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
-    this->m_instance    = VK_NULL_HANDLE;
+    m_device      = nullptr;
+    m_surface     = nullptr;
+    m_presentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
+    m_instance    = VK_NULL_HANDLE;
 }
 
 bool EvoVulkan::Types::Swapchain::IsReady() const {
-    return  m_swapchain != VK_NULL_HANDLE &&
-            m_device    != nullptr        &&
-            m_instance  != VK_NULL_HANDLE &&
-            m_surface   != nullptr        &&
+    return m_swapchain != VK_NULL_HANDLE &&
+           m_device    != nullptr        &&
+           m_instance  != VK_NULL_HANDLE &&
+           m_surface   != nullptr        &&
 
-            m_presentMode != VK_PRESENT_MODE_MAX_ENUM_KHR &&
-            m_colorFormat != VK_FORMAT_UNDEFINED          &&
-            m_colorSpace  != VK_COLOR_SPACE_MAX_ENUM_KHR  &&
-            m_depthFormat != VK_FORMAT_UNDEFINED;
+           m_presentMode != VK_PRESENT_MODE_MAX_ENUM_KHR &&
+           m_colorFormat != VK_FORMAT_UNDEFINED          &&
+           m_colorSpace  != VK_COLOR_SPACE_MAX_ENUM_KHR  &&
+           m_depthFormat != VK_FORMAT_UNDEFINED;
 }
 
 bool EvoVulkan::Types::Swapchain::InitFormats() {
@@ -228,8 +238,9 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
     auto formatCount = m_surface->GetCountSurfFmts();
     auto surfFormats = m_surface->GetSurfaceFormats();
 
-    if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED)
+    if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED) {
         m_colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
+    }
     else
         m_colorFormat = surfFormats[0].format;
 
@@ -245,7 +256,7 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
 
 void EvoVulkan::Types::Swapchain::DestroyBuffers() {
     if (m_countImages > 0 && m_swapchainImages && m_device) {
-        for (uint32_t i = 0; i < m_countImages; i++)
+        for (uint32_t i = 0; i < m_countImages; ++i)
             vkDestroyImageView(*m_device, m_buffers[i].m_view, nullptr);
 
         free(m_buffers);
@@ -255,14 +266,18 @@ void EvoVulkan::Types::Swapchain::DestroyBuffers() {
 }
 
 bool EvoVulkan::Types::Swapchain::CreateImages() {
-    this->m_countImages = 0;
-
-    vkGetSwapchainImagesKHR(*m_device, m_swapchain, &m_countImages, NULL);
+    VkResult result = vkGetSwapchainImagesKHR(*m_device, m_swapchain, &m_countImages, NULL);
+    if (result != VK_SUCCESS) {
+        Tools::VkDebug::Error("Swapchain::CreateImages() : failed to get swapchain images count!");
+        return false;
+    }
 
     if (m_countImages == 0) {
         Tools::VkDebug::Error("Swapchain::CreateImages() : count swapchain images is zero!");
         return false;
     }
+
+    VK_LOG("Swapchain::CreateImages() : use " + std::to_string(m_countImages) + " images");
 
     m_swapchainImages = (VkImage*)malloc(m_countImages * sizeof(VkImage));
     if (!m_swapchainImages) {
@@ -270,9 +285,12 @@ bool EvoVulkan::Types::Swapchain::CreateImages() {
         return false;
     }
 
-    auto result = vkGetSwapchainImagesKHR(*m_device, m_swapchain, &m_countImages, m_swapchainImages);
+    result = vkGetSwapchainImagesKHR(*m_device, m_swapchain, &m_countImages, m_swapchainImages);
     if (result != VK_SUCCESS) {
-        Tools::VkDebug::Error("Swapchain::CreateImages() : failed to get swapchain images!");
+        VK_ERROR("Swapchain::CreateImages() : failed to get swapchain images!"
+                 "\n\tReason: " + Tools::Convert::result_to_string(result) +
+                 "\n\tDesciption: " + Tools::Convert::result_to_description(result)
+        );
         return false;
     }
 

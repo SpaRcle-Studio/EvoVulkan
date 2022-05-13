@@ -60,7 +60,7 @@ namespace EvoVulkan::Types {
 
         bool SurfaceIsAvailable();
 
-        bool ReSetup(uint32_t width, uint32_t height);
+        bool ReSetup(uint32_t width, uint32_t height, uint32_t countImages);
 
         [[nodiscard]] SwapChainBuffer* GetBuffers()   const { return m_buffers;       }
         [[nodiscard]] uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;  }
@@ -119,8 +119,9 @@ namespace EvoVulkan::Types {
                 Surface* surface,
                 Device* device,
                 bool vsync,
-                unsigned int width,
-                unsigned int height);
+                uint32_t width,
+                uint32_t height,
+                uint32_t imagesCount);
 
         void Destroy() override;
         void Free() override;

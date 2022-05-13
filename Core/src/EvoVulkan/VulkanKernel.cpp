@@ -144,23 +144,24 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     VK_GRAPH("VulkanKernel::Init() : create vulkan swapchain with sizes: width = " +
              std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
 
-    this->m_width  = m_newWidth;
-    this->m_height = m_newHeight;
+    m_width  = m_newWidth;
+    m_height = m_newHeight;
 
-    this->m_swapchain = Types::Swapchain::Create(
+    m_swapchain = Types::Swapchain::Create(
             *m_instance,
             m_surface,
             m_device,
             vsync,
             m_width,
-            m_height);
+            m_height,
+            m_swapchainImages);
 
-    if (!this->m_swapchain) {
+    if (!m_swapchain) {
         VK_ERROR("VulkanKernel::Init() : failed to create swapchain!");
         return false;
     }
 
-    if (!this->m_swapchain->IsReady()) {
+    if (!m_swapchain->IsReady()) {
         VK_ERROR("VulkanKernel::Init() : swapchain isn't ready!");
         return false;
     }
@@ -198,7 +199,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create wait fences...");
-    this->m_waitFences = Tools::CreateFences(*m_device, this->m_countDCB);
+    m_waitFences = Tools::CreateFences(*m_device, this->m_countDCB);
     if (m_waitFences.empty()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create wait fences!");
         return false;
@@ -354,8 +355,8 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     VkFramebufferCreateInfo frameBufferCreateInfo = {};
     frameBufferCreateInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     frameBufferCreateInfo.pNext                   = NULL;
-    frameBufferCreateInfo.renderPass              = this->m_renderPass.m_self;
-    frameBufferCreateInfo.attachmentCount         = this->m_renderPass.m_countAttachments;
+    frameBufferCreateInfo.renderPass              = m_renderPass.m_self;
+    frameBufferCreateInfo.attachmentCount         = m_renderPass.m_countAttachments;
     frameBufferCreateInfo.pAttachments            = attachments.data();
     frameBufferCreateInfo.width                   = m_swapchain->GetSurfaceWidth();
     frameBufferCreateInfo.height                  = m_swapchain->GetSurfaceHeight();
@@ -440,7 +441,9 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
             return FrameResult::Error;
         }
     }
+
     result = vkQueueWaitIdle(m_device->GetGraphicsQueue());
+
     if (result != VK_SUCCESS) {
         VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue wait idle! Reason: " +
                  Tools::Convert::result_to_description(result));
@@ -476,8 +479,8 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
 
     vkDeviceWaitIdle(*m_device);
 
-    this->m_width  = m_newWidth;
-    this->m_height = m_newHeight;
+    m_width  = m_newWidth;
+    m_height = m_newHeight;
 
     m_newWidth = -1;
     m_newHeight = -1;
@@ -485,7 +488,7 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
     if (!m_swapchain->SurfaceIsAvailable())
         return true;
 
-    if (!m_swapchain->ReSetup(m_width, m_height)) {
+    if (!m_swapchain->ReSetup(m_width, m_height, m_swapchainImages)) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-setup swapchain!");
         return false;
     }
@@ -495,18 +498,18 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
     //    return false;
    // }
 
-    if (!this->ReCreateFrameBuffers()) {
+    if (!ReCreateFrameBuffers()) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create frame buffers!");
         return false;
     }
 
     VK_LOG("VulkanKernel::ResizeWindow() : call custom on-resize function...");
-    if (!this->OnResize()) {
+    if (!OnResize()) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to resize inherited class!");
         return false;
     }
 
-    if (!this->BuildCmdBuffers()) {
+    if (!BuildCmdBuffers()) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to build command buffer!");
         return false;
     }
@@ -515,8 +518,8 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
 }
 
 void EvoVulkan::Core::VulkanKernel::SetMultisampling(const uint32_t &sampleCount) {
-    this->m_multisampling = sampleCount > 1;
-    this->m_sampleCount   = sampleCount;
+    m_multisampling = sampleCount > 1;
+    m_sampleCount   = sampleCount;
 }
 
 void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
@@ -524,15 +527,24 @@ void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
 
     VK_LOG("VulkanKernel::SetSize() : set new sizes: " + std::to_string(width) + "x" + std::to_string(height));
 
-    this->m_newWidth  = width;
-    this->m_newHeight = height;
+    m_newWidth  = width;
+    m_newHeight = height;
 
     bool oldPause = m_paused;
     m_paused = m_newHeight == 0 || m_newWidth == 0;
     if (oldPause != m_paused) {
-        if (m_paused)
+        if (m_paused) {
             VK_LOG("VulkanKernel::SetSize() : window has been collapsed!");
+        }
         else
             VK_LOG("VulkanKernel::SetSize() : window has been expend!");
     }
+}
+
+uint32_t EvoVulkan::Core::VulkanKernel::GetCountBuildIterations() const {
+    return m_swapchain->GetCountImages();
+}
+
+void EvoVulkan::Core::VulkanKernel::SetSwapchainImagesCount(uint32_t count) {
+    m_swapchainImages = count;
 }

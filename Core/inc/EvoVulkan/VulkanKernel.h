@@ -53,7 +53,6 @@ namespace EvoVulkan::Core {
         std::mutex                 m_mutex                = std::mutex();
 
         bool                       m_multisampling        = false;
-        uint32_t                   m_sampleCount          = 1;
 
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
@@ -61,8 +60,10 @@ namespace EvoVulkan::Core {
         int32_t                    m_newWidth             = -1;
         int32_t                    m_newHeight            = -1;
 
-        unsigned int               m_width                = 0;
-        unsigned int               m_height               = 0;
+        uint32_t                   m_width                = 0;
+        uint32_t                   m_height               = 0;
+        uint32_t                   m_swapchainImages      = 0;
+        uint32_t                   m_sampleCount          = 1;
 
         Types::RenderPass          m_renderPass           = { };
         VkPipelineCache            m_pipelineCache        = VK_NULL_HANDLE;
@@ -106,7 +107,7 @@ namespace EvoVulkan::Core {
     public:
         virtual bool BuildCmdBuffers() = 0;
     public:
-        [[nodiscard]] inline uint32_t GetCountBuildIterations() noexcept { return 3; }
+        [[nodiscard]] uint32_t GetCountBuildIterations() const;
         [[nodiscard]] inline VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
 
         [[nodiscard]] inline VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
@@ -172,6 +173,7 @@ namespace EvoVulkan::Core {
         }
 
         void SetMultisampling(const uint32_t& sampleCount);
+        void SetSwapchainImagesCount(uint32_t count);
 
         void SetGUIEnabled(bool enabled) { this->m_GUIEnabled = enabled; }
 
@@ -181,7 +183,7 @@ namespace EvoVulkan::Core {
                 return false;
             }
 
-            this->m_validationEnabled = value;
+            m_validationEnabled = value;
 
             return true;
         }
