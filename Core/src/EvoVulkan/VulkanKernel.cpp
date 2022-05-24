@@ -224,7 +224,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create render pass...");
-    this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, {}, m_multisampling);
+    m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, {}, m_multisampling);
     if (!m_renderPass.Ready()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
         return false;
@@ -233,25 +233,14 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create synchronizations...");
-    this->m_syncs = Tools::CreateSynchronization(*m_device);
-    if (!m_syncs.IsReady()) {
+    if (!ReCreateSynchronizations()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create synchronizations!");
         return false;
     }
 
-    // Set up submit info structure
-    // Semaphores will stay the same during application lifetime
-    // Command buffer submission info is set by each example
-    m_submitInfo = Tools::Initializers::SubmitInfo();
-    m_submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
-    m_submitInfo.waitSemaphoreCount   = 1;
-    m_submitInfo.pWaitSemaphores      = &m_syncs.m_presentComplete;
-    m_submitInfo.signalSemaphoreCount = 1;
-    m_submitInfo.pSignalSemaphores    = &m_syncs.m_renderComplete;
-
     //!=================================================================================================================
 
-    this->m_pipelineCache = Tools::CreatePipelineCache(*m_device);
+    m_pipelineCache = Tools::CreatePipelineCache(*m_device);
     if (m_pipelineCache == VK_NULL_HANDLE) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create pipeline cache!");
         return false;
@@ -509,6 +498,12 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
         return false;
     }
 
+    VK_GRAPH("VulkanKernel::ResizeWindow() : re-create synchronizations...");
+    if (!ReCreateSynchronizations()) {
+        VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create synchronizations!");
+        return false;
+    }
+
     if (!BuildCmdBuffers()) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to build command buffer!");
         return false;
@@ -525,7 +520,7 @@ void EvoVulkan::Core::VulkanKernel::SetMultisampling(const uint32_t &sampleCount
 void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    VK_LOG("VulkanKernel::SetSize() : set new sizes: " + std::to_string(width) + "x" + std::to_string(height));
+    VK_LOG("VulkanKernel::SetSize() : set new surface sizes: " + std::to_string(width) + "x" + std::to_string(height));
 
     m_newWidth  = width;
     m_newHeight = height;
@@ -547,4 +542,28 @@ uint32_t EvoVulkan::Core::VulkanKernel::GetCountBuildIterations() const {
 
 void EvoVulkan::Core::VulkanKernel::SetSwapchainImagesCount(uint32_t count) {
     m_swapchainImages = count;
+}
+
+bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations() {
+    if (m_syncs.IsReady()) {
+        Tools::DestroySynchronization(*m_device, &m_syncs);
+    }
+
+    m_syncs = Tools::CreateSynchronization(*m_device);
+    if (!m_syncs.IsReady()) {
+        VK_ERROR("VulkanKernel::ReCreateSynchronizations() : failed to create synchronizations!");
+        return false;
+    }
+
+    /// Set up submit info structure
+    /// Semaphores will stay the same during application lifetime
+    /// Command buffer submission info is set by each example
+    m_submitInfo = Tools::Initializers::SubmitInfo();
+    m_submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
+    m_submitInfo.waitSemaphoreCount   = 1;
+    m_submitInfo.pWaitSemaphores      = &m_syncs.m_presentComplete;
+    m_submitInfo.signalSemaphoreCount = 1;
+    m_submitInfo.pSignalSemaphores    = &m_syncs.m_renderComplete;
+
+    return true;
 }

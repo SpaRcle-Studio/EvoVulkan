@@ -95,9 +95,12 @@ namespace EvoVulkan::Core {
         uint8_t                    m_countDCB             = 0;
         VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
         std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
+
     private:
         bool ReCreateFrameBuffers();
+        bool ReCreateSynchronizations();
         void DestroyFrameBuffers();
+
     public:
         FrameResult PrepareFrame();
         RenderResult NextFrame();
