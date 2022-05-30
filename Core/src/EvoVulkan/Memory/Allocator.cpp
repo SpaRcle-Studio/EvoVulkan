@@ -119,7 +119,7 @@ EvoVulkan::Memory::RawMemory EvoVulkan::Memory::Allocator::AllocateMemory(VkMemo
 
 bool EvoVulkan::Memory::Allocator::FreeMemory(EvoVulkan::Memory::RawMemory *memory) {
     if (!memory) {
-        Tools::VkDebug::Error("Allocator::FreeMemory() : memory is nullptr!");
+        VK_ERROR("Allocator::FreeMemory() : memory is nullptr!");
         return false;
     }
 
@@ -130,7 +130,7 @@ bool EvoVulkan::Memory::Allocator::FreeMemory(EvoVulkan::Memory::RawMemory *memo
         return true;
     }
     else {
-        Tools::VkDebug::Error("Allocator::FreeMemory() : vulkan memory is nullptr!");
+        VK_ERROR("Allocator::FreeMemory() : vulkan memory is nullptr!");
         return false;
     }
 }

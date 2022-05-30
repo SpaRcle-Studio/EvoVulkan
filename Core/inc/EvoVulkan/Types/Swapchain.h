@@ -5,9 +5,6 @@
 #ifndef EVOVULKAN_SWAPCHAIN_H
 #define EVOVULKAN_SWAPCHAIN_H
 
-#include <vulkan/vulkan.h>
-#include <vector>
-
 #include <EvoVulkan/Types/Base/VulkanObject.h>
 
 namespace EvoVulkan::Types {
@@ -15,60 +12,43 @@ namespace EvoVulkan::Types {
     class Surface;
     class CmdBuffer;
 
-    typedef struct _SwapChainBuffers {
+    struct DLL_EVK_EXPORT SwapChainBuffer {
         VkImage     m_image;
         VkImageView m_view;
-    } SwapChainBuffer;
+    };
 
-    class Swapchain : public IVkObject {
+    class DLL_EVK_EXPORT Swapchain : public IVkObject {
+    protected:
+        Swapchain() = default;
+        ~Swapchain() override = default;
+
     public:
-        Swapchain(const Swapchain&) = delete;
-    private:
-        VkSwapchainKHR   m_swapchain       = VK_NULL_HANDLE;
-        Device*          m_device          = nullptr;
-        Surface*         m_surface         = nullptr;
-        VkInstance       m_instance        = VK_NULL_HANDLE;
+        static Swapchain* Create(
+                const VkInstance& instance,
+                Surface* surface,
+                Device* device,
+                bool vsync,
+                uint32_t width,
+                uint32_t height,
+                uint32_t imagesCount);
 
-        VkPresentModeKHR m_presentMode     = VK_PRESENT_MODE_MAX_ENUM_KHR;
-
-        VkFormat         m_depthFormat     = {};
-        VkFormat         m_colorFormat     = VK_FORMAT_UNDEFINED;
-        VkColorSpaceKHR  m_colorSpace      = VkColorSpaceKHR::VK_COLOR_SPACE_MAX_ENUM_KHR;
-
-        //! note: images will be automatic destroyed after destroying swapchain
-        VkImage*         m_swapchainImages = nullptr;
-        uint32_t         m_countImages     = 0;
-
-        SwapChainBuffer* m_buffers         = nullptr;
-
-        uint32_t         m_surfaceWidth    = 0;
-        uint32_t         m_surfaceHeight   = 0;
-
-        bool             m_vsync           = false;
-    private:
-        bool InitFormats();
-
-        bool CreateBuffers();
-        void DestroyBuffers();
-
-        bool CreateImages();
-    private:
-        Swapchain()  = default;
-        ~Swapchain() = default;
     public:
-        [[nodiscard]] bool IsReady() const override;
+        void Destroy() override;
+        void Free() override;
 
         bool SurfaceIsAvailable();
 
         bool ReSetup(uint32_t width, uint32_t height, uint32_t countImages);
 
-        [[nodiscard]] SwapChainBuffer* GetBuffers()   const { return m_buffers;       }
-        [[nodiscard]] uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;  }
-        [[nodiscard]] uint32_t GetSurfaceHeight()     const { return m_surfaceHeight; }
-        [[nodiscard]] VkFormat GetDepthFormat()       const { return m_depthFormat;   }
-        [[nodiscard]] VkFormat GetColorFormat()       const { return m_colorFormat;   }
-        [[nodiscard]] VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;    }
-        [[nodiscard]] uint32_t GetCountImages()       const { return m_countImages;   }
+        EVK_NODISCARD SwapChainBuffer* GetBuffers()   const { return m_buffers;       }
+        EVK_NODISCARD uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;  }
+        EVK_NODISCARD uint32_t GetSurfaceHeight()     const { return m_surfaceHeight; }
+        EVK_NODISCARD VkFormat GetDepthFormat()       const { return m_depthFormat;   }
+        EVK_NODISCARD VkFormat GetColorFormat()       const { return m_colorFormat;   }
+        EVK_NODISCARD VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;    }
+        EVK_NODISCARD uint32_t GetCountImages()       const { return m_countImages;   }
+        EVK_NODISCARD bool IsReady() const override;
+
     public:
         /**
         * Acquires the next image in the swap chain
@@ -91,7 +71,7 @@ namespace EvoVulkan::Types {
         *
         * @return VkResult of the queue presentation
         */
-        inline VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore) const {
+        EVK_INLINE VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore) const {
             VkPresentInfoKHR presentInfo = {};
             presentInfo.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
             presentInfo.pNext            = NULL;
@@ -113,18 +93,38 @@ namespace EvoVulkan::Types {
                 return VK_ERROR_UNKNOWN;
             }
         }
-    public:
-        static Swapchain* Create(
-                const VkInstance& instance,
-                Surface* surface,
-                Device* device,
-                bool vsync,
-                uint32_t width,
-                uint32_t height,
-                uint32_t imagesCount);
 
-        void Destroy() override;
-        void Free() override;
+    private:
+        bool InitFormats();
+
+        bool CreateBuffers();
+        void DestroyBuffers();
+
+        bool CreateImages();
+
+    private:
+        VkSwapchainKHR   m_swapchain       = VK_NULL_HANDLE;
+        Device*          m_device          = nullptr;
+        Surface*         m_surface         = nullptr;
+        VkInstance       m_instance        = VK_NULL_HANDLE;
+
+        VkPresentModeKHR m_presentMode     = VK_PRESENT_MODE_MAX_ENUM_KHR;
+
+        VkFormat         m_depthFormat     = {};
+        VkFormat         m_colorFormat     = VK_FORMAT_UNDEFINED;
+        VkColorSpaceKHR  m_colorSpace      = VkColorSpaceKHR::VK_COLOR_SPACE_MAX_ENUM_KHR;
+
+        //! note: images will be automatic destroyed after destroying swapchain
+        VkImage*         m_swapchainImages = nullptr;
+        uint32_t         m_countImages     = 0;
+
+        SwapChainBuffer* m_buffers         = nullptr;
+
+        uint32_t         m_surfaceWidth    = 0;
+        uint32_t         m_surfaceHeight   = 0;
+
+        bool             m_vsync           = false;
+
     };
 }
 

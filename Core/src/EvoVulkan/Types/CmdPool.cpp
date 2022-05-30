@@ -30,7 +30,7 @@ void EvoVulkan::Types::CmdPool::Free() {
 }
 
 EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::Device *device) {
-    Tools::VkDebug::Graph("CmdPool::Create() : create vulkan command pool...");
+    VK_GRAPH("CmdPool::Create() : create vulkan command pool...");
 
     if (!device->IsReady()) {
         VK_ERROR("CmdPool::Create() : device isn't ready!");
@@ -46,7 +46,7 @@ EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::D
 
     VkResult vkRes = vkCreateCommandPool(*device, &cmdPoolInfo, nullptr, &cmdPool);
     if (vkRes != VK_SUCCESS) {
-        Tools::VkDebug::Error("CmdPool::CreateCmd() : failed to create command pool! Reason: "
+        VK_ERROR("CmdPool::CreateCmd() : failed to create command pool! Reason: "
             + Tools::Convert::result_to_description(vkRes));
         return nullptr;
     }

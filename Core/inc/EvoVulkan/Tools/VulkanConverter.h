@@ -8,7 +8,7 @@
 #include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Tools::Convert {
-    [[maybe_unused]] static VkMemoryPropertyFlags VmaMemoryUsageToVkMemoryProperty(VmaMemoryUsage usage) {
+    EVK_MAYBE_UNUSED static VkMemoryPropertyFlags VmaMemoryUsageToVkMemoryProperty(VmaMemoryUsage usage) {
         switch(usage)  {
             case VMA_MEMORY_USAGE_GPU_ONLY:
                 return VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;

@@ -134,3 +134,23 @@ VkCommandBuffer EvoVulkan::Types::CmdBuffer::CreateSimple(const Device* device,
         return cmdBuffer;
 }
 
+bool EvoVulkan::Types::CmdBuffer::Begin(const VkCommandBufferUsageFlagBits &usage) {
+    if (!IsReady()) {
+        VK_ERROR("CmdBuffer::Begin() : command buffer isn't ready!");
+        return false;
+    }
+
+    VkCommandBufferBeginInfo cmdBufInfo = {};
+    cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmdBufInfo.flags = usage;
+
+    auto result = vkBeginCommandBuffer(m_buffer, &cmdBufInfo);
+    if (result != VK_SUCCESS) {
+        VK_ERROR("CmdBuffer::Begin() : failed to begin command buffer!");
+        return false;
+    }
+
+    m_isBegin = true;
+
+    return true;
+}

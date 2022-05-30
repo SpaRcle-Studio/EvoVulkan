@@ -5,14 +5,14 @@
 #ifndef EVOVULKAN_SYNCHRONIZATION_H
 #define EVOVULKAN_SYNCHRONIZATION_H
 
-#ifdef __MINGW32__
+#include <EvoVulkan/Tools/NonCopyable.h>
+
+#ifdef EVK_MINGW
     #pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
-#include <vulkan/vulkan.h>
-
 namespace EvoVulkan::Types {
-    struct Synchronization {
+    struct DLL_EVK_EXPORT Synchronization {
         // Swap chain image presentation
         VkSemaphore  m_presentComplete;
         // Command buffer submission and execution

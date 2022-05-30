@@ -5,7 +5,6 @@
 #ifndef EVOVULKAN_VMABUFFER_H
 #define EVOVULKAN_VMABUFFER_H
 
-#include <EvoVulkan/macros.h>
 #include <EvoVulkan/Tools/NonCopyable.h>
 
 namespace EvoVulkan::Memory {
@@ -15,10 +14,10 @@ namespace EvoVulkan::Memory {
 namespace EvoVulkan::Types {
     class Device;
 
-    struct VmaBuffer : Tools::NonCopyable {
+    struct DLL_EVK_EXPORT VmaBuffer : Tools::NonCopyable {
     private:
         VmaBuffer(Memory::Allocator* allocator, VkDeviceSize size);
-        ~VmaBuffer() = default;
+        ~VmaBuffer() override = default;
 
     public:
         operator VkBuffer() const { return m_buffer.m_buffer; }
@@ -37,8 +36,8 @@ namespace EvoVulkan::Types {
                 void *data = nullptr);
 
     public:
-        [[nodiscard]] const VkBuffer* GetCRef() const { return &m_buffer.m_buffer; }
-        [[nodiscard]] VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
+        EVK_NODISCARD const VkBuffer* GetCRef() const { return &m_buffer.m_buffer; }
+        EVK_NODISCARD VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
 
         void CopyToDevice(void *data, bool flush = false);
         void SetupDescriptor(VkDeviceSize offset = 0);

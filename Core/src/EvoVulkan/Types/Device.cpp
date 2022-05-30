@@ -9,17 +9,17 @@
 
 EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(const EvoDeviceCreateInfo& info) {
     if (info.physicalDevice == VK_NULL_HANDLE) {
-        Tools::VkDebug::Error("Device::Create() : physical device is nullptr!");
+        VK_ERROR("Device::Create() : physical device is nullptr!");
         return nullptr;
     }
 
     if (info.logicalDevice == VK_NULL_HANDLE) {
-        Tools::VkDebug::Error("Device::Create() : logical device is nullptr!");
+        VK_ERROR("Device::Create() : logical device is nullptr!");
         return nullptr;
     }
 
     if (info.familyQueues == nullptr) {
-        Tools::VkDebug::Error("Device::Create() : family queues is nullptr!");
+        VK_ERROR("Device::Create() : family queues is nullptr!");
         return nullptr;
     }
 
@@ -75,7 +75,7 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(const EvoDeviceCreate
 }
 
 void EvoVulkan::Types::Device::Free() {
-    Tools::VkDebug::Log("Device::Free() : free device pointer...");
+    VK_LOG("Device::Free() : free device pointer...");
 
     delete this;
 }
@@ -88,10 +88,10 @@ bool EvoVulkan::Types::Device::IsReady() const {
 }
 
 bool EvoVulkan::Types::Device::Destroy() {
-    Tools::VkDebug::Log("Device::Destroy() : destroying vulkan device...");
+    VK_LOG("Device::Destroy() : destroying vulkan device...");
 
-    if (!this->IsReady()) {
-        Tools::VkDebug::Error("Device::Destroy() : device isn't ready!");
+    if (!IsReady()) {
+        VK_ERROR("Device::Destroy() : device isn't ready!");
         return false;
     }
 

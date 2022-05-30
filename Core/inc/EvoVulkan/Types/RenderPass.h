@@ -6,15 +6,12 @@
 #define EVOVULKAN_RENDERPASS_H
 
 #include <EvoVulkan/Tools/VulkanHelper.h>
-#include <array>
-#include <vector>
-
 #include <EvoVulkan/Types/Swapchain.h>
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/MultisampleTarget.h>
 
 namespace EvoVulkan::Types {
-    struct RenderPass {
+    struct DLL_EVK_EXPORT RenderPass {
         VkRenderPass m_self;
         uint32_t m_countAttachments;
         uint32_t m_countColorAttach;

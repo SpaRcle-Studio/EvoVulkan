@@ -95,7 +95,7 @@ private:
 
     mesh meshes[3];
 public:
-    void Render() override {
+    Core::RenderResult Render() override {
         if (this->PrepareFrame() == Core::FrameResult::OutOfDate)
             this->m_hasErrors = !this->ResizeWindow();
 

@@ -5,13 +5,7 @@
 #ifndef EVOVULKAN_FILESYSTEM_H
 #define EVOVULKAN_FILESYSTEM_H
 
-#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-
 #include <EvoVulkan/Tools/StringUtils.h>
-#include <fstream>
-#include <vector>
-#include <sys/stat.h>
-#include <direct.h>
 
 namespace EvoVulkan::Tools {
     static bool FileExists(const std::string& path) {
@@ -24,7 +18,7 @@ namespace EvoVulkan::Tools {
     }
 
     static bool CreateFolder(const std::string& directory) {
-#ifdef __MINGW64__
+#ifdef EVK_MINGW
         return mkdir(directory.c_str()) == 0;
 #else
         return _mkdir(directory.c_str()) == 0;

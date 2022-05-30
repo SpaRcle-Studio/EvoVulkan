@@ -2,7 +2,7 @@
 // Created by Nikita on 12.04.2021.
 //
 
-#include "EvoVulkan/Types/Swapchain.h"
+#include <EvoVulkan/Types/Swapchain.h>
 
 #include <EvoVulkan/Tools/VulkanHelper.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
@@ -40,35 +40,35 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
     }
 
     if (!swapchain->InitFormats()) {
-        Tools::VkDebug::Error("Swapchain::Create() : failed to init depth format!");
+        VK_ERROR("Swapchain::Create() : failed to init depth format!");
         return nullptr;
     }
 
     if (!swapchain->ReSetup(width, height, imagesCount)) {
-        Tools::VkDebug::Error("Swapchain::Create() : failed to setup swapchain!");
+        VK_ERROR("Swapchain::Create() : failed to setup swapchain!");
         return nullptr;
     }
 
-    Tools::VkDebug::Graph("Swapchain::Create() : swapchain successfully created!");
+    VK_GRAPH("Swapchain::Create() : swapchain successfully created!");
 
     return swapchain;
 }
 
 bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint32_t countImages) {
-    Tools::VkDebug::Graph("Swapchain::ReSetup() : re-setup vulkan swapchain...");
+    VK_GRAPH("Swapchain::ReSetup() : re-setup vulkan swapchain...");
 
     VkSwapchainKHR oldSwapchain = m_swapchain;
 
     // Get physical device surface properties and formats
     VkSurfaceCapabilitiesKHR surfCaps = {};
     if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS) {
-        Tools::VkDebug::Error("Swapchain::ReSetup() : failed get physical device surface capabilities!");
+        VK_ERROR("Swapchain::ReSetup() : failed get physical device surface capabilities!");
         return false;
     }
 
     //! TODO: see VS example
     if (surfCaps.currentExtent.width != width || surfCaps.currentExtent.height != height) {
-        Tools::VkDebug::Assert("Swapchain::ReSize() : swap chain size different! "
+        VK_ASSERT2(false, "Swapchain::ReSize() : swap chain size different! "
                               "\n\tWidth  surface: " + std::to_string(surfCaps.currentExtent.width) +
                               "\n\tHeight surface: " + std::to_string(surfCaps.currentExtent.height) +
                               "\n\tWidth   window: " + std::to_string(width) +
@@ -141,10 +141,10 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
 
-    Tools::VkDebug::Graph("Swapchain::ReSetup() : create swapchain struct...");
+    VK_GRAPH("Swapchain::ReSetup() : create swapchain struct...");
 
     if (vkCreateSwapchainKHR(*m_device, &swapchainCI, nullptr, &m_swapchain) != VK_SUCCESS) {
-        Tools::VkDebug::Error("Swapchain::ReSetup() : failed to create swapchain!");
+        VK_ERROR("Swapchain::ReSetup() : failed to create swapchain!");
         return false;
     }
 
@@ -157,7 +157,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
 
     //!=================================================================================================================
 
-    Tools::VkDebug::Graph("Swapchain::ReSetup() : create images...");
+    VK_GRAPH("Swapchain::ReSetup() : create images...");
     if (m_swapchainImages) { // images data automatic destroy after destroying swapchain
         free(m_swapchainImages);
         m_countImages = 0;
@@ -169,7 +169,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         return false;
     }
 
-    Tools::VkDebug::Graph("Swapchain::ReSetup() : create buffers...");
+    VK_GRAPH("Swapchain::ReSetup() : create buffers...");
     if (m_buffers) {
         DestroyBuffers();
     }
@@ -179,21 +179,21 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         return false;
     }
 
-    Tools::VkDebug::Graph("Swapchain::ReSetup() : swapchain successfully re-configured!");
+    VK_GRAPH("Swapchain::ReSetup() : swapchain successfully re-configured!");
 
     return true;
 }
 
 void EvoVulkan::Types::Swapchain::Free() {
-    Tools::VkDebug::Log("Swapchain::Free() : free swapchain pointer...");
+    VK_LOG("Swapchain::Free() : free swapchain pointer...");
     delete this;
 }
 
 void EvoVulkan::Types::Swapchain::Destroy() {
-    Tools::VkDebug::Log("Swapchain::Destroy() : destroy vulkan swapchain...");
+    VK_LOG("Swapchain::Destroy() : destroy vulkan swapchain...");
 
     if (!IsReady()) {
-        Tools::VkDebug::Error("Swapchain::Destroy() : swapchain isn't ready!");
+        VK_ERROR("Swapchain::Destroy() : swapchain isn't ready!");
         return;
     }
 
@@ -225,7 +225,7 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
 
     m_depthFormat = Tools::GetDepthFormat(*m_device);
     if (m_depthFormat == VK_FORMAT_UNDEFINED) {
-        Tools::VkDebug::Error("Swapchain::InitFormats() : could not find a supported depth format!");
+        VK_ERROR("Swapchain::InitFormats() : could not find a supported depth format!");
         return false;
     }
 
@@ -247,7 +247,7 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
     m_colorSpace = surfFormats[0].colorSpace;
 
     if (m_colorFormat == VK_FORMAT_UNDEFINED) {
-        Tools::VkDebug::Error("Swapchain::InitFormats() : color format undefined!");
+        VK_ERROR("Swapchain::InitFormats() : color format undefined!");
         return false;
     }
 
@@ -268,12 +268,12 @@ void EvoVulkan::Types::Swapchain::DestroyBuffers() {
 bool EvoVulkan::Types::Swapchain::CreateImages() {
     VkResult result = vkGetSwapchainImagesKHR(*m_device, m_swapchain, &m_countImages, NULL);
     if (result != VK_SUCCESS) {
-        Tools::VkDebug::Error("Swapchain::CreateImages() : failed to get swapchain images count!");
+        VK_ERROR("Swapchain::CreateImages() : failed to get swapchain images count!");
         return false;
     }
 
     if (m_countImages == 0) {
-        Tools::VkDebug::Error("Swapchain::CreateImages() : count swapchain images is zero!");
+        VK_ERROR("Swapchain::CreateImages() : count swapchain images is zero!");
         return false;
     }
 
@@ -281,7 +281,7 @@ bool EvoVulkan::Types::Swapchain::CreateImages() {
 
     m_swapchainImages = (VkImage*)malloc(m_countImages * sizeof(VkImage));
     if (!m_swapchainImages) {
-        Tools::VkDebug::Error("Swapchain::CreateImages() : failed to alloc images memory!");
+        VK_ERROR("Swapchain::CreateImages() : failed to alloc images memory!");
         return false;
     }
 

@@ -2,8 +2,12 @@
 // Created by Nikita on 16.05.2021.
 //
 
-#include <EvoVulkan/Memory/Allocator.h>
 #include <EvoVulkan/Types/Texture.h>
+#include <EvoVulkan/Types/Image.h>
+#include <EvoVulkan/Types/VmaBuffer.h>
+#include <EvoVulkan/Types/Device.h>
+#include <EvoVulkan/DescriptorManager.h>
+#include <EvoVulkan/Memory/Allocator.h>
 
 uint64_t GetDataSize(uint32_t w, uint32_t h, uint8_t level) {
     uint64_t dataSize = 0;
@@ -29,23 +33,25 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     Memory::Allocator *allocator,
     CmdPool *pool,
     VkFormat format,
-    uint32_t width,
-    uint32_t height,
+    int32_t width,
+    int32_t height,
     const std::array<uint8_t*, 6> &sides,
     uint32_t mipLevels,
     bool cpuUsage)
 {
-    if (mipLevels == 0)
-#ifdef max
-        mipLevels = std::floor(std::log2(max(width, height))) + 1;
-#else
-        mipLevels = std::floor(std::log2(std::max(width, height))) + 1;
-#endif
+    if (width <= 0 || height <= 0) {
+        VK_ERROR("Texture::LoadCubeMap() : incorrect texture size!");
+        return nullptr;
+    }
+
+    if (mipLevels == 0) {
+        mipLevels = std::floor(std::log2(EVK_MAX(width, height))) + 1;
+    }
 
     VK_LOG("Texture::LoadCubeMap() : loading new cube map texture... \n\tWidth: " +
            std::to_string(width) + "\n\tHeight: " + std::to_string(height));
 
-    auto *texture = new Texture();
+    auto&& texture = new Texture();
     {
         texture->m_width             = width;
         texture->m_height            = height;
@@ -63,8 +69,8 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     const VkDeviceSize imageSize = width * height * 4 * 6;
 
-    auto stagingBuffer = VmaBuffer::Create(allocator, imageSize * 2); // TODO: imageSize * 2? Check correctly or fix
-    if (void* data = stagingBuffer->MapData(); !data) {
+    auto&& stagingBuffer = VmaBuffer::Create(allocator, imageSize * 2); // TODO: imageSize * 2? Check correctly or fix
+    if (void* data = stagingBuffer->MapData(); !data || !stagingBuffer) {
         VK_ERROR("Texture::LoadCubeMap() : failed to map memory!");
         return nullptr;
     }
@@ -205,8 +211,8 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
         EvoVulkan::Types::CmdPool *pool,
         const unsigned char *pixels,
         VkFormat format,
-        uint32_t width,
-        uint32_t height,
+        int32_t width,
+        int32_t height,
         uint32_t mipLevels,
         VkFilter filter,
         bool cpuUsage)
@@ -424,7 +430,7 @@ EvoVulkan::Core::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDes
                 VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
         };
 
-        m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(layout, type);
+        m_descriptorSet = m_descriptorManager->AllocateDescriptorSets(layout, type);
 
         auto writer = EvoVulkan::Tools::Initializers::WriteDescriptorSet(
                 m_descriptorSet,
@@ -461,11 +467,15 @@ void EvoVulkan::Types::Texture::Destroy()  {
 
     if (m_image.Valid())
         m_allocator->FreeImage(m_image);
+}
 
-    /*if (m_image != VK_NULL_HANDLE) {
-        vkDestroyImage(*m_device, m_image, nullptr);
-        m_image = VK_NULL_HANDLE;
-    }
+void EvoVulkan::Types::Texture::RandomizeSeed() {
+    m_seed = rand() % 10000;
+}
 
-    m_device->FreeMemory(&m_deviceMemory);*/
+void EvoVulkan::Types::Texture::Free()  {
+    if (!m_isDestroyed)
+        VK_ERROR("Texture::Free() : texture isn't destroyed!");
+
+    delete this;
 }

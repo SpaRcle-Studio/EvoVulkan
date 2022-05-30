@@ -5,56 +5,47 @@
 #ifndef EVOVULKAN_SURFACE_H
 #define EVOVULKAN_SURFACE_H
 
-#ifdef __MINGW32__
+#include <EvoVulkan/Tools/NonCopyable.h>
+
+#ifdef EVK_MINGW
     #pragma GCC diagnostic ignored "-Wattributes"
 #endif
-
-#include <vulkan/vulkan.h>
 
 namespace EvoVulkan::Types {
     class Device;
 
-    class Surface {
-    public:
-        Surface(const Surface&) = delete;
+    class DLL_EVK_EXPORT Surface : public Tools::NonCopyable {
     private:
         Surface() = default;
-        ~Surface() = default;
-    private:
-        bool                m_isInit              = false;
-
-        VkSurfaceKHR        m_surface             = VK_NULL_HANDLE;
-
-        uint32_t            m_countSurfaceFormats = 0;
-        VkSurfaceFormatKHR* m_surfFormats         = nullptr;
-
-        VkInstance          m_instance            = VK_NULL_HANDLE;
-        void*               m_windowHandle        = nullptr;
+        ~Surface() override = default;
 
     public:
+        static Surface* Create(const VkSurfaceKHR& surfaceKhr, const VkInstance& instance, void* windowHandle);
+
         operator VkSurfaceKHR() const { return m_surface; }
 
-        static Surface* Create(const VkSurfaceKHR& surfaceKhr, const VkInstance& instance, void* windowHandle) {
-            auto* surface = new Surface();
-
-            surface->m_surface  = surfaceKhr;
-            surface->m_instance = instance;
-            surface->m_windowHandle = windowHandle;
-
-            return surface;
-        }
     public:
-        [[nodiscard]] bool IsInit() const noexcept { return m_isInit; }
         bool Init(const Types::Device* device);
 
-        [[nodiscard]] bool Ready() const;
-
-        [[nodiscard]] VkSurfaceFormatKHR* GetSurfaceFormats() const { return m_surfFormats;         }
-        [[nodiscard]] uint32_t            GetCountSurfFmts()  const { return m_countSurfaceFormats; }
-        [[nodiscard]] void*               GetHandle()         const { return m_windowHandle; }
+        EVK_NODISCARD bool Ready() const;
+        EVK_NODISCARD bool IsInit() const noexcept { return m_isInit; }
+        EVK_NODISCARD VkSurfaceFormatKHR* GetSurfaceFormats() const { return m_surfFormats; }
+        EVK_NODISCARD uint32_t GetCountSurfFmts()  const { return m_countSurfaceFormats; }
+        EVK_NODISCARD void* GetHandle() const { return m_windowHandle; }
 
         void Destroy();
         void Free();
+
+    private:
+        bool                m_isInit              = false;
+        uint32_t            m_countSurfaceFormats = 0;
+
+        VkSurfaceKHR        m_surface             = VK_NULL_HANDLE;
+        VkInstance          m_instance            = VK_NULL_HANDLE;
+
+        VkSurfaceFormatKHR* m_surfFormats         = nullptr;
+        void*               m_windowHandle        = nullptr;
+
     };
 }
 

@@ -25,20 +25,15 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
 
     EvoVulkan::Complexes::FrameBufferAttachment FBOAttachment = {};
 
-    /*FBOAttachment.m_image = EvoVulkan::Tools::CreateImage(
+    auto&& imageCI = EvoVulkan::Types::ImageCreateInfo(
             device,
+            allocator,
             imageSize.width,
             imageSize.height,
-            1,
             format,
-            VK_IMAGE_TILING_OPTIMAL,
             usage,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            &FBOAttachment.m_mem,
-            false);*/
-
-    auto imageCI = EvoVulkan::Types::ImageCreateInfo(device, allocator, imageSize.width,
-            imageSize.height, format, usage, false);
+            false
+    );
 
     FBOAttachment.m_image = EvoVulkan::Types::Image::Create(imageCI);
 
@@ -47,13 +42,14 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
             FBOAttachment.m_image,
             format,
             1,
-            aspectMask);
+            aspectMask
+    );
 
-    FBOAttachment.m_format    = format;
-    FBOAttachment.m_device    = device;
+    FBOAttachment.m_format = format;
+    FBOAttachment.m_device = device;
     FBOAttachment.m_allocator = allocator;
 
-    return FBOAttachment;
+    return std::move(FBOAttachment);
 }
 
 void EvoVulkan::Complexes::FrameBuffer::Free()  {
@@ -70,9 +66,9 @@ void EvoVulkan::Complexes::FrameBuffer::Free()  {
     if (m_renderPass.Ready())
         Types::DestroyRenderPass(m_device, &m_renderPass);
 
-    this->m_device    = nullptr;
-    this->m_swapchain = nullptr;
-    this->m_cmdPool   = nullptr;
+    m_device    = nullptr;
+    m_swapchain = nullptr;
+    m_cmdPool   = nullptr;
 
     delete this;
 }
@@ -345,12 +341,11 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateAttachments()  {
 std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::AllocateColorTextureReferences() {
     auto references = std::vector<EvoVulkan::Types::Texture*>();
 
-    for (uint32_t i = 0; i < m_countColorAttach; i++) {
+    for (uint32_t i = 0; i < m_countColorAttach; ++i) {
         auto* texture = new EvoVulkan::Types::Texture();
 
-        //texture->m_deviceMemory      = m_attachments[i].m_mem;
         texture->m_view              = m_attachments[i].m_view;
-        texture->m_image             = m_attachments[i].m_image;
+        texture->m_image             = m_attachments[i].m_image.Copy();
         texture->m_format            = m_attachments[i].m_format;
         texture->m_descriptorManager = m_descriptorManager;
         texture->m_sampler           = m_colorSampler;
@@ -375,4 +370,68 @@ std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::Alloc
     }
 
     return references;
+}
+
+VkImageView EvoVulkan::Complexes::FrameBuffer::GetAttachment(uint32_t id) const  {
+    if (id >= m_countColorAttach) {
+        VK_ERROR("Framebuffer::GetAttachment() : going beyond the array boundaries!");
+        return VK_NULL_HANDLE;
+    }
+    return m_attachments[id].m_view;
+}
+
+void EvoVulkan::Complexes::FrameBuffer::BeginCmd() {
+    vkBeginCommandBuffer(m_cmdBuff, &m_cmdBufInfo);
+}
+
+void EvoVulkan::Complexes::FrameBuffer::End() const {
+    vkCmdEndRenderPass(m_cmdBuff);
+    vkEndCommandBuffer(m_cmdBuff);
+}
+
+void EvoVulkan::Complexes::FrameBuffer::SetViewportAndScissor() const {
+    vkCmdSetViewport(m_cmdBuff, 0, 1, &m_viewport);
+    vkCmdSetScissor(m_cmdBuff, 0, 1, &m_scissor);
+}
+
+VkRenderPassBeginInfo EvoVulkan::Complexes::FrameBuffer::BeginRenderPass(VkClearValue *clearValues, uint32_t countCls) const {
+    VkRenderPassBeginInfo renderPassBeginInfo = Tools::Initializers::RenderPassBeginInfo();
+
+    renderPassBeginInfo.renderPass               = m_renderPass.m_self;
+    renderPassBeginInfo.framebuffer              = m_framebuffer;
+    renderPassBeginInfo.renderArea.extent.width  = m_width;
+    renderPassBeginInfo.renderArea.extent.height = m_height;
+    renderPassBeginInfo.clearValueCount          = countCls;
+    renderPassBeginInfo.pClearValues             = clearValues;
+
+    return renderPassBeginInfo;
+}
+
+bool EvoVulkan::Complexes::FrameBufferAttachment::Ready() const {
+    return m_image.Valid() &&
+           m_view   != VK_NULL_HANDLE &&
+           m_device != VK_NULL_HANDLE &&
+           m_format != VK_FORMAT_UNDEFINED;
+}
+
+void EvoVulkan::Complexes::FrameBufferAttachment::Init() {
+    m_image  = Types::Image();
+    m_view   = VK_NULL_HANDLE;
+    m_format = VK_FORMAT_UNDEFINED;
+
+    m_device = VK_NULL_HANDLE;
+}
+
+void EvoVulkan::Complexes::FrameBufferAttachment::Destroy() {
+    if (m_view) {
+        vkDestroyImageView(*m_device, m_view, nullptr);
+        m_view = VK_NULL_HANDLE;
+    }
+
+    if (m_image.Valid()) {
+        m_allocator->FreeImage(m_image);
+    }
+
+    m_device = nullptr;
+    m_allocator = nullptr;
 }

@@ -18,64 +18,117 @@
 #include <EvoVulkan/Types/MultisampleTarget.h>
 
 namespace EvoVulkan::Complexes {
-    struct FrameBufferAttachment {
-        //VkImage             m_image  = { };
-        //Types::DeviceMemory m_mem    = { };
-        Types::Image        m_image     = Types::Image();
-        VkImageView         m_view      = VK_NULL_HANDLE;
-        VkFormat            m_format    = VK_FORMAT_UNDEFINED;
+    class DLL_EVK_EXPORT FrameBufferAttachment : public Tools::NonCopyable {
+    public:
+        FrameBufferAttachment() = default;
+        ~FrameBufferAttachment() override = default;
 
-        Types::Device*      m_device    = nullptr;
+        FrameBufferAttachment(FrameBufferAttachment&& attachment) noexcept {
+            m_image = std::exchange(attachment.m_image, {});
+            m_view = std::exchange(attachment.m_view, {});
+            m_format = std::exchange(attachment.m_format, {});
+            m_device = std::exchange(attachment.m_device, {});
+            m_allocator = std::exchange(attachment.m_allocator, {});
+        }
+
+        FrameBufferAttachment& operator=(FrameBufferAttachment&& attachment) noexcept {
+            m_image = std::exchange(attachment.m_image, {});
+            m_view = std::exchange(attachment.m_view, {});
+            m_format = std::exchange(attachment.m_format, {});
+            m_device = std::exchange(attachment.m_device, {});
+            m_allocator = std::exchange(attachment.m_allocator, {});
+
+            return *this;
+        }
+
+    public:
+        void Init();
+        void Destroy();
+
+        EVK_NODISCARD bool Ready() const;
+
+    public:
+        Types::Image m_image = Types::Image();
+        VkImageView m_view = VK_NULL_HANDLE;
+        VkFormat m_format = VK_FORMAT_UNDEFINED;
+        Types::Device* m_device = nullptr;
         EvoVulkan::Memory::Allocator* m_allocator = nullptr;
 
-        [[nodiscard]] bool Ready() const {
-            return m_image.Valid() &&
-                   //m_mem    != VK_NULL_HANDLE &&
-                   m_view   != VK_NULL_HANDLE &&
-                   m_device != VK_NULL_HANDLE &&
-                   m_format != VK_FORMAT_UNDEFINED;
-        }
-
-        void Init() {
-            m_image  = Types::Image();
-            //m_image  = VK_NULL_HANDLE;
-            //m_mem    = {};
-            m_view   = VK_NULL_HANDLE;
-            m_format = VK_FORMAT_UNDEFINED;
-
-            m_device = VK_NULL_HANDLE;
-        }
-
-        void Destroy() {
-            if (m_view) {
-                vkDestroyImageView(*m_device, m_view, nullptr);
-                m_view = VK_NULL_HANDLE;
-            }
-
-            if (m_image.Valid()) {
-                m_allocator->FreeImage(m_image);
-                //vkDestroyImage(*m_device, m_image, nullptr);
-                //m_image = VK_NULL_HANDLE;
-            }
-
-            //this->m_device->FreeMemory(&m_mem);
-
-            m_device = nullptr;
-            m_allocator = nullptr;
-        }
     };
 
     //!=================================================================================================================
 
-    class FrameBuffer {
+    class DLL_EVK_EXPORT FrameBuffer : private Tools::NonCopyable {
+    protected:
+        FrameBuffer() = default;
+        ~FrameBuffer() override = default;
+
+    public:
+        /// depth will be auto added to end array of attachments
+        static FrameBuffer* Create(
+                Types::Device* device,
+                EvoVulkan::Memory::Allocator* allocator,
+                Core::DescriptorManager* manager,
+                Types::Swapchain* swapchain,
+                Types::CmdPool* pool,
+                const std::vector<VkFormat>& colorAttachments,
+                uint32_t width, uint32_t height,
+                float scale = 1.f);
+
+        operator VkFramebuffer() const { return m_framebuffer; }
+
+    public:
+        void Destroy();
+        void Free();
+        bool ReCreate(uint32_t width, uint32_t height);
+
+        void BeginCmd();
+        void End() const;
+        void SetViewportAndScissor() const;
+
+    public:
+        /// \Warn Slow access! But it's safe.
+        EVK_NODISCARD VkImageView GetAttachment(uint32_t id) const;
+
+        EVK_NODISCARD std::vector<Types::Texture*> AllocateColorTextureReferences();
+        EVK_NODISCARD std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
+
+        EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const { return m_viewport; }
+        EVK_NODISCARD EVK_INLINE VkRect2D GetScissor() const { return m_scissor; }
+
+        EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
+        EVK_NODISCARD EVK_INLINE VkRect2D GetRenderPassArea() const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
+        EVK_NODISCARD EVK_INLINE VkCommandBuffer GetCmd() const noexcept { return m_cmdBuff; }
+        EVK_NODISCARD EVK_INLINE VkSemaphore GetSemaphore() const noexcept { return m_semaphore; }
+        EVK_NODISCARD EVK_INLINE VkCommandBuffer* GetCmdRef() noexcept { return &m_cmdBuff; }
+        EVK_NODISCARD EVK_INLINE VkSemaphore* GetSemaphoreRef() noexcept { return &m_semaphore; }
+        EVK_NODISCARD EVK_INLINE uint32_t GetCountClearValues() const { return m_countClearValues; }
+        EVK_NODISCARD const VkClearValue* GetClearValues() const { return m_clearValues.data(); }
+
+        EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls) const;
+
     private:
-        uint32_t                  m_width             = 0,
-                                  m_height            = 0,
+        bool CreateAttachments();
+        bool CreateRenderPass();
+        bool CreateFramebuffer();
+        bool CreateSampler();
 
-                                  m_baseWidth         = 0,
-                                  m_baseHeight        = 0,
+    public:
+        /// \Warn Unsafe access! But it's fast.
+        FrameBufferAttachment*    m_attachments       = nullptr;
 
-                                  m_countColorAttach  = 0;
+        VkSemaphore               m_semaphore         = VK_NULL_HANDLE;
+
+        VkCommandBuffer           m_cmdBuff           = VK_NULL_HANDLE;
+
+    private:
+        uint32_t                  m_width             = 0;
+        uint32_t                  m_height            = 0;
+
+        uint32_t                  m_baseWidth         = 0;
+        uint32_t                  m_baseHeight        = 0;
+
+        uint32_t                  m_countColorAttach  = 0;
 
         VkFramebuffer             m_framebuffer       = VK_NULL_HANDLE;
         Types::RenderPass         m_renderPass        = { };
@@ -85,7 +138,7 @@ namespace EvoVulkan::Complexes {
         std::vector<VkFormat>     m_attachFormats     = {};
         VkFormat                  m_depthFormat       = VK_FORMAT_UNDEFINED;
 
-        float                     m_scale             = 1.f;
+        float_t                   m_scale             = 1.f;
 
         Types::MultisampleTarget* m_multisampleTarget = nullptr;
         Types::Device*            m_device            = nullptr;
@@ -103,85 +156,7 @@ namespace EvoVulkan::Complexes {
         uint32_t                  m_countClearValues  = 0;
 
         bool                      m_depthEnabled      = true;
-    public:
-        /// \Warn Unsafe access! But it's fast.
-        FrameBufferAttachment*    m_attachments       = nullptr;
 
-        VkSemaphore               m_semaphore         = VK_NULL_HANDLE;
-
-        VkCommandBuffer           m_cmdBuff           = VK_NULL_HANDLE;
-    public:
-        operator VkFramebuffer() const { return m_framebuffer; }
-    public:
-        /// \Warn Slow access! But it's safe.
-        [[nodiscard]] VkImageView GetAttachment(const uint32_t id) const {
-            if (id >= m_countColorAttach) {
-                VK_ERROR("Framebuffer::GetAttachment() : going beyond the array boundaries!");
-                return VK_NULL_HANDLE;
-            }
-            return m_attachments[id].m_view;
-        }
-
-        std::vector<Types::Texture*> AllocateColorTextureReferences();
-        [[nodiscard]] std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
-
-        [[nodiscard]] inline VkViewport GetViewport() const { return m_viewport; }
-        [[nodiscard]] inline VkRect2D GetScissor() const { return m_scissor; }
-
-        [[nodiscard]] inline Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
-        [[nodiscard]] inline VkRect2D GetRenderPassArea()      const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
-        [[nodiscard]] inline VkCommandBuffer GetCmd()          const noexcept { return m_cmdBuff; }
-        [[nodiscard]] inline VkSemaphore GetSemaphore()        const noexcept { return m_semaphore; }
-        [[nodiscard]] inline VkCommandBuffer* GetCmdRef()      noexcept { return &m_cmdBuff; }
-        [[nodiscard]] inline VkSemaphore* GetSemaphoreRef()    noexcept { return &m_semaphore; }
-        [[nodiscard]] const VkClearValue* GetClearValues()     const { return m_clearValues.data(); }
-        [[nodiscard]] inline uint32_t GetCountClearValues()    const { return m_countClearValues; }
-    private:
-        bool CreateAttachments();
-        bool CreateRenderPass();
-        bool CreateFramebuffer();
-        bool CreateSampler();
-    public:
-        inline void BeginCmd() {
-            vkBeginCommandBuffer(m_cmdBuff, &m_cmdBufInfo);
-        }
-        inline void End() const {
-            vkCmdEndRenderPass(m_cmdBuff);
-            vkEndCommandBuffer(m_cmdBuff);
-        }
-
-        [[nodiscard]] inline VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls) const {
-            VkRenderPassBeginInfo renderPassBeginInfo = Tools::Initializers::RenderPassBeginInfo();
-
-            renderPassBeginInfo.renderPass               = m_renderPass.m_self;
-            renderPassBeginInfo.framebuffer              = m_framebuffer;
-            renderPassBeginInfo.renderArea.extent.width  = m_width;
-            renderPassBeginInfo.renderArea.extent.height = m_height;
-            renderPassBeginInfo.clearValueCount          = countCls;
-            renderPassBeginInfo.pClearValues             = clearValues;
-
-            return renderPassBeginInfo;
-        }
-
-        inline void SetViewportAndScissor() const {
-            vkCmdSetViewport(m_cmdBuff, 0, 1, &m_viewport);
-            vkCmdSetScissor(m_cmdBuff, 0, 1, &m_scissor);
-        }
-    public:
-        void Destroy();
-        void Free();
-        bool ReCreate(uint32_t width, uint32_t height);
-    public:
-        // depth will be auto added to end array of attachments
-        static FrameBuffer* Create(
-                Types::Device* device,
-                EvoVulkan::Memory::Allocator* allocator,
-                Core::DescriptorManager* manager,
-                Types::Swapchain* swapchain,
-                Types::CmdPool* pool,
-                const std::vector<VkFormat>& colorAttachments,
-                uint32_t width, uint32_t height,
-                float scale = 1.f);
     };
 }
 

@@ -12,38 +12,35 @@ namespace EvoVulkan::Types {
     class Surface;
     class Device;
 
-    class FamilyQueues : public IVkObject {
+    class DLL_EVK_EXPORT FamilyQueues : public IVkObject {
         friend class Device;
-    private:
-        FamilyQueues()  = default;
-        ~FamilyQueues() = default;
-    public:
-        FamilyQueues(const FamilyQueues&) = delete;
-    private:
-        int m_iGraphics = -1;
-        int m_iPresent  = -1;
-    public:
-        VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-        VkQueue m_presentQueue  = VK_NULL_HANDLE;
-    public:
-        [[nodiscard]] bool IsComplete() const override;
-        [[nodiscard]] bool IsReady()    const override;
+    protected:
+        FamilyQueues() = default;
+        ~FamilyQueues() override = default;
 
-        void SetQueue(const VkQueue& graphics) {
-            this->m_graphicsQueue = graphics;
-        }
-
-        void SetPresentQueue(const VkQueue& graphics) {
-            this->m_presentQueue = graphics;
-        }
-
-        [[nodiscard]] uint32_t GetGraphicsIndex() const noexcept { return (unsigned int)m_iGraphics; }
-        [[nodiscard]] uint32_t GetPresentIndex()  const noexcept { return (unsigned int)m_iPresent;  }
     public:
         static FamilyQueues* Find(const VkPhysicalDevice& device, const Surface* surface);
 
+    public:
         void Destroy() override;
-        void Free()    override;
+        void Free() override;
+
+        void SetQueue(const VkQueue& graphics) { m_graphicsQueue = graphics; }
+        void SetPresentQueue(const VkQueue& graphics) { m_presentQueue = graphics; }
+
+        EVK_NODISCARD bool IsComplete() const override;
+        EVK_NODISCARD bool IsReady() const override;
+        EVK_NODISCARD uint32_t GetGraphicsIndex() const noexcept { return static_cast<uint32_t>(m_iGraphics); }
+        EVK_NODISCARD uint32_t GetPresentIndex() const noexcept { return static_cast<uint32_t>(m_iPresent); }
+
+    public:
+        VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+        VkQueue m_presentQueue  = VK_NULL_HANDLE;
+
+    private:
+        int32_t m_iGraphics = EVK_ID_INVALID;
+        int32_t m_iPresent  = EVK_ID_INVALID;
+
     };
 }
 

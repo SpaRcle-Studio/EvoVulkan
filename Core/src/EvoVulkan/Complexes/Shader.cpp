@@ -57,7 +57,7 @@ bool EvoVulkan::Complexes::Shader::Load(
 
         Tools::CreatePath(outFolder);
 
-        system(std::string((g_glslc + " -c ").append(path).append(" -o " + file)).c_str());
+        system(std::string((Complexes::GLSLCompiler::Instance().GetPath() + " -c ").append(path).append(" -o " + file)).c_str());
 
         auto shaderModule = Tools::LoadShaderModule(file.c_str(), *m_device);
         if (shaderModule == VK_NULL_HANDLE) {
@@ -72,8 +72,6 @@ bool EvoVulkan::Complexes::Shader::Load(
 
     return true;
 }
-
-std::string EvoVulkan::Complexes::Shader::g_glslc = "None";
 
 bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
         const std::vector<VkVertexInputBindingDescription> &binding,
@@ -230,4 +228,8 @@ void EvoVulkan::Complexes::Shader::Destroy() {
 
 void EvoVulkan::Complexes::Shader::Free() {
     delete this;
+}
+
+void EvoVulkan::Complexes::Shader::Bind(VkCommandBuffer const &cmd) const {
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }

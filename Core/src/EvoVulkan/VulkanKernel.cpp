@@ -20,14 +20,14 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
         const std::vector<const char*>& instExtensions,
         const std::vector<const char*>& validationLayers)
 {
-    Tools::VkDebug::Graph("VulkanKernel::PreInit() : pre-initializing Evo Vulkan kernel...");
+    VK_GRAPH("VulkanKernel::PreInit() : pre-initializing Evo Vulkan kernel...");
 
     m_appName          = appName;
     m_engineName       = engineName;
     m_validationLayers = validationLayers;
     m_instExtensions   = instExtensions;
 
-    Complexes::Shader::SetGlslCompiler(glslc);
+    Complexes::GLSLCompiler::Instance().Init(glslc);
 
     //m_instExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
@@ -38,7 +38,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 	m_instExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
 
-    Tools::VkDebug::Graph("VulkanKernel::PreInit() : create vulkan instance...");
+    VK_GRAPH("VulkanKernel::PreInit() : create vulkan instance...");
 
     m_instance = Types::Instance::Create(
             m_appName,
@@ -48,14 +48,14 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
             m_validationEnabled);
 
     if (m_instance == VK_NULL_HANDLE) {
-        Tools::VkDebug::Error("VulkanKernel::PreInit() : failed to create vulkan instance!");
+        VK_ERROR("VulkanKernel::PreInit() : failed to create vulkan instance!");
         return false;
     }
 
     if (m_validationEnabled) {
         m_debugMessenger = Tools::SetupDebugMessenger(*m_instance);
         if (m_debugMessenger == VK_NULL_HANDLE) {
-            Tools::VkDebug::Error("VulkanKernel::PreInit() : failed to setup debug messenger!");
+            VK_ERROR("VulkanKernel::PreInit() : failed to setup debug messenger!");
             return false;
         }
     }
@@ -127,7 +127,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     //!=============================================[Init surface]======================================================
 
     if (!m_surface->Init(m_device)) {
-        Tools::VkDebug::Error("VulkanKernel::Init() : failed to create initialize surface!");
+        VK_ERROR("VulkanKernel::Init() : failed to create initialize surface!");
         return false;
     }
 
@@ -166,7 +166,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         return false;
     }
 
-    Tools::VkDebug::Log("VulkanKernel::Init() : depth format is "
+    VK_LOG("VulkanKernel::Init() : depth format is "
                         + Tools::Convert::format_to_string(m_swapchain->GetDepthFormat()));
 
     //!=================================================================================================================
@@ -184,13 +184,18 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : allocate draw command buffers...");
-    this->m_countDCB = m_swapchain->GetCountImages();
-    this->m_drawCmdBuffs = Tools::AllocateCommandBuffers(
+
+    m_countDCB = m_swapchain->GetCountImages();
+
+    m_drawCmdBuffs = Tools::AllocateCommandBuffers(
             *m_device,
             Tools::Initializers::CommandBufferAllocateInfo(
                 *m_cmdPool,
                 VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                m_countDCB));
+                m_countDCB
+            )
+    );
+
     if (!m_drawCmdBuffs) {
         VK_ERROR("Vulkan::PostInit() : failed to allocate draw command buffers!");
         return false;
@@ -267,7 +272,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::Destroy() {
-    Tools::VkDebug::Log("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
+    VK_LOG("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
 
     if (m_multisample) {
         m_multisample->Destroy();
@@ -310,7 +315,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
 
     EVSafeFreeObject(m_instance);
 
-    Tools::VkDebug::Log("VulkanKernel::Destroy() : all resources has been freed!");
+    VK_LOG("VulkanKernel::Destroy() : all resources has been freed!");
 
     return true;
 }
@@ -512,7 +517,7 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
     return true;
 }
 
-void EvoVulkan::Core::VulkanKernel::SetMultisampling(const uint32_t &sampleCount) {
+void EvoVulkan::Core::VulkanKernel::SetMultisampling(uint32_t sampleCount) {
     m_multisampling = sampleCount > 1;
     m_sampleCount   = sampleCount;
 }
@@ -566,4 +571,53 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations() {
     m_submitInfo.pSignalSemaphores    = &m_syncs.m_renderComplete;
 
     return true;
+}
+
+bool EvoVulkan::Core::VulkanKernel::SetValidationLayersEnabled(bool value) {
+    if (m_isPreInitialized) {
+        VK_ERROR("VulkanKernel::SetValidationLayersEnabled() : at this stage it is not possible to set this parameter!");
+        return false;
+    }
+
+    m_validationEnabled = value;
+
+    return true;
+}
+
+void EvoVulkan::Core::VulkanKernel::SetFramebuffersQueue(const std::vector<Complexes::FrameBuffer *> &queue) {
+    auto newQueue = std::vector<VkSubmitInfo>();
+
+    VkSubmitInfo submitInfo = Tools::Initializers::SubmitInfo();
+    submitInfo.commandBufferCount   = 1;
+    submitInfo.waitSemaphoreCount   = 1;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
+
+    for (uint32_t i = 0; i < queue.size(); i++) {
+        submitInfo.pCommandBuffers   = queue[i]->GetCmdRef();
+        submitInfo.pSignalSemaphores = queue[i]->GetSemaphoreRef();
+
+        if (i == 0)
+            submitInfo.pWaitSemaphores = &m_syncs.m_presentComplete;
+        else
+            submitInfo.pWaitSemaphores = queue[i - 1]->GetSemaphoreRef();
+
+        newQueue.push_back(submitInfo);
+    }
+
+    if (!queue.empty()) {
+        m_waitSemaphore = queue[queue.size() - 1]->GetSemaphore();
+    }
+    else
+        m_waitSemaphore = VK_NULL_HANDLE;
+
+    m_framebuffersQueue = newQueue;
+}
+
+EvoVulkan::Core::DescriptorManager *EvoVulkan::Core::VulkanKernel::GetDescriptorManager() const {
+    if (!m_descriptorManager) {
+        VK_ERROR("VulkanKernel::GetDescriptorManager() : descriptor manager is nullptr!");
+        return nullptr;
+    }
+    return m_descriptorManager;
 }

@@ -13,10 +13,11 @@ namespace EvoVulkan::Types {
     * @brief Encapsulates access to a Vulkan buffer backed up by device memory
     * @note To be filled by an external source like the VulkanDevice
     */
-    struct Buffer : Tools::NonCopyable {
+    struct DLL_EVK_EXPORT Buffer : Tools::NonCopyable {
     private:
-        Buffer()  = default;
-        ~Buffer() = default;
+        Buffer() = default;
+        ~Buffer() override = default;
+
     public:
         static Buffer* Create(
                 Device* device,
@@ -36,8 +37,8 @@ namespace EvoVulkan::Types {
         VkResult Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) const;
         VkResult Invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) const;
 
-        [[nodiscard]] const VkBuffer* GetCRef() const { return &m_buffer; }
-        [[nodiscard]] VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
+        EVK_NODISCARD const VkBuffer* GetCRef() const { return &m_buffer; }
+        EVK_NODISCARD VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
 
         void* MapData();
         void Unmap();

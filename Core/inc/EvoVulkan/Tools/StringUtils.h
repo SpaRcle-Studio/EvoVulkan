@@ -5,7 +5,7 @@
 #ifndef EVOVULKAN_STRINGUTILS_H
 #define EVOVULKAN_STRINGUTILS_H
 
-#include <string>
+#include <EvoVulkan/macros.h>
 
 namespace EvoVulkan::Tools {
     inline static std::string Read(const std::string& str, uint32_t count) {

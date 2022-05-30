@@ -60,7 +60,7 @@ EvoVulkan::Types::FamilyQueues* EvoVulkan::Types::FamilyQueues::Find(
 }
 
 void EvoVulkan::Types::FamilyQueues::Destroy() {
-    Tools::VkDebug::Log("FamilyQueues::Destroy() : destroy family queues...");
+    VK_LOG("FamilyQueues::Destroy() : destroy family queues...");
 
     if (!IsReady())
         return;
@@ -73,7 +73,7 @@ void EvoVulkan::Types::FamilyQueues::Destroy() {
 }
 
 void EvoVulkan::Types::FamilyQueues::Free() {
-    Tools::VkDebug::Log("FamilyQueues::Free() : free family queues pointer...");
+    VK_LOG("FamilyQueues::Free() : free family queues pointer...");
 
     delete this;
 }

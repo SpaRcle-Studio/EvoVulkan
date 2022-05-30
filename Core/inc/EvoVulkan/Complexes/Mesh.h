@@ -12,8 +12,6 @@
 
 #include <EvoVulkan/DescriptorManager.h>
 
-#include <variant>
-
 namespace EvoVulkan::Complexes {
     static bool IsDescriptorTypeSampler(const VkDescriptorType& type) {
         return type >= VK_DESCRIPTOR_TYPE_SAMPLER && type <= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;

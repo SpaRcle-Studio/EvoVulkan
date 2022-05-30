@@ -21,26 +21,26 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
         const std::vector<const char *> &extensions)
 {
     if (!surface) {
-        Tools::VkDebug::Error("Types::IsDeviceSuitable() : surface is nullptr!");
+        VK_ERROR("Types::IsDeviceSuitable() : surface is nullptr!");
         return false;
     }
 
     if (!extensions.empty())
         if (!Tools::CheckDeviceExtensionSupport(physicalDevice, extensions)) {
-            Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : device \"" +
+            VK_WARN("Tools::IsDeviceSuitable() : device \"" +
                                          Tools::GetDeviceName(physicalDevice) + "\" isn't support extensions!");
             return false;
         }
 
     Types::SwapChainSupportDetails swapChainSupport = Types::QuerySwapChainSupport(physicalDevice, surface);
     if (!swapChainSupport.m_complete) {
-        Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : something went wrong! Details isn't complete!");
+        VK_WARN("Tools::IsDeviceSuitable() : something went wrong! Details isn't complete!");
         return false;
     }
 
     bool swapChainAdequate = !swapChainSupport.m_formats.empty() && !swapChainSupport.m_presentModes.empty();
     if (!swapChainAdequate) {
-        Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : device \"" +
+        VK_WARN("Tools::IsDeviceSuitable() : device \"" +
                                      Tools::GetDeviceName(physicalDevice) + "\" isn't support swapchain!");
         return false;
     }
@@ -49,7 +49,7 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
     vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 
     if (!supportedFeatures.samplerAnisotropy) {
-        Tools::VkDebug::Warn("Tools::IsDeviceSuitable() : device \"" +
+        VK_WARN("Tools::IsDeviceSuitable() : device \"" +
                              Tools::GetDeviceName(physicalDevice) + "\" isn't support anisotropy!");
         return false;
     }

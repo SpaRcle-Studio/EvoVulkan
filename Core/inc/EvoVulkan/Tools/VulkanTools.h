@@ -18,47 +18,23 @@
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanHelper.h>
 
-#include <vulkan/vulkan.h>
-#include <string>
-#include <vector>
-#include <array>
-#include <mutex>
-
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
-#include <functional>
-#include <fstream>
 #include <EvoVulkan/Types/VulkanBuffer.h>
 #include "DeviceTools.h"
 #include "EvoVulkan/Types/Instance.h"
 
 namespace EvoVulkan::Tools {
-    VkAttachmentDescription CreateColorAttachmentDescription(VkFormat format,
+    DLL_EVK_EXPORT VkAttachmentDescription CreateColorAttachmentDescription(VkFormat format,
                                                              VkSampleCountFlagBits samples,
                                                              VkImageLayout init,
                                                              VkImageLayout final);
 
-    VkShaderModule LoadShaderModule(const char *fileName, VkDevice device);
+    DLL_EVK_EXPORT VkShaderModule LoadShaderModule(const char *fileName, VkDevice device);
 
-    VkPipelineLayout CreatePipelineLayout(const VkDevice& device, VkDescriptorSetLayout descriptorSetLayout);
+    DLL_EVK_EXPORT VkPipelineLayout CreatePipelineLayout(const VkDevice& device, VkDescriptorSetLayout descriptorSetLayout);
 
-    static VkDescriptorSetLayout CreateDescriptorLayout(
-            const VkDevice& device,
-            const std::vector<VkDescriptorSetLayoutBinding>& setLayoutBindings)
-    {
-        auto descriptorSetLayoutCreateInfo = Initializers::DescriptorSetLayoutCreateInfo(
-                setLayoutBindings.data(),
-                static_cast<uint32_t>(setLayoutBindings.size()));
-
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        auto result = vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayout);
-        if (result != VK_SUCCESS) {
-            VK_ERROR("Tools::CreateDescriptorLayout() : failed to create descriptor set layout!");
-            return VK_NULL_HANDLE;
-        }
-        else
-            return descriptorSetLayout;
-    }
+    DLL_EVK_EXPORT VkDescriptorSetLayout CreateDescriptorLayout(const VkDevice& device, const std::vector<VkDescriptorSetLayoutBinding>& setLayoutBindings);
 
     Types::Pipeline* CreateStandardGeometryPipeLine(
             const Types::Device* device,
@@ -108,7 +84,7 @@ namespace EvoVulkan::Tools {
     }
 
     static VkDebugUtilsMessengerEXT SetupDebugMessenger(const VkInstance& instance) {
-        Tools::VkDebug::Graph("VulkanTools::SetupDebugMessenger() : setup vulkan debug messenger...");
+        VK_GRAPH("VulkanTools::SetupDebugMessenger() : setup vulkan debug messenger...");
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         Tools::PopulateDebugMessengerCreateInfo(createInfo);
@@ -116,7 +92,7 @@ namespace EvoVulkan::Tools {
         VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
         auto result = CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger);
         if (result != VK_SUCCESS) {
-            Tools::VkDebug::Error("VulkanTools::SetupDebugMessenger() : failed to set up debug messenger! Reason: "
+            VK_ERROR("VulkanTools::SetupDebugMessenger() : failed to set up debug messenger! Reason: "
                 + Tools::Convert::result_to_description(result));
             return VK_NULL_HANDLE;
         }
@@ -127,7 +103,7 @@ namespace EvoVulkan::Tools {
     static Types::Surface* CreateSurface(const VkInstance& instance, const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate, void* windowHandle) {
         VkSurfaceKHR surfaceKhr = platformCreate(instance);
         if (surfaceKhr == VK_NULL_HANDLE) {
-            Tools::VkDebug::Error("VulkanTools::CreateSurface() : failed platform-create vulkan surface!");
+            VK_ERROR("VulkanTools::CreateSurface() : failed platform-create vulkan surface!");
             return nullptr;
         }
 
@@ -146,7 +122,7 @@ namespace EvoVulkan::Tools {
             const std::vector<const char *> &validLayers,
             VkPhysicalDeviceFeatures deviceFeatures)
     {
-        Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : create vulkan logical device...");
+        VK_GRAPH("VulkanTools::CreateLogicalDevice() : create vulkan logical device...");
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = { pQueues->GetGraphicsIndex(), pQueues->GetPresentIndex() };
@@ -207,11 +183,11 @@ namespace EvoVulkan::Tools {
         createInfo.ppEnabledExtensionNames = extensions.data();
 
         if (validLayers.empty()) {
-            Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : validation layers disabled.");
+            VK_GRAPH("VulkanTools::CreateLogicalDevice() : validation layers disabled.");
             createInfo.enabledLayerCount = 0;
         }
         else {
-            Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : validation layers enabled.");
+            VK_GRAPH("VulkanTools::CreateLogicalDevice() : validation layers enabled.");
 
             createInfo.enabledLayerCount   = static_cast<uint32_t>(validLayers.size());
             createInfo.ppEnabledLayerNames = validLayers.data();
@@ -220,7 +196,7 @@ namespace EvoVulkan::Tools {
         VkDevice device = VK_NULL_HANDLE;
         auto result = vkCreateDevice(physicalDevice, &createInfo, nullptr, &device);
         if (result != VK_SUCCESS) {
-            Tools::VkDebug::Graph("VulkanTools::CreateLogicalDevice() : failed to create logical device! \n\tReason: "
+            VK_GRAPH("VulkanTools::CreateLogicalDevice() : failed to create logical device! \n\tReason: "
                 + Tools::Convert::result_to_string(result) + "\n\tDescription: " + Tools::Convert::result_to_description(result));
             return VK_NULL_HANDLE;
         }
@@ -489,7 +465,7 @@ namespace EvoVulkan::Tools {
             bool multisampling,
             uint32_t sampleCount)
     {
-        Tools::VkDebug::Graph("VulkanTools::CreateDevice() : create vulkan device...");
+        VK_GRAPH("VulkanTools::CreateDevice() : create vulkan device...");
 
         Types::FamilyQueues* queues         = nullptr;
 
@@ -500,12 +476,13 @@ namespace EvoVulkan::Tools {
 
         auto devices = Tools::GetAllDevices(*instance);
         if (devices.empty()) {
-            Tools::VkDebug::Error("VulkanTools::CreateDevice() : not found device with vulkan support!");
+            VK_ERROR("VulkanTools::CreateDevice() : not found device with vulkan support!");
             return nullptr;
         }
 
-        for (const auto& device : devices)
-            Tools::VkDebug::Log("VulkanTools::CreateDevice() : found device - " + Tools::GetDeviceName(device));
+        for (const auto& device : devices) {
+            VK_LOG("VulkanTools::CreateDevice() : found device - " + Tools::GetDeviceName(device));
+        }
 
         for (auto physDev : devices) {
             if (Tools::IsDeviceSuitable(physDev, (*surface), extensions)) {
@@ -518,7 +495,7 @@ namespace EvoVulkan::Tools {
                     physicalDevice = physDev;
             }
             else
-                Tools::VkDebug::Warn("VulkanTools::CreateDevice() : device \"" + Tools::GetDeviceName(physDev) + "\" isn't suitable!");
+                VK_WARN("VulkanTools::CreateDevice() : device \"" + Tools::GetDeviceName(physDev) + "\" isn't suitable!");
         }
 
         if (physicalDevice == VK_NULL_HANDLE) {
@@ -529,16 +506,16 @@ namespace EvoVulkan::Tools {
                 msg += extension;
             }
 
-            Tools::VkDebug::Error("VulkanTools::CreateDevice() : not found suitable device! \nExtensions: " + msg);
+            VK_ERROR("VulkanTools::CreateDevice() : not found suitable device! \nExtensions: " + msg);
 
             return nullptr;
         }
         else
-            Tools::VkDebug::Log("VulkanTools::CreateDevice() : select \"" + Tools::GetDeviceName(physicalDevice) + "\" device.");
+            VK_LOG("VulkanTools::CreateDevice() : select \"" + Tools::GetDeviceName(physicalDevice) + "\" device.");
 
         queues = Types::FamilyQueues::Find(physicalDevice, surface);
         if (!queues->IsComplete()) {
-            Tools::VkDebug::Error("VulkanTools::CreateDevice() : family queues isn't complete!");
+            VK_ERROR("VulkanTools::CreateDevice() : family queues isn't complete!");
             return nullptr;
         }
 
@@ -559,11 +536,11 @@ namespace EvoVulkan::Tools {
                 deviceFeatures);
 
         if (logicalDevice == VK_NULL_HANDLE) {
-            Tools::VkDebug::Error("VulkanTools::CreateDevice() : failed create logical device!");
+            VK_ERROR("VulkanTools::CreateDevice() : failed create logical device!");
             return nullptr;
         }
 
-        Tools::VkDebug::Graph("VulkanTools::CreateDevice() : set logical device queues...");
+        VK_GRAPH("VulkanTools::CreateDevice() : set logical device queues...");
         {
             VkQueue graphics = VK_NULL_HANDLE;
             //VkQueue present  = VK_NULL_HANDLE;
@@ -586,11 +563,11 @@ namespace EvoVulkan::Tools {
         };
 
         if (auto finallyDevice = Types::Device::Create(createInfo)) {
-            Tools::VkDebug::Log("VulkanTools::CreateDevice() : device successfully created!");
+            VK_LOG("VulkanTools::CreateDevice() : device successfully created!");
             return finallyDevice;
         }
 
-        Tools::VkDebug::Error("VulkanTools::CreateDevice() : failed to create device!");
+        VK_ERROR("VulkanTools::CreateDevice() : failed to create device!");
         return nullptr;
     }
 

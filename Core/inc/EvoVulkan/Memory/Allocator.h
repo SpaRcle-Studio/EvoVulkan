@@ -6,7 +6,7 @@
 #define EVOVULKAN_ALLOCATOR_H
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
-#include "vk_mem_alloc.h"
+#include "../../../libs/VMA/src/VmaUsage.h"
 
 namespace EvoVulkan::Types {
     class Device;
@@ -16,36 +16,37 @@ namespace EvoVulkan::Types {
 namespace EvoVulkan::Memory {
     class Allocator;
 
-    struct Buffer {
+    struct DLL_EVK_EXPORT Buffer {
         VkBuffer m_buffer;
         VmaAllocation m_allocation;
     };
 
-    struct RawMemory {
+    struct DLL_EVK_EXPORT RawMemory {
         friend class Allocator;
+    public:
+        RawMemory()
+            : m_size(0)
+            , m_memory(VK_NULL_HANDLE)
+        { }
+
+        operator VkDeviceMemory() const { return m_memory; }
+
+    public:
+        EVK_NODISCARD bool Ready() const { return m_memory != VK_NULL_HANDLE && m_size > 0; }
+
     private:
         uint64_t       m_size;
         VkDeviceMemory m_memory;
-    public:
-        RawMemory() {
-            m_size   = 0;
-            m_memory = VK_NULL_HANDLE;
-        }
-    public:
-        [[nodiscard]] bool Ready() const { return m_memory != VK_NULL_HANDLE && m_size > 0; }
-    public:
-        operator VkDeviceMemory() const {
-            return m_memory;
-        }
+
     };
 
-    class Allocator : public Tools::NonCopyable {
+    class DLL_EVK_EXPORT Allocator : public Tools::NonCopyable {
     private:
         explicit Allocator(Types::Device* device)
             : m_device(device)
         { }
 
-        ~Allocator();
+        ~Allocator() override;
 
     public:
         static Allocator* Create(Types::Device* device);
@@ -57,18 +58,17 @@ namespace EvoVulkan::Memory {
 
     public:
         Buffer AllocBuffer(const VkBufferCreateInfo& info, VmaMemoryUsage usage);
-        void FreeBuffer(Buffer& info);
-
         Types::Image AllocImage(const VkImageCreateInfo& info, bool CPUUsage);
-        void FreeImage(Types::Image& image);
-
         RawMemory AllocateMemory(VkMemoryAllocateInfo memoryAllocateInfo);
+
+        void FreeBuffer(Buffer& info);
+        void FreeImage(Types::Image& image);
         bool FreeMemory(RawMemory* memory);
 
-        [[nodiscard]] uint64_t GetGPUMemoryUsage() const;
-        [[nodiscard]] uint64_t GetCPUMemoryUsage() const;
-        [[nodiscard]] uint64_t GetAllocatedMemorySize() const { return m_deviceMemoryAllocSize; }
-        [[nodiscard]] uint64_t GetAllocatedHeapsCount() const { return m_allocHeapsCount;       }
+        EVK_NODISCARD uint64_t GetGPUMemoryUsage() const;
+        EVK_NODISCARD uint64_t GetCPUMemoryUsage() const;
+        EVK_NODISCARD uint64_t GetAllocatedMemorySize() const { return m_deviceMemoryAllocSize; }
+        EVK_NODISCARD uint64_t GetAllocatedHeapsCount() const { return m_allocHeapsCount;       }
 
     private:
         bool Init();

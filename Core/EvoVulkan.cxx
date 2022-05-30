@@ -16,10 +16,12 @@
 #include "src/EvoVulkan/Types/Texture.cpp"
 #include "src/EvoVulkan/Types/Image.cpp"
 #include "src/EvoVulkan/Types/VmaBuffer.cpp"
+#include "src/EvoVulkan/Types/Instance.cpp"
 
 #include "src/EvoVulkan/Tools/VulkanTools.cpp"
 #include "src/EvoVulkan/Tools/VulkanDebug.cpp"
 #include "src/EvoVulkan/Tools/DeviceTools.cpp"
+#include "src/EvoVulkan/Tools/Singleton.cpp"
 
 #include "src/EvoVulkan/Memory/Allocator.cpp"
 

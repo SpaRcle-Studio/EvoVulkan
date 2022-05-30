@@ -8,27 +8,36 @@ int main() {
     auto* kernel = new VulkanExample();
 
     auto printMemory = [kernel]() -> std::string {
-        if (!kernel->GetDevice())
+        if (!kernel->GetDevice() || !kernel->GetAllocator())
             return std::string();
         else
-            return "{" + std::to_string(kernel->GetDevice()->GetAllocatedMemorySize() / 1024 / 1024) + "MB} ";
+            return "{" + std::to_string(kernel->GetAllocator()->GetAllocatedMemorySize() / 1024 / 1024) + "MB} ";
     };
 
-    EvoVulkan::Tools::VkDebug::Error = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
+    EvoVulkan::Tools::VkDebug::Instance().ErrorCallback = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
         std::cout << printMemory() << "[Error] "  << msg << std::endl;
     });
 
-    EvoVulkan::Tools::VkDebug::Graph = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
+    EvoVulkan::Tools::VkDebug::Instance().AssertCallback = std::function<bool(const std::string& msg)>([printMemory](const std::string& msg) -> bool {
+        std::cout << printMemory() << "[Assert] "  << msg << std::endl;
+        return true;
+    });
+
+    EvoVulkan::Tools::VkDebug::Instance().GraphCallback = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
         std::cout << printMemory() << "[Graph] "  << msg << std::endl;
     });
 
-    EvoVulkan::Tools::VkDebug::Log = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
+    EvoVulkan::Tools::VkDebug::Instance().LogCallback = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
         std::cout << printMemory() << "[Log] "  << msg << std::endl;
     });
 
-    EvoVulkan::Tools::VkDebug::Warn = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
+    EvoVulkan::Tools::VkDebug::Instance().WarnCallback = std::function<void(const std::string& msg)>([printMemory](const std::string& msg) {
         std::cout << printMemory() << "[Warn] "  << msg << std::endl;
     });
+
+    if (!EvoVulkan::Tools::VkDebug::Instance().Ready()) {
+        return -1;
+    }
 
     //!=================================================================================================================
 
@@ -74,14 +83,16 @@ int main() {
     std::function<VkSurfaceKHR(const VkInstance& instance)> surfCreate = [window](const VkInstance& instance) -> VkSurfaceKHR {
         VkSurfaceKHR surfaceKhr = {};
         if (glfwCreateWindowSurface(instance, window, nullptr, &surfaceKhr) != VK_SUCCESS) {
-            EvoVulkan::Tools::VkDebug::Error("VulkanKernel::Init(lambda) : failed to create glfw window surface!");
+            VK_ERROR("VulkanKernel::Init(lambda) : failed to create glfw window surface!");
             return VK_NULL_HANDLE;
-        } else
+        }
+        else
             return surfaceKhr;
     };
 
     if (!kernel->Init(
             surfCreate,
+            glfwGetWin32Window(window),
             { VK_KHR_SWAPCHAIN_EXTENSION_NAME },
             true, // sample shading
             true  // vsync
@@ -112,31 +123,8 @@ int main() {
     if (!kernel->GenerateGeometry())
         return -1;
 
-    std::vector<EvoVulkan::Core::DescriptorSet> descriptors;
-    for (uint32_t i = 0; i < 100000; i++)
-        descriptors.emplace_back(kernel->GetDescriptorManager()->AllocateDescriptorSets(
-                kernel->m_geometry->GetDescriptorSetLayout(),
-                { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER }));
-
-    for (auto& descriptor : descriptors)
-        kernel->GetDescriptorManager()->FreeDescriptorSet(descriptor);
-
-    /*std::array<Types::Buffer*, 4000> buffers = { };
-    for (auto& buffer : buffers) {
-        buffer = Types::Buffer::Create(
-                kernel->GetDevice(),
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                16);
-    }*/
-
-#ifdef EVOVULKAN_EXAMPLE_H
     kernel->LoadSkybox();
-#endif
-
     kernel->BuildCmdBuffers();
-
-    std::cout << kernel->GetDevice()->GetAllocatedHeapsCount() << std::endl;
 
     while (!glfwWindowShouldClose(window) && !kernel->HasErrors()) {
         glfwPollEvents();
@@ -152,6 +140,9 @@ int main() {
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    EvoVulkan::Tools::VkDebug::Destroy();
+    EvoVulkan::Complexes::GLSLCompiler::Destroy();
 
     return 0;
 }

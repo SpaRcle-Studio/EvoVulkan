@@ -5,8 +5,10 @@
 #ifndef EVOVULKAN_IMAGEVIEW_H
 #define EVOVULKAN_IMAGEVIEW_H
 
+#include <EvoVulkan/Tools/NonCopyable.h>
+
 namespace EvoVulkan::Types {
-    class ImageView {
+    class DLL_EVK_EXPORT ImageView {
 
     };
 }

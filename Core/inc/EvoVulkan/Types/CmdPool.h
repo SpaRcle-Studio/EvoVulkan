@@ -5,30 +5,32 @@
 #ifndef EVOVULKAN_CMDPOOL_H
 #define EVOVULKAN_CMDPOOL_H
 
-#include <vulkan/vulkan.h>
-
 #include <EvoVulkan/Types/Base/VulkanObject.h>
 
 namespace EvoVulkan::Types {
     class Device;
 
-    class CmdPool : public IVkObject {
-    public:
-        CmdPool(const CmdPool&) = delete;
+    class DLL_EVK_EXPORT CmdPool : public IVkObject {
     private:
-        CmdPool()  = default;
-        ~CmdPool() = default;
-    private:
-        VkCommandPool m_pool   = VK_NULL_HANDLE;
-        Device*       m_device = nullptr;
-    public:
-        static CmdPool* Create(Device* device);
+        CmdPool() = default;
+        ~CmdPool() override = default;
+
     public:
         operator VkCommandPool() const { return m_pool; }
+
     public:
-        [[nodiscard]] bool IsReady() const override;
+        static CmdPool* Create(Device* device);
+
+    public:
         void Destroy() override;
-        void Free()    override;
+        void Free() override;
+
+        EVK_NODISCARD bool IsReady() const override;
+
+    private:
+        VkCommandPool m_pool = VK_NULL_HANDLE;
+        Device* m_device = nullptr;
+
     };
 }
 

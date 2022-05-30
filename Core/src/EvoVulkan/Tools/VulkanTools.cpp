@@ -186,4 +186,19 @@ namespace EvoVulkan::Tools {
             .finalLayout    = final
         };
     }
+
+    VkDescriptorSetLayout CreateDescriptorLayout(VkDevice const &device, const std::vector<VkDescriptorSetLayoutBinding> &setLayoutBindings) {
+        auto descriptorSetLayoutCreateInfo = Initializers::DescriptorSetLayoutCreateInfo(
+                setLayoutBindings.data(),
+                static_cast<uint32_t>(setLayoutBindings.size()));
+
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        auto result = vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayout);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateDescriptorLayout() : failed to create descriptor set layout!");
+            return VK_NULL_HANDLE;
+        }
+        else
+            return descriptorSetLayout;
+    }
 }

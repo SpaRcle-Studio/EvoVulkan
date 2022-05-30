@@ -136,6 +136,11 @@ namespace EvoVulkan::Types {
             VkMemoryPropertyFlags memoryPropertyFlags,
             VkDeviceSize size, void* data)
     {
+        if (size == 0) {
+            VK_ERROR("Buffer::Create() : incorrect buffer size!");
+            return nullptr;
+        }
+
         auto* buffer = new Buffer();
         buffer->m_device = device;
         buffer->m_allocator = allocator;

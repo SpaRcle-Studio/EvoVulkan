@@ -28,32 +28,85 @@ namespace EvoVulkan::Core {
         Success = 0, Fatal = 1, Error = 2
     };
 
-    class VulkanKernel {
-    public:
-        VulkanKernel(const VulkanKernel&) = delete;
+    class DLL_EVK_EXPORT VulkanKernel : public Tools::NonCopyable {
     protected:
-        VulkanKernel()  = default;
-        ~VulkanKernel() = default;
+        VulkanKernel() = default;
+        ~VulkanKernel() override = default;
+
+    public:
+        bool PreInit(
+                const std::string& appName,
+                const std::string& engineName,
+                const std::string& glslc,
+                const std::vector<const char*>& instExtensions,
+                const std::vector<const char*>& validationLayers);
+
+        bool Init(
+                const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
+                void* windowHandle,
+                const std::vector<const char*>& deviceExtensions, const bool& enableSampleShading,
+                bool vsync);
+
+        bool PostInit();
+
+        FrameResult PrepareFrame();
+        RenderResult NextFrame();
+        FrameResult SubmitFrame();
+
+    public:
+        EVK_NODISCARD EVK_INLINE VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
+        EVK_NODISCARD EVK_INLINE VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
+        EVK_NODISCARD EVK_INLINE Types::Device* GetDevice() const { return m_device; }
+        EVK_NODISCARD EVK_INLINE Memory::Allocator* GetAllocator() const { return m_allocator; }
+        EVK_NODISCARD EVK_INLINE Types::MultisampleTarget* GetMultisampleTarget() const { return m_multisample; }
+        EVK_NODISCARD EVK_INLINE Types::CmdPool* GetCmdPool() const { return m_cmdPool; }
+        EVK_NODISCARD EVK_INLINE Types::Swapchain* GetSwapchain() const { return m_swapchain; }
+        EVK_NODISCARD EVK_INLINE Types::Surface* GetSurface() const { return m_surface; }
+        EVK_NODISCARD EVK_INLINE VkInstance GetInstance() const { return *m_instance; }
+        EVK_NODISCARD EVK_INLINE bool HasErrors() const noexcept { return m_hasErrors; }
+        EVK_NODISCARD EVK_INLINE VkViewport GetViewport()   const noexcept { return Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f); }
+        EVK_NODISCARD EVK_INLINE VkRect2D   GetScissor()    const noexcept { return Tools::Initializers::Rect2D(m_width, m_height, 0, 0);                       }
+        EVK_NODISCARD EVK_INLINE VkRect2D   GetRenderArea() const noexcept { return { VkOffset2D(), { m_width, m_height } };                                    }
+        EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
+        EVK_NODISCARD EVK_INLINE VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
+        EVK_NODISCARD EVK_INLINE bool MultisamplingEnabled() const noexcept { return m_multisampling; }
+
+        EVK_NODISCARD Core::DescriptorManager* GetDescriptorManager() const;
+        EVK_NODISCARD uint32_t GetCountBuildIterations() const;
+
+        void SetFramebuffersQueue(const std::vector<Complexes::FrameBuffer*>& queue);
+        void SetMultisampling(uint32_t sampleCount);
+        void SetSwapchainImagesCount(uint32_t count);
+
+        void SetGUIEnabled(bool enabled) { m_GUIEnabled = enabled; }
+
+        bool SetValidationLayersEnabled(bool value);
+        void SetSize(uint32_t width, uint32_t height);
+        bool ResizeWindow();
+
+    public:
+        virtual bool BuildCmdBuffers() = 0;
+        virtual bool Destroy();
+        virtual bool OnResize() = 0;
+        virtual bool OnComplete() { return true; }
+
+    protected:
+        virtual RenderResult Render() { return RenderResult::Fatal; }
+
     private:
-        std::vector<const char*>   m_instExtensions       = {};
-        std::vector<const char*>   m_validationLayers     = {};
+        bool ReCreateFrameBuffers();
+        bool ReCreateSynchronizations();
+        void DestroyFrameBuffers();
 
-        std::string                m_appName              = "Unknown";
-        std::string                m_engineName           = "NoEngine";
-
-        VkDebugUtilsMessengerEXT   m_debugMessenger       = VK_NULL_HANDLE;
-
-        bool                       m_validationEnabled    = false;
-
-        bool                       m_isPreInitialized     = false;
-        bool                       m_isInitialized        = false;
-        bool                       m_isPostInitialized    = false;
+    public:
+        uint8_t                    m_countDCB             = 0;
+        VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
+        std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
 
     protected:
         std::mutex                 m_mutex                = std::mutex();
 
         bool                       m_multisampling        = false;
-
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
 
@@ -91,129 +144,22 @@ namespace EvoVulkan::Core {
         VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
         bool                       m_GUIEnabled           = false;
-    public:
-        uint8_t                    m_countDCB             = 0;
-        VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
-        std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
 
     private:
-        bool ReCreateFrameBuffers();
-        bool ReCreateSynchronizations();
-        void DestroyFrameBuffers();
+        std::vector<const char*>   m_instExtensions       = {};
+        std::vector<const char*>   m_validationLayers     = {};
 
-    public:
-        FrameResult PrepareFrame();
-        RenderResult NextFrame();
-        FrameResult SubmitFrame();
-    protected:
-        virtual RenderResult Render() { return RenderResult::Fatal; /* nothing */ }
-    public:
-        virtual bool BuildCmdBuffers() = 0;
-    public:
-        [[nodiscard]] uint32_t GetCountBuildIterations() const;
-        [[nodiscard]] inline VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
+        std::string                m_appName              = "Unknown";
+        std::string                m_engineName           = "NoEngine";
 
-        [[nodiscard]] inline VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
-        [[nodiscard]] inline Types::Device* GetDevice() const { return m_device; }
-        [[nodiscard]] inline Memory::Allocator* GetAllocator() const { return m_allocator; }
-        [[nodiscard]] inline Types::MultisampleTarget* GetMultisampleTarget() const { return m_multisample; }
-        [[nodiscard]] inline Types::CmdPool* GetCmdPool() const { return m_cmdPool; }
-        [[nodiscard]] inline Types::Swapchain* GetSwapchain() const { return m_swapchain; }
-        [[nodiscard]] inline Types::Surface* GetSurface() const { return m_surface; }
-        [[nodiscard]] inline VkInstance GetInstance() const { return *m_instance; }
+        VkDebugUtilsMessengerEXT   m_debugMessenger       = VK_NULL_HANDLE;
 
-        [[nodiscard]] inline bool HasErrors() const noexcept { return m_hasErrors; }
+        bool                       m_validationEnabled    = false;
 
-        //inline bool SetRenderFunction(KernelRenderFunction drawFunction) {
-        //    this->m_renderFunction = drawFunction;
-        //    return true;
-        //}
+        bool                       m_isPreInitialized     = false;
+        bool                       m_isInitialized        = false;
+        bool                       m_isPostInitialized    = false;
 
-        [[nodiscard]] inline VkViewport GetViewport()   const noexcept { return Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f); }
-        [[nodiscard]] inline VkRect2D   GetScissor()    const noexcept { return Tools::Initializers::Rect2D(m_width, m_height, 0, 0);                       }
-        [[nodiscard]] inline VkRect2D   GetRenderArea() const noexcept { return { VkOffset2D(), { m_width, m_height } };                                    }
-
-        [[nodiscard]] inline Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
-        [[nodiscard]] inline VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
-
-        [[nodiscard]] inline bool MultisamplingEnabled() const noexcept { return m_multisampling; }
-
-        [[nodiscard]] inline Core::DescriptorManager* GetDescriptorManager() const {
-            if (!m_descriptorManager) {
-                Tools::VkDebug::Error("VulkanKernel::GetDescriptorManager() : descriptor manager is nullptr!");
-                return nullptr;
-            }
-            return m_descriptorManager;
-        }
-
-        void SetFramebuffersQueue(const std::vector<Complexes::FrameBuffer*>& queue) {
-            auto newQueue = std::vector<VkSubmitInfo>();
-
-            VkSubmitInfo submitInfo = Tools::Initializers::SubmitInfo();
-            submitInfo.commandBufferCount   = 1;
-            submitInfo.waitSemaphoreCount   = 1;
-            submitInfo.signalSemaphoreCount = 1;
-            submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
-
-            for (uint32_t i = 0; i < queue.size(); i++) {
-                submitInfo.pCommandBuffers   = queue[i]->GetCmdRef();
-                submitInfo.pSignalSemaphores = queue[i]->GetSemaphoreRef();
-
-                if (i == 0)
-                    submitInfo.pWaitSemaphores = &m_syncs.m_presentComplete;
-                else
-                    submitInfo.pWaitSemaphores = queue[i - 1]->GetSemaphoreRef();
-
-                newQueue.push_back(submitInfo);
-            }
-
-            if (!queue.empty())
-                m_waitSemaphore = queue[queue.size() - 1]->GetSemaphore();
-            else
-                m_waitSemaphore = VK_NULL_HANDLE;
-
-            this->m_framebuffersQueue = newQueue;
-        }
-
-        void SetMultisampling(const uint32_t& sampleCount);
-        void SetSwapchainImagesCount(uint32_t count);
-
-        void SetGUIEnabled(bool enabled) { this->m_GUIEnabled = enabled; }
-
-        inline bool SetValidationLayersEnabled(const bool& value) {
-            if (m_isPreInitialized) {
-                Tools::VkDebug::Error("VulkanKernel::SetValidationLayersEnabled() : at this stage it is not possible to set this parameter!");
-                return false;
-            }
-
-            m_validationEnabled = value;
-
-            return true;
-        }
-        void SetSize(uint32_t width, uint32_t height);
-        bool ResizeWindow();
-    public:
-        //static VulkanKernel* Create();
-        virtual bool Destroy();
-        virtual bool OnResize() = 0;
-        virtual bool OnComplete() { return true; }
-    public:
-        bool PreInit(
-                const std::string& appName,
-                const std::string& engineName,
-                const std::string& glslc,
-                const std::vector<const char*>& instExtensions,
-                const std::vector<const char*>& validationLayers
-                );
-
-        bool Init(
-                const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
-                void* windowHandle,
-                const std::vector<const char*>& deviceExtensions, const bool& enableSampleShading,
-                bool vsync
-                );
-
-        bool PostInit();
     };
 }
 

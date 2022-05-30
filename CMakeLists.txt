@@ -12,11 +12,21 @@ add_subdirectory(Depends/glfw)
 add_subdirectory(Depends/stbi)
 add_subdirectory(Depends/cmp_core)
 
-#find_package(Vulkan REQUIRED FATAL_ERROR)
-#include_directories(${Vulkan_INCLUDE_DIRS})
-
 add_executable(EvoVulkanTest main.cpp)
-target_link_libraries(EvoVulkanTest EvoVulkanCore glfw stbi CMP_Core)
 
-target_include_directories(EvoVulkanTest PUBLIC Depends/inc)
-target_include_directories(EvoVulkanCore PUBLIC Depends/cmp_core/source)
+if (EVOVULKAN_STATIC_LIBRARY)
+    target_link_libraries(EvoVulkanTest EvoVulkanCore glfw stbi CMP_Core)
+
+    target_include_directories(EvoVulkanTest PUBLIC Depends/inc)
+    target_include_directories(EvoVulkan PUBLIC Depends/cmp_core/source)
+else()
+    target_link_libraries(EvoVulkanTest EvoVulkan::lib glfw stbi CMP_Core)
+
+    add_custom_command(TARGET EvoVulkanTest POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_BINARY_DIR}/Core/EvoVulkan.dll"
+            ${CMAKE_BINARY_DIR})
+
+    target_include_directories(EvoVulkanTest PUBLIC Depends/inc)
+    target_include_directories(EvoVulkan PUBLIC Depends/cmp_core/source)
+endif()

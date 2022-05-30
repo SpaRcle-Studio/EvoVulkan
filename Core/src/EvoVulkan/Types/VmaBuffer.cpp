@@ -51,6 +51,10 @@ void EvoVulkan::Types::VmaBuffer::CopyToDevice(void *data, bool flush) {
 }
 
 VkResult EvoVulkan::Types::VmaBuffer::Map() {
+    if (m_buffer.m_allocation == VK_NULL_HANDLE) {
+        return VkResult::VK_INCOMPLETE;
+    }
+
     return vmaMapMemory(*m_allocator, m_buffer.m_allocation, &m_mapped);
 }
 

@@ -5,13 +5,11 @@
 #ifndef EVOVULKAN_SWAPCHAINSUPPORTDETAILS_H
 #define EVOVULKAN_SWAPCHAINSUPPORTDETAILS_H
 
-#include <EvoVulkan/macros.h>
-
 #include <EvoVulkan/Tools/VulkanDebug.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
 namespace EvoVulkan::Types {
-    struct SwapChainSupportDetails {
+    struct DLL_EVK_EXPORT SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR        m_capabilities = {};
         std::vector<VkSurfaceFormatKHR> m_formats      = {};
         std::vector<VkPresentModeKHR>   m_presentModes = {};
@@ -24,7 +22,7 @@ namespace EvoVulkan::Types {
 
         auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.m_capabilities);
         if (result != VK_SUCCESS) {
-            Tools::VkDebug::Error("Types::QuerySwapChainSupport() : failed. Reason: "
+            VK_ERROR("Types::QuerySwapChainSupport() : failed. Reason: "
                 + EvoVulkan::Tools::Convert::result_to_description(result));
             return {};
         }
@@ -32,7 +30,7 @@ namespace EvoVulkan::Types {
         uint32_t formatCount = 0;
         result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
         if (result != VK_SUCCESS) {
-            Tools::VkDebug::Error("Types::QuerySwapChainSupport() : failed. Reason: "
+            VK_ERROR("Types::QuerySwapChainSupport() : failed. Reason: "
                                   + EvoVulkan::Tools::Convert::result_to_description(result));
             return {};
         }
@@ -45,7 +43,7 @@ namespace EvoVulkan::Types {
         uint32_t presentModeCount;
         result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
         if (result != VK_SUCCESS) {
-            Tools::VkDebug::Error("Types::QuerySwapChainSupport() : failed. Reason: "
+            VK_ERROR("Types::QuerySwapChainSupport() : failed. Reason: "
                                   + EvoVulkan::Tools::Convert::result_to_description(result));
             return {};
         }

@@ -9,13 +9,14 @@
 #include <EvoVulkan/macros.h>
 
 namespace EvoVulkan::Tools {
-    class NonCopyable {
+    class DLL_EVK_EXPORT NonCopyable {
     protected:
         constexpr NonCopyable() = default;
-        ~NonCopyable() = default;
+        virtual ~NonCopyable() = default;
 
         NonCopyable(const NonCopyable&) = delete;
         NonCopyable& operator=(const NonCopyable&) = delete;
+
     };
 }
 

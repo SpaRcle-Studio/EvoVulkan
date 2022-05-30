@@ -5,16 +5,8 @@
 #ifndef EVOVULKAN_VULKANHELPER_H
 #define EVOVULKAN_VULKANHELPER_H
 
-#include <vulkan/vulkan.h>
-
-#include <iostream>
-
-#include <cstring>
-#include <cmath>
-
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
-
 #include <EvoVulkan/Tools/VulkanDebug.h>
 
 #define EVSafeFreeObject(object) \
@@ -176,13 +168,13 @@ namespace EvoVulkan::Tools {
     static VkPresentModeKHR GetPresentMode(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, bool vsync) {
         uint32_t presentModeCount = 0;
         if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL) != VK_SUCCESS) {
-            Tools::VkDebug::Error("VulkanTools::GetPresentMode() : failed get physical device surface present modes! (count)");
+            VK_ERROR("VulkanTools::GetPresentMode() : failed get physical device surface present modes! (count)");
             return VK_PRESENT_MODE_MAX_ENUM_KHR;
         }
 
         std::vector<VkPresentModeKHR> presentModes(presentModeCount);
         if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, &presentModes[0]) != VK_SUCCESS) {
-            Tools::VkDebug::Error("VulkanTools::GetPresentMode() : failed get physical device surface present modes! (data)");
+            VK_ERROR("VulkanTools::GetPresentMode() : failed get physical device surface present modes! (data)");
             return VK_PRESENT_MODE_MAX_ENUM_KHR;
         }
 
@@ -312,7 +304,7 @@ namespace EvoVulkan::Tools {
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
         if (deviceCount == 0) {
-            VkDebug::Error("VulkanTools::GetAllDevice() : failed to find GPUs with Vulkan support!");
+            VK_ERROR("VulkanTools::GetAllDevice() : failed to find GPUs with Vulkan support!");
             return {};
         }
 

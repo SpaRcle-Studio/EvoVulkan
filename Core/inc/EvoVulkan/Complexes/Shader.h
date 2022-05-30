@@ -5,18 +5,14 @@
 #ifndef EVOVULKAN_SHADER_H
 #define EVOVULKAN_SHADER_H
 
-#include <sys/stat.h>
-//#include <unistd.h>
-#include <string>
-#include <fstream>
-
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/RenderPass.h>
 #include <EvoVulkan/DescriptorManager.h>
 #include <EvoVulkan/Types/VulkanBuffer.h>
+#include <EvoVulkan/Tools/Singleton.h>
 
 namespace EvoVulkan::Complexes {
-    struct SourceShader {
+    struct DLL_EVK_EXPORT SourceShader {
         std::string m_name;
         std::string m_path;
         VkShaderStageFlagBits m_type;
@@ -28,41 +24,43 @@ namespace EvoVulkan::Complexes {
         }
     };
 
-    class Shader {
+    class DLL_EVK_EXPORT GLSLCompiler : public Tools::Singleton<GLSLCompiler> {
+        friend class Tools::Singleton<GLSLCompiler>;
+    protected:
+        ~GLSLCompiler() override = default;
+
+    public:
+        void Init(std::string path) {
+            m_compiler = std::move(path);
+        }
+
+        EVK_NODISCARD std::string GetPath() const {
+            return m_compiler;
+        }
+
+    private:
+        std::string m_compiler;
+
+    };
+
+    class DLL_EVK_EXPORT Shader : public Tools::NonCopyable {
     public:
         Shader(const Types::Device* device, Types::RenderPass renderPass, const VkPipelineCache& cache);
-    public:
-        /**
-         * @note Use for building descriptors
-         */
-        [[nodiscard]] inline VkDescriptorSetLayout GetDescriptorSetLayout() const noexcept {
-            return m_descriptorSetLayout;
-        }
+        ~Shader() override = default;
 
-        [[nodiscard]] inline std::vector<VkDeviceSize> GetUniformSizes() const {
-            return m_uniformSizes;
-        }
+        operator VkPipeline() const { return m_pipeline; }
 
-        [[nodiscard]] inline VkPipeline GetPipeline() const noexcept {
-            return m_pipeline;
-        }
-
-        [[nodiscard]] inline VkPipelineLayout GetPipelineLayout() const noexcept {
-            return m_pipelineLayout;
-        }
-
-        inline void Bind(const VkCommandBuffer& cmd) const {
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, this->m_pipeline);
-        }
     public:
         bool Load(
                 const std::string& cache,
                 const std::vector<SourceShader>& modules,
                 const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
                 const std::vector<VkDeviceSize>& uniformSizes);
+
         bool SetVertexDescriptions(
                 const std::vector<VkVertexInputBindingDescription>& binding,
                 const std::vector<VkVertexInputAttributeDescription>& attribute);
+
         bool Compile(
                 VkPolygonMode polygonMode,
                 VkCullModeFlags cullMode,
@@ -72,23 +70,26 @@ namespace EvoVulkan::Complexes {
                 VkBool32 depthTest,
                 VkPrimitiveTopology topology);
 
+    public:
+        /**
+         * @note Use for building descriptors
+         */
+        EVK_NODISCARD EVK_INLINE VkDescriptorSetLayout GetDescriptorSetLayout() const noexcept { return m_descriptorSetLayout; }
+        EVK_NODISCARD EVK_INLINE std::vector<VkDeviceSize> GetUniformSizes() const { return m_uniformSizes; }
+        EVK_NODISCARD EVK_INLINE VkPipeline GetPipeline() const noexcept { return m_pipeline; }
+        EVK_NODISCARD EVK_INLINE VkPipelineLayout GetPipelineLayout() const noexcept { return m_pipelineLayout; }
+
+        void Bind(const VkCommandBuffer& cmd) const;
+
         void Destroy();
         void Free();
 
         bool ReCreatePipeLine(Types::RenderPass renderPass);
+
     private:
         bool BuildLayouts();
-    public:
-        static void SetGlslCompiler(const std::string& glslc) {
-            g_glslc = glslc;
-        }
-    public:
-        operator VkPipeline() const {
-            return m_pipeline;
-        }
-    private:
-        static std::string g_glslc;
 
+    private:
         struct {
             VkPipelineVertexInputStateCreateInfo           m_inputState;
             std::vector<VkVertexInputBindingDescription>   m_bindingDescriptions;

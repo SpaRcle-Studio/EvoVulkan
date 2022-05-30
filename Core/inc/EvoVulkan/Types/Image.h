@@ -12,7 +12,7 @@ namespace EvoVulkan::Memory {
 }
 
 namespace EvoVulkan::Types {
-    struct ImageCreateInfo {
+    struct DLL_EVK_EXPORT ImageCreateInfo {
         ImageCreateInfo() = default;
 
         ImageCreateInfo(Types::Device* _device,
@@ -61,26 +61,38 @@ namespace EvoVulkan::Types {
         uint32_t arrayLayers = 1;
         bool CPUUsage = false;
 
-        [[nodiscard]] bool Valid() const {
+        EVK_NODISCARD bool Valid() const {
             return width > 0 && height > 0 && device && allocator;
         }
     };
 
-    class Image {
+    class DLL_EVK_EXPORT Image : public Tools::NonCopyable {
         friend class Memory::Allocator;
-
     public:
         Image() = default;
-        ~Image() = default;
+        ~Image() override = default;
+
+        Image(Image&& image) noexcept {
+            m_image = std::exchange(image.m_image, {});
+            m_allocation = std::exchange(image.m_allocation, {});
+            m_allocator = std::exchange(image.m_allocator, {});
+        }
+
+        Image& operator=(Image&& image) noexcept {
+            m_image = std::exchange(image.m_image, {});
+            m_allocation = std::exchange(image.m_allocation, {});
+            m_allocator = std::exchange(image.m_allocator, {});
+
+            return *this;
+        }
 
     public:
         static Image Create(const ImageCreateInfo& info);
 
         bool Bind();
 
-        [[nodiscard]] bool Valid() const {
-            return m_image && m_allocation && m_allocator;
-        }
+        EVK_NODISCARD Image Copy() const;
+        EVK_NODISCARD bool Valid() const;
 
         operator VkImage() const { return m_image; }
 

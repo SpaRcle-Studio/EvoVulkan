@@ -5,17 +5,24 @@
 #ifndef EVOVULKAN_VULKANOBJECT_H
 #define EVOVULKAN_VULKANOBJECT_H
 
-#ifdef __MINGW32__
+#include <EvoVulkan/Tools/NonCopyable.h>
+
+#ifdef EVK_MINGW
     #pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
 namespace EvoVulkan::Types {
-    struct IVkObject {
-        [[nodiscard]] virtual bool IsReady()    const { return false; };
-        [[nodiscard]] virtual bool IsComplete() const { return false; };
+    class DLL_EVK_EXPORT IVkObject : public Tools::NonCopyable {
+    public:
+        virtual ~IVkObject() = default;
+
+    public:
+        EVK_NODISCARD virtual bool IsReady()    const { return false; };
+        EVK_NODISCARD virtual bool IsComplete() const { return false; };
 
         virtual void Destroy() { };
         virtual void Free()    { };
+
     };
 }
 

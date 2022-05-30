@@ -57,3 +57,17 @@ EvoVulkan::Types::Image EvoVulkan::Types::Image::Create(const ImageCreateInfo &i
 
     return image;
 }
+
+bool EvoVulkan::Types::Image::Valid() const {
+    return m_image && m_allocation && m_allocator;
+}
+
+EvoVulkan::Types::Image EvoVulkan::Types::Image::Copy() const {
+    EvoVulkan::Types::Image image;
+
+    image.m_image = m_image;
+    image.m_allocation = m_allocation;
+    image.m_allocator = m_allocator;
+
+    return image;
+}

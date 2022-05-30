@@ -17,6 +17,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 
 #include <EvoVulkan/Types/Texture.h>
 
@@ -33,6 +34,8 @@
 #include <EvoVulkan/Complexes/Framebuffer.h>
 
 #include <cmp_core.h>
+
+const std::string resources = "Z:/SREngine/Engine/Core/Dependences/Framework/Depends/EvoVulkan/Resources";
 
 using namespace EvoVulkan;
 
@@ -66,7 +69,7 @@ struct Vertex {
     float position[3];
 };
 
-struct mesh {
+struct Mesh {
     Core::DescriptorManager* m_descrManager  = nullptr;
     Core::DescriptorSet      m_descriptorSet = {};
 
@@ -76,12 +79,18 @@ struct mesh {
     ModelUniformBuffer       m_ubo           = {};
     uint64_t                 m_countIndices  = 0;
 
-    __forceinline void Draw(const VkCommandBuffer& cmd, const VkPipelineLayout& layout) const {
+    void Draw(const VkCommandBuffer& cmd, const VkPipelineLayout& layout) const {
+        if (!m_vertexBuffer || !m_indexBuffer) {
+            return;
+        }
+
         VkDeviceSize offsets[1] = {0};
 
+        VkBuffer vertexBuffer = *m_vertexBuffer;
+
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &m_descriptorSet.m_self, 0, NULL);
-        vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertexBuffer->m_buffer, offsets);
-        vkCmdBindIndexBuffer(cmd, m_indexBuffer->m_buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, offsets);
+        vkCmdBindIndexBuffer(cmd, *m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdDrawIndexed(cmd, m_countIndices, 1, 0, 0, 0);
     }
@@ -94,7 +103,7 @@ struct mesh {
 
         if (m_descriptorSet.m_self != VK_NULL_HANDLE) {
             m_descrManager->FreeDescriptorSet(m_descriptorSet);
-            m_descriptorSet = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+            m_descriptorSet.Reset();
         }
 
         m_descrManager = nullptr;
@@ -124,24 +133,15 @@ public:
 
     Complexes::FrameBuffer*     m_offscreen           = nullptr;
 
-    mesh meshes[3];
-    mesh skybox;
+    Mesh meshes[3];
+    Mesh skybox;
+
 public:
-    void Render() override {
-        if (this->PrepareFrame() == Core::FrameResult::OutOfDate)
-            this->m_hasErrors = !this->ResizeWindow();
-
-        /*// Command buffer to be submitted to the queue
-        m_submitInfo.commandBufferCount = 1;
-        m_submitInfo.pCommandBuffers    = &m_drawCmdBuffs[m_currentBuffer];
-
-        // Submit to queue
-        auto result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &m_submitInfo, VK_NULL_HANDLE);
-        if (result != VK_SUCCESS) {
-            VK_ERROR("renderFunction() : failed to queue submit!");
-            return;
-        }*/
-
+    Core::RenderResult Render() override {
+        if (PrepareFrame() == Core::FrameResult::OutOfDate) {
+            m_hasErrors = !ResizeWindow();
+            return Core::RenderResult::Success;
+        }
 
         m_submitInfo.commandBufferCount = 1;
 
@@ -151,7 +151,7 @@ public:
         auto result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &m_submitInfo, VK_NULL_HANDLE);
         if (result != VK_SUCCESS) {
             VK_ERROR("renderFunction() : failed to submit first queue!");
-            return;
+            return Core::RenderResult::Fatal;
         }
 
         m_submitInfo.pWaitSemaphores    = &m_offscreen->m_semaphore;
@@ -160,11 +160,14 @@ public:
         result = vkQueueSubmit(m_device->GetGraphicsQueue(), 1, &m_submitInfo, VK_NULL_HANDLE);
         if (result != VK_SUCCESS) {
             VK_ERROR("renderFunction() : failed to submit second queue!");
-            return;
+            return Core::RenderResult::Fatal;
         }
 
-        if (this->SubmitFrame() == Core::FrameResult::OutOfDate)
-            this->m_hasErrors = !this->ResizeWindow();
+        if (SubmitFrame() == Core::FrameResult::OutOfDate) {
+            m_hasErrors = !ResizeWindow();
+        }
+
+        return Core::RenderResult::Success;
     }
 
     void UpdateUBO() {
@@ -261,7 +264,7 @@ public:
         std::vector<uint32_t> indices;
         std::vector<Vertex> vertices;
 
-        if (tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, R"(J:\C++\GameEngine\Resources\Models\skybox3.obj)"))
+        if (tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (resources + "/Models/skybox.obj").c_str()))
             for (const auto& shape : shapes) {
                 for (const auto& index : shape.mesh.indices) {
                     Vertex vertex{};
@@ -275,21 +278,19 @@ public:
                 }
             }
 
-        //std::cout << indices.size() << std::endl;
-
-        this->m_skyboxVerticesBuff = Types::Buffer::Create(
-                m_device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        m_skyboxVerticesBuff = Types::Buffer::Create(
+                m_device, m_allocator, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 vertices.size() * sizeof(VertexUV),
                 vertices.data());
 
-        this->m_skyboxIndicesBuff = Types::Buffer::Create(
-                m_device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        m_skyboxIndicesBuff = Types::Buffer::Create(
+                m_device, m_allocator, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 indices.size() * sizeof(uint32_t),
                 indices.data());
 
-        skybox.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(m_skyboxShader->GetDescriptorSetLayout(), {
+        skybox.m_descriptorSet = m_descriptorManager->AllocateDescriptorSets(m_skyboxShader->GetDescriptorSetLayout(), {
                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
         });
         skybox.m_countIndices = indices.size();
@@ -299,13 +300,14 @@ public:
 
         skybox.m_uniformBuffer = EvoVulkan::Types::Buffer::Create(
                 m_device,
+                m_allocator,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                 sizeof(SkyboxUniformBuffer));
 
         std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                 Tools::Initializers::WriteDescriptorSet(skybox.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
-                                                        &skybox.m_uniformBuffer->m_descriptor),
+                                                        skybox.m_uniformBuffer->GetDescriptorRef()),
                 Tools::Initializers::WriteDescriptorSet(skybox.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                                         m_cubeMap->GetDescriptorRef()),
         };
@@ -366,20 +368,20 @@ public:
         //-512x512
         int w, h, channels;
         std::array<uint8_t*, 6> sides {
-                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\front.jpg)", &w, &h, &channels, STBI_rgb_alpha),
-                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\back.jpg)", &w, &h, &channels, STBI_rgb_alpha),
-                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\top.jpg)", &w, &h, &channels, STBI_rgb_alpha),
-                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\bottom.jpg)", &w, &h, &channels, STBI_rgb_alpha),
-                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\right.jpg)", &w, &h, &channels, STBI_rgb_alpha),
-                stbi_load(R"(J:\C++\GameEngine\Resources\Skyboxes\Sea\bottom.jpg)", &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load((resources + "/Skyboxes/Sea/front.jpg").c_str(), &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load((resources + "/Skyboxes/Sea/back.jpg").c_str(), &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load((resources + "/Skyboxes/Sea/top.jpg").c_str(), &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load((resources + "/Skyboxes/Sea/bottom.jpg").c_str(), &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load((resources + "/Skyboxes/Sea/right.jpg").c_str(), &w, &h, &channels, STBI_rgb_alpha),
+                stbi_load((resources + "/Skyboxes/Sea/bottom.jpg").c_str(), &w, &h, &channels, STBI_rgb_alpha),
         };
 
-        m_cubeMap = Types::Texture::LoadCubeMap(m_device, m_cmdPool, VK_FORMAT_R8G8B8A8_UNORM, w, h, sides, 1);
+        m_cubeMap = Types::Texture::LoadCubeMap(m_device, m_allocator, m_cmdPool, VK_FORMAT_R8G8B8A8_UNORM, w, h, sides, 1);
 
-        for (auto img : sides)
+        for (auto&& img : sides)
             stbi_image_free(img);
 
-        return true;
+        return m_cubeMap;
     }
 
     bool LoadTexture() {
@@ -413,13 +415,13 @@ public:
             h = sz.second;
         }
 
-        auto cmpBuffer = Compress(w, h, pixels);
+        //auto cmpBuffer = Compress(w, h, pixels);
 
         //S3TC_DXT1
         //for (uint32_t i = 0; i < 40; i++)
-          //  m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h);
-        //m_texture = Types::Texture::LoadWithoutMip(m_device, m_descriptorManager, m_cmdPool, cmpBuffer, VK_FORMAT_R8G8B8A8_SRGB, w, h, VK_FILTER_LINEAR);
-        m_texture = Types::Texture::LoadWithoutMip(m_device, m_descriptorManager, m_cmdPool, cmpBuffer, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, w, h, VK_FILTER_LINEAR);
+        m_texture = Types::Texture::LoadWithoutMip(m_device, m_allocator, m_descriptorManager, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h, VK_FILTER_LINEAR);
+        //m_texture = Types::Texture::LoadWithoutMip(m_device, m_allocator, m_descriptorManager, m_cmdPool, cmpBuffer, VK_FORMAT_R8G8B8A8_SRGB, w, h, VK_FILTER_LINEAR);
+        //m_texture = Types::Texture::LoadWithoutMip(m_device, m_allocator, m_descriptorManager, m_cmdPool, cmpBuffer, VK_FORMAT_BC1_RGBA_SRGB_BLOCK, w, h, VK_FILTER_LINEAR);
            // m_texture = Types::Texture::LoadWithoutMip(m_device, m_cmdPool, pixels, VK_FORMAT_BC7_UNORM_BLOCK, w, h);
             //m_texture = Types::Texture::LoadCompressed(m_device, m_descriptorManager, m_cmdPool, pixels, VK_FORMAT_BC1_RGB_UNORM_BLOCK, w, h);
             //m_texture = Types::Texture::LoadAutoMip(m_device, m_cmdPool, pixels, VK_FORMAT_R8G8B8A8_SRGB, w, h, 3);
@@ -427,7 +429,7 @@ public:
         if (!m_texture)
             return false;
 
-        free(cmpBuffer);
+        //free(cmpBuffer);
 
         return true;
     }
@@ -447,7 +449,7 @@ public:
         std::vector<VkWriteDescriptorSet> writeDescriptorSets1 = {
                 // Binding 0 : Fragment shader uniform buffer
                 Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
-                                                        &m_PPUniformBuffer->m_descriptor),
+                                                        m_PPUniformBuffer->GetDescriptorRef()),
 
                 // Binding 1: Fragment shader sampler
                 Tools::Initializers::WriteDescriptorSet(m_PPDescriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
@@ -471,27 +473,29 @@ public:
     bool SetupUniforms() {
         m_viewUniformBuffer = EvoVulkan::Types::Buffer::Create(
                 m_device,
+                m_allocator,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
                 sizeof(ViewUniformBuffer));
 
         // geometry
 
-        for (auto & _mesh : meshes) {
-            _mesh.m_descrManager = m_descriptorManager;
+        for (auto&& mesh : meshes) {
+            mesh.m_descrManager = m_descriptorManager;
 
-            _mesh.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(m_geometry->GetDescriptorSetLayout(), {
+            mesh.m_descriptorSet = this->m_descriptorManager->AllocateDescriptorSets(m_geometry->GetDescriptorSetLayout(), {
                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
             });
-            if (_mesh.m_descriptorSet.m_self == VK_NULL_HANDLE) {
+            if (mesh.m_descriptorSet.m_self == VK_NULL_HANDLE) {
                 VK_ERROR("VulkanExample::SetupDescriptors() : failed to allocate descriptor sets!");
                 return false;
             }
 
             //!=============================================================================================================
 
-            _mesh.m_uniformBuffer = EvoVulkan::Types::Buffer::Create(
+            mesh.m_uniformBuffer = EvoVulkan::Types::Buffer::Create(
                     m_device,
+                    m_allocator,
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
                     sizeof(ModelUniformBuffer));
@@ -501,11 +505,11 @@ public:
 
             std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
                     // Binding 0 : Vertex shader uniform buffer
-                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
-                                                            &_mesh.m_uniformBuffer->m_descriptor),
+                    Tools::Initializers::WriteDescriptorSet(mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
+                                                            mesh.m_uniformBuffer->GetDescriptorRef()),
 
-                    Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                                                            &m_viewUniformBuffer->m_descriptor),
+                    Tools::Initializers::WriteDescriptorSet(mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                                            m_viewUniformBuffer->GetDescriptorRef()),
 
                     //Tools::Initializers::WriteDescriptorSet(_mesh.m_descriptorSet.m_self, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2,
                     //                                        textureDescriptor)
@@ -513,27 +517,30 @@ public:
             vkUpdateDescriptorSets(*m_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, NULL);
         }
 
-        // post processing
-        this->m_PPDescriptorSet = this->m_descriptorManager->AllocateDescriptorSets(m_postProcessing->GetDescriptorSetLayout(), {
+        /// post processing
+        m_PPDescriptorSet = m_descriptorManager->AllocateDescriptorSets(m_postProcessing->GetDescriptorSetLayout(), {
                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
         });
 
         m_PPUniformBuffer = EvoVulkan::Types::Buffer::Create(
                 m_device,
+                m_allocator,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
                 sizeof(PPUniformBuffer));
 
         return true;
     }
-    bool SetupShader() {
-        //this->m_geometry = new Complexes::Shader(GetDevice(), GetRenderPass(), GetPipelineCache());
-        this->m_geometry = new Complexes::Shader(GetDevice(), m_offscreen->GetRenderPass(), GetPipelineCache());
 
-        m_geometry->Load("J:\\C++\\GameEngine\\Engine\\Dependences\\Framework\\Depends\\EvoVulkan\\Resources\\Shaders", "J://C++/EvoVulkan/Resources/Cache",
+    bool SetupShader() {
+        bool hasErrors = false;
+
+        m_geometry = new Complexes::Shader(GetDevice(), m_offscreen->GetRenderPass(), GetPipelineCache());
+
+        hasErrors |= !m_geometry->Load("J:/C++/EvoVulkan/Resources/Cache",
                          {
-                                 {"geometry.vert", VK_SHADER_STAGE_VERTEX_BIT},
-                                 {"geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
+                                 { "geometry.vert", resources + "/Shaders/geometry.vert", VK_SHADER_STAGE_VERTEX_BIT },
+                                 { "geometry.frag", resources + "/Shaders/geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT },
                          },
                          {
                                  Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -550,7 +557,7 @@ public:
                                  sizeof(ModelUniformBuffer), sizeof(ViewUniformBuffer)
                          });
 
-        m_geometry->SetVertexDescriptions(
+        hasErrors |= !m_geometry->SetVertexDescriptions(
                 {Tools::Initializers::VertexInputBindingDescription(0, sizeof(VertexUV), VK_VERTEX_INPUT_RATE_VERTEX)},
                 {
                         Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT,
@@ -560,23 +567,24 @@ public:
                 }
         );
 
-        m_geometry->Compile(
+        hasErrors |= !m_geometry->Compile(
                 VK_POLYGON_MODE_FILL,
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_TRUE,
                 VK_TRUE,
-                VK_TRUE
+                VK_TRUE,
+                VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
         );
 
         //!=============================================================================================================
 
-        this->m_skyboxShader = new Complexes::Shader(GetDevice(), m_offscreen->GetRenderPass(), GetPipelineCache());
+        m_skyboxShader = new Complexes::Shader(GetDevice(), m_offscreen->GetRenderPass(), GetPipelineCache());
 
-        m_skyboxShader->Load("J:\\C++\\GameEngine\\Engine\\Dependences\\Framework\\Depends\\EvoVulkan\\Resources\\Shaders", "J://C++/EvoVulkan/Resources/Cache",
+        hasErrors |= !m_skyboxShader->Load("J:/C++/EvoVulkan/Resources/Cache",
                          {
-                                 {"skybox.vert", VK_SHADER_STAGE_VERTEX_BIT},
-                                 {"skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
+                                 {"skybox.vert", resources + "/Shaders/skybox.vert", VK_SHADER_STAGE_VERTEX_BIT},
+                                 {"skybox.frag", resources + "/Shaders/skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
                          },
                          {
                                  Tools::Initializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -589,7 +597,7 @@ public:
                                  sizeof(SkyboxUniformBuffer)
                          });
 
-        m_skyboxShader->SetVertexDescriptions(
+        hasErrors |= !m_skyboxShader->SetVertexDescriptions(
                 {Tools::Initializers::VertexInputBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)},
                 {
                         Tools::Initializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT,
@@ -597,24 +605,24 @@ public:
                 }
         );
 
-        m_skyboxShader->Compile(
+        hasErrors |= !m_skyboxShader->Compile(
                 VK_POLYGON_MODE_FILL,
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_TRUE,
                 VK_TRUE,
-                VK_TRUE
+                VK_TRUE,
+                VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
         );
 
         //!=============================================================================================================
 
-        //this->m_postProcessing = new Complexes::Shader(GetDevice(), this->m_offscreen->GetRenderPass(), GetPipelineCache());
-        this->m_postProcessing = new Complexes::Shader(GetDevice(), this->GetRenderPass(), GetPipelineCache());
+        m_postProcessing = new Complexes::Shader(GetDevice(), this->GetRenderPass(), GetPipelineCache());
 
-        m_postProcessing->Load("J:\\C++\\GameEngine\\Engine\\Dependences\\Framework\\Depends\\EvoVulkan\\Resources\\Shaders", "J://C++/EvoVulkan/Resources/Cache",
+        hasErrors |= !m_postProcessing->Load("J://C++/EvoVulkan/Resources/Cache",
                                {
-                                       {"post_processing.vert", VK_SHADER_STAGE_VERTEX_BIT},
-                                       {"post_processing.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
+                                       {"post_processing.vert", resources + "/Shaders/post_processing.vert", VK_SHADER_STAGE_VERTEX_BIT},
+                                       {"post_processing.frag", resources + "/Shaders/post_processing.frag", VK_SHADER_STAGE_FRAGMENT_BIT},
                                },
                                {
                                        Tools::Initializers::DescriptorSetLayoutBinding(
@@ -633,63 +641,57 @@ public:
                                        sizeof(PPUniformBuffer)
                                });
 
-        m_postProcessing->Compile(
+        hasErrors |= !m_postProcessing->Compile(
                 VK_POLYGON_MODE_FILL,
                 VK_CULL_MODE_NONE,
                 VK_COMPARE_OP_LESS_OR_EQUAL,
                 VK_TRUE,
                 VK_TRUE,
-                VK_TRUE
+                VK_TRUE,
+                VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
         );
 
-        return true;
+        return !hasErrors;
     }
 
     bool GenerateGeometry() {
         // Setup vertices for a single uv-mapped quad made from two triangles
         std::vector<VertexUV> vertices =
                 {
-                        //{ {1.0f,  2.0f,  0.0f}, { 1.0f, 1.0f } },
-                        //{ {-1.0f, 2.0f,  0.0f}, { 0.0f, 1.0f } },
-                        //{ {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } },
-                        //{ {1.0f,  -1.0f, 0.0f}, { 1.0f, 0.0f } }
-
                         { {2.0f,  2.0f,  0.0f}, { 1.0f, 1.0f } },
                         { {-2.0f, 2.0f,  0.0f}, { 0.0f, 1.0f } },
                         { {-2.0f, -2.0f, 0.0f}, { 0.0f, 0.0f } },
                         { {2.0f,  -2.0f, 0.0f}, { 1.0f, 0.0f } }
                 };
 
-        // Setup indices
+        /// Setup indices
         std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0};
 
-        // Create buffers
-        // For the sake of simplicity we won't stage the vertex data to the gpu memory
-        // Vertex buffer
-        this->m_planeVerticesBuff = Types::Buffer::Create(
+        /// Create buffers
+        /// For the sake of simplicity we won't stage the vertex data to the gpu memory
+        /// Vertex buffer
+        m_planeVerticesBuff = Types::Buffer::Create(
                 m_device,
+                m_allocator,
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 vertices.size() * sizeof(VertexUV),
                 vertices.data());
-        // return false;
 
-        // Index buffer
-        this->m_planeIndicesBuff = Types::Buffer::Create(
+        /// Index buffer
+        m_planeIndicesBuff = Types::Buffer::Create(
                 m_device,
+                m_allocator,
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 indices.size() * sizeof(uint32_t),
                 indices.data());
 
-        for (auto &meshe : meshes) {
-            meshe.m_indexBuffer  = m_planeIndicesBuff;
-            meshe.m_vertexBuffer = m_planeVerticesBuff;
-            meshe.m_countIndices = indices.size();
+        for (auto&& mesh : meshes) {
+            mesh.m_indexBuffer  = m_planeIndicesBuff;
+            mesh.m_vertexBuffer = m_planeVerticesBuff;
+            mesh.m_countIndices = indices.size();
         }
-
-        //auto* mesh = new Complexes::Mesh(m_device, vertexBuffer, indexBuffer, 6, m_descriptorManager);
-        //mesh->Bake(m_shader);
 
         return true;
     }
@@ -798,7 +800,7 @@ public:
                 m_width, m_height, m_renderPass.m_self,
                 VK_NULL_HANDLE, &clearValues[0], 3);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < m_frameBuffers.size(); ++i) {
             renderPassBI.framebuffer = m_frameBuffers[i];
 
             vkBeginCommandBuffer(m_drawCmdBuffs[i], &cmdBufInfo);
@@ -832,8 +834,8 @@ public:
 
         EVSafeFreeObject(m_PPUniformBuffer);
         if (m_PPDescriptorSet.m_self != VK_NULL_HANDLE) {
-            this->m_descriptorManager->FreeDescriptorSet(m_PPDescriptorSet);
-            m_PPDescriptorSet = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+            m_descriptorManager->FreeDescriptorSet(m_PPDescriptorSet);
+            m_PPDescriptorSet.Reset();
         }
 
         EVSafeFreeObject(m_viewUniformBuffer);
@@ -842,8 +844,8 @@ public:
         EVSafeFreeObject(m_postProcessing);
         EVSafeFreeObject(m_skyboxShader);
 
-        for (auto & _mesh : meshes)
-            _mesh.Destroy();
+        for (auto&& mesh : meshes)
+            mesh.Destroy();
         skybox.Destroy();
 
         EVSafeFreeObject(m_skyboxVerticesBuff);
@@ -856,8 +858,9 @@ public:
     }
 
     bool OnComplete() override {
-        this->m_offscreen = Complexes::FrameBuffer::Create(
+        m_offscreen = Complexes::FrameBuffer::Create(
                 m_device,
+                m_allocator,
                 m_descriptorManager,
                 m_swapchain,
                 m_cmdPool,
@@ -884,8 +887,7 @@ public:
         vkQueueWaitIdle(m_device->GetGraphicsQueue());
         vkDeviceWaitIdle(*m_device);
 
-        return m_offscreen ? (this->m_offscreen->ReCreate(m_width, m_height) && UpdatePP()) : true;
-        //return true;
+        return m_offscreen ? (m_offscreen->ReCreate(m_width, m_height) && UpdatePP()) : true;
     }
 };
 
