@@ -78,7 +78,7 @@ namespace EvoVulkan::Core {
         void SetMultisampling(uint32_t sampleCount);
         void SetSwapchainImagesCount(uint32_t count);
 
-        void SetGUIEnabled(bool enabled) { m_GUIEnabled = enabled; }
+        void SetGUIEnabled(bool enabled);
 
         bool SetValidationLayersEnabled(bool value);
         void SetSize(uint32_t width, uint32_t height);

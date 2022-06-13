@@ -428,9 +428,14 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
             //windowResize();
             VK_LOG("VulkanKernel::SubmitFrame() : window has been resized!");
             return FrameResult::OutOfDate;
-        } else {
+        }
+        else {
             VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue present! Reason: " +
                      Tools::Convert::result_to_description(result));
+
+            if (result == VK_ERROR_DEVICE_LOST) {
+                return FrameResult::DeviceLost;
+            }
 
             return FrameResult::Error;
         }
@@ -547,6 +552,16 @@ uint32_t EvoVulkan::Core::VulkanKernel::GetCountBuildIterations() const {
 
 void EvoVulkan::Core::VulkanKernel::SetSwapchainImagesCount(uint32_t count) {
     m_swapchainImages = count;
+}
+
+void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
+{ 
+    if ((m_GUIEnabled = enabled)) {
+        VK_LOG("VulkanKernel::SetGUIEnabled() : gui was been enabled!");
+    }
+    else {
+        VK_LOG("VulkanKernel::SetGUIEnabled() : gui was been disabled!");
+    }
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations() {
