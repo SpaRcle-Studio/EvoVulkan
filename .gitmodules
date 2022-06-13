@@ -1,6 +1,3 @@
-[submodule "Depends/VMA"]
-	path = Depends/VMA
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 [submodule "Core/libs/VMA"]
 	path = Core/libs/VMA
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+	url = https://github.com/Monika0000/VulkanMemoryAllocator

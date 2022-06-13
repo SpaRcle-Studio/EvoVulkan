@@ -142,8 +142,8 @@ uint64_t EvoVulkan::Memory::Allocator::GetGPUMemoryUsage() const {
 
         uint64_t totalBytes = 0;
 
-        for (const auto& heap : heaps)
-            totalBytes += heap.allocationBytes;
+        //for (const auto& heap : heaps)
+        //    totalBytes += heap.allocationBytes;
 
         return totalBytes;
     }
