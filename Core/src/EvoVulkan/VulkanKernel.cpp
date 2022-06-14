@@ -55,8 +55,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
     if (m_validationEnabled) {
         m_debugMessenger = Tools::SetupDebugMessenger(*m_instance);
         if (m_debugMessenger == VK_NULL_HANDLE) {
-            VK_ERROR("VulkanKernel::PreInit() : failed to setup debug messenger!");
-            return false;
+            VK_ERROR("VulkanKernel::PreInit() : failed to setup debug messenger! Try continue...");
         }
     }
 
