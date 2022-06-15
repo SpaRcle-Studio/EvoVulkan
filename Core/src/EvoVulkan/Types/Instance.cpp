@@ -3,12 +3,25 @@
 //
 
 #include <EvoVulkan/Types/Instance.h>
+#include <EvoVulkan/Tools/StringUtils.h>
 
 namespace EvoVulkan::Types {
     Instance* Instance::Create(const std::string& appName, const std::string& engineName,
             StringVector extensions, const StringVector& layers, bool validationEnabled)
     {
-        VK_GRAPH("Instance::Create() : create vulkan instance...");
+        const auto&& logExtensions = Tools::Combine<const char*>(extensions, [](const char* str, int32_t i, bool last) -> std::string {
+            return last ? std::string(str) : std::string(str).append(", ");
+        });
+
+        const auto&& logLayers = Tools::Combine<const char*>(layers, [](const char* str, int32_t i, bool last) -> std::string {
+            return last ? std::string(str) : std::string(str).append(", ");
+        });
+
+        const auto log = Tools::Format("\n\tApplication name: %s\n\tEngine name: %s\n\tValidation enabled: %s\n\tExtensions: %s\n\tLayers: %s",
+            appName.c_str(), engineName.c_str(), validationEnabled ? "true" : "false", logExtensions.c_str(), logLayers.c_str()
+        );
+
+        VK_GRAPH("Instance::Create() : create vulkan instance..." + log);
 
         static bool exists = false;
 

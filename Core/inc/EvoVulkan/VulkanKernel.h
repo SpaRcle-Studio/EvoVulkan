@@ -73,6 +73,7 @@ namespace EvoVulkan::Core {
 
         EVK_NODISCARD Core::DescriptorManager* GetDescriptorManager() const;
         EVK_NODISCARD uint32_t GetCountBuildIterations() const;
+        EVK_NODISCARD bool IsValidationLayersEnabled() const { return m_validationEnabled; }
 
         void SetFramebuffersQueue(const std::vector<Complexes::FrameBuffer*>& queue);
         void SetMultisampling(uint32_t sampleCount);
