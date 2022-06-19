@@ -22,7 +22,7 @@ namespace EvoVulkan::Core {
     };
 
     DescriptorSet DescriptorManager::AllocateDescriptorSets(VkDescriptorSetLayout layout, const std::set<VkDescriptorType>& requestTypes) {
-        int64_t          _free  = -2;
+        int64_t          _free  = EVK_ID_INVALID;
         DescriptorPool*  _pool  = nullptr;
         DescriptorSet    _set   = { VK_NULL_HANDLE, VK_NULL_HANDLE, nullptr, UINT32_MAX };
 
@@ -33,7 +33,7 @@ namespace EvoVulkan::Core {
                 _free = pool->FindFree();
                 _pool = pool;
 
-                if (_free < 0) {
+                if (_free == EVK_ID_INVALID) {
                     VK_ERROR("DescriptorManager::AllocateDescriptor() : something went wrong!");
                     return _set;
                 }
@@ -42,7 +42,7 @@ namespace EvoVulkan::Core {
                 continue;
         }
 
-        if (_free < 0) {
+        if (_free == EVK_ID_INVALID) {
             VK_LOG("DescriptorManager::AllocateDescriptor() : create new descriptor pool... Total: " + std::to_string(m_pools.size()));
 
             _pool = DescriptorPool::Create(m_countDescriptorsAllocate, layout, *m_device, requestTypes);
