@@ -17,6 +17,7 @@
 #include "src/EvoVulkan/Types/Image.cpp"
 #include "src/EvoVulkan/Types/VmaBuffer.cpp"
 #include "src/EvoVulkan/Types/Instance.cpp"
+#include "src/EvoVulkan/Types/DescriptorPool.cpp"
 
 #include "src/EvoVulkan/Tools/VulkanTools.cpp"
 #include "src/EvoVulkan/Tools/VulkanDebug.cpp"

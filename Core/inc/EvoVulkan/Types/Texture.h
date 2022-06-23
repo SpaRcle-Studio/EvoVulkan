@@ -10,7 +10,7 @@
 #include <EvoVulkan/Tools/VulkanDebug.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
 #include <EvoVulkan/Types/Image.h>
-#include <EvoVulkan/DescriptorSet.h>
+#include <EvoVulkan/Types/DescriptorSet.h>
 
 namespace EvoVulkan::Memory {
     class Allocator;
@@ -102,7 +102,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD EVK_INLINE uint32_t GetWidth() const { return m_width; }
         EVK_NODISCARD EVK_INLINE uint32_t GetHeight() const { return m_height; }
         EVK_NODISCARD EVK_INLINE uint32_t GetSeed() const { return m_seed; }
-        Core::DescriptorSet GetDescriptorSet(VkDescriptorSetLayout layout);
+        Types::DescriptorSet GetDescriptorSet(VkDescriptorSetLayout layout);
 
     private:
         bool Create(VmaBuffer* stagingBuffer);
@@ -132,7 +132,7 @@ namespace EvoVulkan::Types {
         Memory::Allocator* m_allocator               = nullptr;
         Core::DescriptorManager* m_descriptorManager = nullptr;
 
-        Core::DescriptorSet      m_descriptorSet     = {};
+        Types::DescriptorSet      m_descriptorSet     = {};
         VkDescriptorImageInfo    m_descriptor        = {};
 
     };

@@ -33,6 +33,7 @@
 #define EVK_UNUSED [[maybe_unused]]
 #define EVK_MAYBE_UNUSED EVK_UNUSED
 #define EVK_NODISCARD [[nodiscard]]
+#define EVK_FALLTHROUGH [[fallthrough]]
 
 #define EVK_INLINE inline
 #define EVK_ID_INVALID -1

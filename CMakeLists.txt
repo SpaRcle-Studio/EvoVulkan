@@ -14,7 +14,7 @@ add_subdirectory(Depends/cmp_core)
 
 add_executable(EvoVulkanTest main.cpp)
 
-if (EVOVULKAN_STATIC_LIBRARY)
+if (EVO_VULKAN_STATIC_LIBRARY)
     target_link_libraries(EvoVulkanTest EvoVulkanCore glfw stbi CMP_Core)
 
     target_include_directories(EvoVulkanTest PUBLIC Depends/inc)

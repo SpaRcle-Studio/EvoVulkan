@@ -5,53 +5,16 @@
 #ifndef EVOVULKAN_DESCRIPTORMANAGER_H
 #define EVOVULKAN_DESCRIPTORMANAGER_H
 
-#include <EvoVulkan/DescriptorSet.h>
+#include <EvoVulkan/Types/DescriptorSet.h>
 
 namespace EvoVulkan::Types {
     class Device;
+    class DescriptorPool;
 }
 
 namespace EvoVulkan::Core {
-    class DLL_EVK_EXPORT DescriptorPool : public Tools::NonCopyable {
-    public:
-        explicit DescriptorPool(uint32_t maxSets)
-                : m_maxSets(maxSets)
-        { }
-
-        ~DescriptorPool() override;
-
-        operator VkDescriptorPool() const { return m_pool; }
-
-    public:
-        static DescriptorPool* Create(Types::Device* device, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes);
-        static DescriptorPool* Create(uint32_t maxSets, VkDescriptorSetLayout layout, VkDevice device, const std::set<VkDescriptorType>& requestTypes);
-
-        static bool Contains(const std::set<VkDescriptorType>& types, const VkDescriptorType& type);
-
-    public:
-        bool Equal(const std::set<VkDescriptorType>& requestTypes);
-
-        EVK_NODISCARD int64_t FindFree() const;
-
-    public:
-        std::set<VkDescriptorType> m_requestTypes   = std::set<VkDescriptorType>();
-
-        /// for check equal alloc request (reference)
-        VkDescriptorSetLayout      m_layout         = VK_NULL_HANDLE;
-
-        VkDevice                   m_device         = VK_NULL_HANDLE;
-        VkDescriptorPool           m_pool           = VK_NULL_HANDLE;
-
-        uint32_t                   m_used           = 0;
-        const uint32_t             m_maxSets        = 0;
-
-        VkDescriptorSet*           m_descriptorSets = nullptr;
-
-    };
-
-    /// ----------------------------------------------------------------------------------------------------------------
-
     class DLL_EVK_EXPORT DescriptorManager : public Tools::NonCopyable {
+        using RequestTypes = std::set<VkDescriptorType>;
     private:
         DescriptorManager()  = default;
         ~DescriptorManager() override = default;
@@ -62,13 +25,16 @@ namespace EvoVulkan::Core {
         void Free();
         void Reset();
 
-        DescriptorSet AllocateDescriptorSets(VkDescriptorSetLayout layout, const std::set<VkDescriptorType>& requestTypes);
-        bool FreeDescriptorSet(Core::DescriptorSet descriptorSet);
+        Types::DescriptorSet AllocateDescriptorSet(VkDescriptorSetLayout layout, const RequestTypes& requestTypes, bool reallocate = false);
+        bool FreeDescriptorSet(Types::DescriptorSet* descriptorSet);
 
     private:
-        uint32_t                            m_countDescriptorsAllocate = 1000;
-        const EvoVulkan::Types::Device*     m_device                   = nullptr;
-        std::unordered_set<DescriptorPool*> m_pools                    = std::unordered_set<DescriptorPool*>();
+        Types::DescriptorPool* FindDescriptorPool(VkDescriptorSetLayout layout, const RequestTypes& requestTypes);
+        Types::DescriptorPool* AllocateDescriptorPool(VkDescriptorSetLayout layout, const RequestTypes& requestTypes);
+
+    private:
+        const EvoVulkan::Types::Device*  m_device = nullptr;
+        std::set<Types::DescriptorPool*> m_pools  = std::set<Types::DescriptorPool*>();
 
     };
 }

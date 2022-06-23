@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(libs/VMA)
 
-if (EVOVULKAN_STATIC_LIBRARY)
+if (EVO_VULKAN_STATIC_LIBRARY)
     add_library(EvoVulkan STATIC EvoVulkan.cxx)
 
     if (CYGWIN)
