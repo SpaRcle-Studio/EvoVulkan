@@ -91,6 +91,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD VkImageView GetAttachment(uint32_t id) const;
 
         EVK_NODISCARD std::vector<Types::Texture*> AllocateColorTextureReferences();
+        EVK_NODISCARD Types::Texture* AllocateDepthTextureReference();
         EVK_NODISCARD std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
 
         EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const { return m_viewport; }

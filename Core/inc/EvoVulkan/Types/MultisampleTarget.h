@@ -27,6 +27,7 @@ namespace EvoVulkan::Types {
         static MultisampleTarget* Create(
                 Device* device,
                 Memory::Allocator* allocator,
+                Types::CmdPool* cmdPool,
                 Swapchain* swapchain,
                 uint32_t w, uint32_t h,
                 const std::vector<VkFormat>& formats,
@@ -39,7 +40,7 @@ namespace EvoVulkan::Types {
         bool ReCreate(uint32_t w, uint32_t h);
 
         EVK_NODISCARD VkImageView GetResolve(const uint32_t& id) const noexcept { return m_resolves[id].m_view; }
-        EVK_NODISCARD VkImage GetDepthImage() const noexcept { return m_depth.m_image; }
+        EVK_NODISCARD Types::Image& GetDepthImage() noexcept { return m_depth.m_image; }
         EVK_NODISCARD VkImageView GetDepth() const noexcept { return m_depth.m_view; }
         EVK_NODISCARD uint32_t GetResolveCount() const noexcept { return m_countResolves; }
 
@@ -47,6 +48,7 @@ namespace EvoVulkan::Types {
         Device*            m_device    = nullptr;
         Memory::Allocator* m_allocator = nullptr;
         Swapchain*         m_swapchain = nullptr;
+        Types::CmdPool*    m_cmdPool   = nullptr;
 
         bool m_multisampling = true;
 

@@ -9,6 +9,7 @@
 EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create(
         EvoVulkan::Types::Device *device,
         Memory::Allocator* allocator,
+        Types::CmdPool* cmdPool,
         Swapchain* swapchain,
         uint32_t w, uint32_t h,
         const std::vector<VkFormat>& formats,
@@ -18,6 +19,7 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
     multisample->m_device        = device;
     multisample->m_allocator     = allocator;
     multisample->m_swapchain     = swapchain;
+    multisample->m_cmdPool       = cmdPool;
     multisample->m_countResolves = formats.size();
     multisample->m_formats       = formats;
     multisample->m_multisampling = multisampling;

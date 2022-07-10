@@ -215,6 +215,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     this->m_multisample = Types::MultisampleTarget::Create(
             m_device,
             m_allocator,
+            m_cmdPool,
             m_swapchain,
             m_swapchain->GetSurfaceWidth(),
             m_swapchain->GetSurfaceHeight(),

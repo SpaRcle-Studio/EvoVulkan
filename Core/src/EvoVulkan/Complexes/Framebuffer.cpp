@@ -3,10 +3,13 @@
 //
 
 #include <EvoVulkan/Complexes/Framebuffer.h>
+#include <EvoVulkan/Types/CmdBuffer.h>
+#include <EvoVulkan/Types/CmdBuffer.h>
 
 static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
         EvoVulkan::Types::Device* device,
         EvoVulkan::Memory::Allocator* allocator,
+        EvoVulkan::Types::CmdPool* pool,
         VkFormat format,
         VkImageUsageFlags usage,
         VkExtent2D imageSize)
@@ -15,6 +18,7 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
 
     if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
         aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
     if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
         aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
@@ -36,6 +40,17 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
     );
 
     FBOAttachment.m_image = EvoVulkan::Types::Image::Create(imageCI);
+
+    /// ставим барьер памяти, чтобы можно было использовать в шейдерах
+    {
+        auto &&copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(device, pool);
+
+        EvoVulkan::Tools::TransitionImageLayout(copyCmd, FBOAttachment.m_image, VK_IMAGE_LAYOUT_UNDEFINED,
+                                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+
+        copyCmd->Destroy();
+        copyCmd->Free();
+    }
 
     FBOAttachment.m_view = EvoVulkan::Tools::CreateImageView(
             *device,
@@ -139,9 +154,10 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
 bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height)  {
     this->Destroy();
 
-    this->m_multisampleTarget = Types::MultisampleTarget::Create(
+    m_multisampleTarget = Types::MultisampleTarget::Create(
             m_device,
             m_allocator,
+            m_cmdPool,
             m_swapchain,
             width, height,
             m_attachFormats,
@@ -279,7 +295,8 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
             attachmentDesc.format = m_depthFormat;
             attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        } else {
+        }
+        else {
             attachmentDesc.format = m_attachFormats[i];
             attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -308,34 +325,62 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
 }
 
 bool EvoVulkan::Complexes::FrameBuffer::CreateAttachments()  {
-    this->m_attachments = (FrameBufferAttachment*)malloc(sizeof(FrameBufferAttachment) * m_countColorAttach);
+    m_attachments = (FrameBufferAttachment*)malloc(sizeof(FrameBufferAttachment) * m_countColorAttach);
+
     if (!m_attachments) {
         VK_ERROR("Framebuffer::CreateAttachments() : failed to allocate memory!");
         return false;
-    } else
-        for (uint32_t i = 0; i < m_countColorAttach; i++)
+    }
+    else {
+        for (uint32_t i = 0; i < m_countColorAttach; ++i)
             m_attachments[i].Init();
+    }
 
-    for (uint32_t i = 0; i < m_countColorAttach; i++) {
+    for (uint32_t i = 0; i < m_countColorAttach; ++i) {
         m_attachments[i] = CreateAttachment(
                 m_device,
                 m_allocator,
+                m_cmdPool,
                 m_attachFormats[i],
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                { m_width, m_height });
-
-        //auto copyCmd = Types::CmdBuffer::BeginSingleTime(m_device, m_cmdPool);
-        //Tools::TransitionImageLayout(copyCmd, m_attachments[i].m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
-        //copyCmd->Destroy();
-        //copyCmd->Free();
+                { m_width, m_height }
+        );
 
         if (!m_attachments[i].Ready()) {
-            VK_ERROR("Framebuffer::CreateAttachments() : failed to create attachment!");
+            VK_ERROR("Framebuffer::CreateAttachments() : failed to create color attachment!");
             return false;
         }
     }
 
     return true;
+}
+
+EvoVulkan::Types::Texture *EvoVulkan::Complexes::FrameBuffer::AllocateDepthTextureReference() {
+    auto* texture = new EvoVulkan::Types::Texture();
+
+    texture->m_view              = m_multisampleTarget->GetDepth();
+    texture->m_image             = m_multisampleTarget->GetDepthImage().Copy();
+    texture->m_format            = VK_FORMAT_B8G8R8A8_UNORM;
+    texture->m_descriptorManager = m_descriptorManager;
+    texture->m_sampler           = m_colorSampler;
+    texture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    texture->m_device            = m_device;
+    texture->m_allocator         = m_allocator;
+    texture->m_width             = m_width;
+    texture->m_height            = m_height;
+    texture->m_canBeDestroyed    = false;
+    texture->m_mipLevels         = 1;
+
+    /// make a texture descriptor
+    texture->m_descriptor = {
+            texture->m_sampler,
+            texture->m_view,
+            texture->m_imageLayout
+    };
+
+    texture->RandomizeSeed();
+
+    return texture;
 }
 
 std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::AllocateColorTextureReferences() {
