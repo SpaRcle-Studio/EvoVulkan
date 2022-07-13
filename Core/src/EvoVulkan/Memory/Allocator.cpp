@@ -26,7 +26,7 @@ bool EvoVulkan::Memory::Allocator::Init() {
 
     auto instance = m_device->GetInstance();
 
-    vmaAllocationCreateInfo.flags = 0;
+    vmaAllocationCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT /** disable vma mutex */;
     vmaAllocationCreateInfo.physicalDevice = *m_device;
     vmaAllocationCreateInfo.device = *m_device;
     vmaAllocationCreateInfo.preferredLargeHeapBlockSize = 256 * 1024 * 1024;
