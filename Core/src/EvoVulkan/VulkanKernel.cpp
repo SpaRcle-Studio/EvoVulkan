@@ -555,7 +555,7 @@ void EvoVulkan::Core::VulkanKernel::SetSwapchainImagesCount(uint32_t count) {
 }
 
 void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
-{ 
+{
     if ((m_GUIEnabled = enabled)) {
         VK_LOG("VulkanKernel::SetGUIEnabled() : gui was been enabled!");
     }
@@ -608,12 +608,13 @@ void EvoVulkan::Core::VulkanKernel::SetFramebuffersQueue(const std::vector<Compl
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
 
-    for (uint32_t i = 0; i < queue.size(); i++) {
+    for (uint32_t i = 0; i < queue.size(); ++i) {
         submitInfo.pCommandBuffers   = queue[i]->GetCmdRef();
         submitInfo.pSignalSemaphores = queue[i]->GetSemaphoreRef();
 
-        if (i == 0)
+        if (i == 0) {
             submitInfo.pWaitSemaphores = &m_syncs.m_presentComplete;
+        }
         else
             submitInfo.pWaitSemaphores = queue[i - 1]->GetSemaphoreRef();
 
