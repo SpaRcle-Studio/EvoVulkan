@@ -542,7 +542,7 @@ void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
             VK_LOG("VulkanKernel::SetSize() : window has been collapsed!");
         }
         else
-            VK_LOG("VulkanKernel::SetSize() : window has been expend!");
+            VK_LOG("VulkanKernel::SetSize() : window has been expanded!");
     }
 }
 
