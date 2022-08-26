@@ -73,7 +73,6 @@ namespace EvoVulkan::Core {
         if (pool->GetUsageCount() == 0) {
             delete pool;
             m_pools.erase(pool);
-            VK_LOG("DescriptorManager::FreeDescriptorSet() : free descriptor pool...");
         }
 
         return true;
