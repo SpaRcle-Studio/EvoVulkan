@@ -60,6 +60,7 @@ namespace EvoVulkan::Types {
 
         if (validationEnabled) {
             static VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
+            debugCreateInfo.pNext = nullptr;
 
             if (layers.empty()) {
                 VK_ERROR("Instance::Create() : layers is empty!");

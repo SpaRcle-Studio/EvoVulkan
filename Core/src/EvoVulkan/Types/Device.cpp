@@ -34,10 +34,13 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(const EvoDeviceCreate
     /// Gather physical device memory properties
     vkGetPhysicalDeviceMemoryProperties(info.physicalDevice, &device->m_memoryProperties);
 
-    VkPhysicalDeviceFeatures deviceFeatures;
-    vkGetPhysicalDeviceFeatures(info.physicalDevice, &deviceFeatures);
+    VkPhysicalDeviceFeatures2 deviceFeatures = {};
+    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures.pNext = nullptr;
+
+    vkGetPhysicalDeviceFeatures2(info.physicalDevice, &deviceFeatures);
     {
-        device->m_enableSamplerAnisotropy = deviceFeatures.samplerAnisotropy;
+        device->m_enableSamplerAnisotropy = deviceFeatures.features.samplerAnisotropy;
     }
 
     VkPhysicalDeviceProperties deviceProperties;

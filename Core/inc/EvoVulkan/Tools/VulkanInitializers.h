@@ -360,6 +360,10 @@ namespace EvoVulkan::Tools::Initializers {
         pipelineRasterizationStateCreateInfo.flags = flags;
         pipelineRasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
         pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
+
+        ///pipelineRasterizationStateCreateInfo.depthBiasEnable = VK_TRUE;
+        ///pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = 7.f;
+
         return pipelineRasterizationStateCreateInfo;
     }
 
@@ -425,6 +429,8 @@ namespace EvoVulkan::Tools::Initializers {
         pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         pipelineMultisampleStateCreateInfo.rasterizationSamples = rasterizationSamples;
         pipelineMultisampleStateCreateInfo.flags = flags;
+        pipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
+        pipelineMultisampleStateCreateInfo.minSampleShading = 1.f;
         return pipelineMultisampleStateCreateInfo;
     }
 

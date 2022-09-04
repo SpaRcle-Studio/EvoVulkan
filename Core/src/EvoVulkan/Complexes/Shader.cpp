@@ -131,7 +131,12 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
 
     auto&& dynamicState       = Tools::Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
     auto&& colorBlendState    = Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
-    auto&& pipelineCreateInfo = Tools::Initializers::PipelineCreateInfo(m_pipelineLayout, m_renderPass.m_self, 0);
+
+    auto&& pipelineCreateInfo = Tools::Initializers::PipelineCreateInfo(
+            m_pipelineLayout,
+            m_renderPass.m_self,
+            0
+    );
 
     pipelineCreateInfo.pVertexInputState   = &m_vertices.m_inputState;
     pipelineCreateInfo.pInputAssemblyState = &m_inputAssemblyState;
@@ -170,6 +175,12 @@ bool EvoVulkan::Complexes::Shader::Compile(
 
     m_inputAssemblyState = Tools::Initializers::PipelineInputAssemblyStateCreateInfo(topology, 0, VK_FALSE);
     m_rasterizationState = Tools::Initializers::PipelineRasterizationStateCreateInfo(polygonMode, cullMode, VK_FRONT_FACE_CLOCKWISE, 0);
+
+    m_lineState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_LINE_STATE_CREATE_INFO_EXT;
+    m_lineState.lineRasterizationMode = VK_LINE_RASTERIZATION_MODE_BRESENHAM_EXT;
+    m_lineState.stippledLineEnable = true;
+
+    /// m_rasterizationState.pNext = &m_lineState;
 
     m_depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthTest, depthWrite, depthCompare);
     m_viewportState = Tools::Initializers::PipelineViewportStateCreateInfo(1, 1, 0);

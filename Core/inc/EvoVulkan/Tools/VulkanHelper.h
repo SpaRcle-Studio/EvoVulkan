@@ -268,6 +268,23 @@ namespace EvoVulkan::Tools {
         createInfo.pfnUserCallback = DebugReportCallback;
     }
 
+    static std::vector<std::string> GetSupportedDeviceExtensions(const VkPhysicalDevice& device) {
+        uint32_t extensionCount;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        std::vector<std::string> extensions;
+        extensions.reserve(extensionCount);
+
+        for (auto&& extension : availableExtensions) {
+            extensions.emplace_back(extension.extensionName);
+        }
+
+        return extensions;
+    }
+
     static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& extensions) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);

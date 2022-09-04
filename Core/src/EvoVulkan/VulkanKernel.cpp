@@ -40,6 +40,13 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 
     VK_GRAPH("VulkanKernel::PreInit() : create vulkan instance...");
 
+    std::string supportedExtMsg = "VulkanKernel::PreInit() : supported instance extensions:";
+    auto&& supportedExtensions = Tools::GetSupportedInstanceExtensions();
+    for (auto&& extension : supportedExtensions) {
+        supportedExtMsg.append("\n\t").append(extension);
+    }
+    VK_LOG(supportedExtMsg);
+
     m_instance = Types::Instance::Create(
             m_appName,
             m_engineName,
@@ -74,8 +81,6 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 {
     VK_GRAPH("VulkanKernel::Init() : initializing Evo Vulkan kernel...");
 
-    //const auto extensions = Tools::GetSupportedExtensions();
-
     //!=============================================[Create surface]====================================================
 
     VK_GRAPH("VulkanKernel::Init() : create vulkan surface...");
@@ -88,14 +93,17 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     //!==========================================[Create logical device]================================================
 
     VK_GRAPH("VulkanKernel::Init() : create vulkan logical device...");
-    this->m_device = Tools::CreateDevice(
+
+    m_device = Tools::CreateDevice(
             m_instance,
             m_surface,
             deviceExtensions,
             m_validationEnabled ? m_validationLayers : std::vector<const char*>(),
             enableSampleShading,
             m_multisampling,
-            m_sampleCount);
+            m_sampleCount
+    );
+
     if (!m_device) {
         VK_ERROR("VulkanKernel::Init() : failed to create logical device!");
         return false;

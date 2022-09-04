@@ -163,9 +163,31 @@ namespace EvoVulkan::Tools {
 
         //!=============================================================================================================
 
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeaturesKhr = {};
+        fragmentShadingRateFeaturesKhr.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+        fragmentShadingRateFeaturesKhr.attachmentFragmentShadingRate = VK_TRUE;
+        fragmentShadingRateFeaturesKhr.primitiveFragmentShadingRate = VK_TRUE;
+        fragmentShadingRateFeaturesKhr.pipelineFragmentShadingRate = VK_TRUE;
+        fragmentShadingRateFeaturesKhr.pNext = nullptr;
+
+        //!=============================================================================================================
+
+        VkPhysicalDeviceLineRasterizationFeaturesEXT lineRasterizationFeaturesExt = {};
+        lineRasterizationFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT;
+        lineRasterizationFeaturesExt.pNext = (void*)&fragmentShadingRateFeaturesKhr;
+        lineRasterizationFeaturesExt.rectangularLines         = VK_FALSE;
+        lineRasterizationFeaturesExt.bresenhamLines           = VK_TRUE;
+        lineRasterizationFeaturesExt.smoothLines              = VK_FALSE;
+        lineRasterizationFeaturesExt.stippledRectangularLines = VK_FALSE;
+        lineRasterizationFeaturesExt.stippledBresenhamLines   = VK_TRUE;
+        lineRasterizationFeaturesExt.stippledSmoothLines      = VK_FALSE;
+
+        //!=============================================================================================================
+
         VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
         deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-        deviceFeatures2.pNext = nullptr; //(void*)&floatFeatures;
+        /// deviceFeatures2.pNext = (void*)&floatFeatures;
+        /// deviceFeatures2.pNext = (void*)&lineRasterizationFeaturesExt;
         deviceFeatures2.features = deviceFeatures;
 
         //!=============================================================================================================
@@ -177,7 +199,7 @@ namespace EvoVulkan::Tools {
         createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos       = queueCreateInfos.data();
 
-        //createInfo.pEnabledFeatures        = &deviceFeatures;
+        createInfo.pEnabledFeatures        = VK_FALSE; /// &deviceFeatures;
 
         createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
@@ -273,7 +295,7 @@ namespace EvoVulkan::Tools {
         return sampler;
     }
 
-    static std::set<std::string> GetSupportedExtensions() {
+    static std::set<std::string> GetSupportedInstanceExtensions() {
         uint32_t count;
         vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr); //get number of extensions
         std::vector<VkExtensionProperties> extensions(count);
@@ -521,12 +543,97 @@ namespace EvoVulkan::Tools {
 
         //!=============================================================================================================
 
-        VkPhysicalDeviceFeatures deviceFeatures = {};
-        deviceFeatures.fillModeNonSolid  = true;
-        deviceFeatures.samplerAnisotropy = true;
-        //deviceFeatures.textureCompressionASTC_LDR = true;
-        deviceFeatures.textureCompressionBC       = true;
-        //deviceFeatures.textureCompressionETC2     = true;
+        std::string supportedExtMsg = "VulkanTools::CreateDevice() : supported device extensions:";
+        auto&& supportedExtensions = Tools::GetSupportedDeviceExtensions(physicalDevice);
+        for (auto&& extension : supportedExtensions) {
+            supportedExtMsg.append("\n\t").append(extension);
+        }
+        VK_LOG(supportedExtMsg);
+
+        VkPhysicalDeviceLineRasterizationFeaturesEXT lineRasterizationFeaturesExt = {};
+        lineRasterizationFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT;
+        lineRasterizationFeaturesExt.pNext = nullptr;
+
+        VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
+        deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        deviceFeatures2.pNext = &lineRasterizationFeaturesExt;
+
+        vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures2);
+
+        VK_LOG(std::string("VulkanTools::CreateDevice() : VkPhysicalDeviceLineRasterizationFeaturesEXT: ")
+            .append("\n\trectangularLines = ").append(lineRasterizationFeaturesExt.rectangularLines ? "True" : "False")
+            .append("\n\tbresenhamLines = ").append(lineRasterizationFeaturesExt.bresenhamLines ? "True" : "False")
+            .append("\n\tsmoothLines = ").append(lineRasterizationFeaturesExt.smoothLines ? "True" : "False")
+            .append("\n\tstippledRectangularLines = ").append(lineRasterizationFeaturesExt.stippledRectangularLines ? "True" : "False")
+            .append("\n\tstippledBresenhamLines = ").append(lineRasterizationFeaturesExt.stippledBresenhamLines ? "True" : "False")
+            .append("\n\tstippledSmoothLines = ").append(lineRasterizationFeaturesExt.stippledSmoothLines ? "True" : "False")
+        );
+
+        //!=============================================================================================================
+
+        //deviceFeatures.fillModeNonSolid  = true;
+        //deviceFeatures.samplerAnisotropy = true;
+        //deviceFeatures.textureCompressionBC       = true;
+        ////deviceFeatures.textureCompressionETC2     = true;
+        ////deviceFeatures.textureCompressionASTC_LDR = true;
+
+        VkPhysicalDeviceFeatures deviceFeatures = {
+                .robustBufferAccess = true,
+                .fullDrawIndexUint32 = false,
+                .imageCubeArray = true,
+                .independentBlend = true,
+                .geometryShader = true,
+                .tessellationShader = true,
+                .sampleRateShading = true,
+                .dualSrcBlend = true,
+                .logicOp = true,
+                .multiDrawIndirect = false,
+                .drawIndirectFirstInstance = false,
+                .depthClamp = true,
+                .depthBiasClamp = true,
+                .fillModeNonSolid = true,
+                .depthBounds = false /** is_depth_bounds_supported */,
+                .wideLines = true,
+                .largePoints = true,
+                .alphaToOne = false,
+                .multiViewport = true,
+                .samplerAnisotropy = true,
+                .textureCompressionETC2 = false,
+                .textureCompressionASTC_LDR = false /** is_optimal_astc_supported */,
+                .textureCompressionBC = true,
+                .occlusionQueryPrecise = true,
+                .pipelineStatisticsQuery = false,
+                .vertexPipelineStoresAndAtomics = true,
+                .fragmentStoresAndAtomics = true,
+                .shaderTessellationAndGeometryPointSize = false,
+                .shaderImageGatherExtended = true,
+                .shaderStorageImageExtendedFormats = false,
+                .shaderStorageImageMultisample = false /** is_shader_storage_image_multisample */,
+                .shaderStorageImageReadWithoutFormat = false /** is_formatless_image_load_supported */,
+                .shaderStorageImageWriteWithoutFormat = true,
+                .shaderUniformBufferArrayDynamicIndexing = false,
+                .shaderSampledImageArrayDynamicIndexing = false,
+                .shaderStorageBufferArrayDynamicIndexing = false,
+                .shaderStorageImageArrayDynamicIndexing = false,
+                .shaderClipDistance = true,
+                .shaderCullDistance = true,
+                .shaderFloat64 = false /** is_shader_float64_supported */,
+                .shaderInt64 = false /** is_shader_int64_supported */,
+                .shaderInt16 = false /** is_shader_int16_supported */,
+                .shaderResourceResidency = false,
+                .shaderResourceMinLod = false,
+                .sparseBinding = false,
+                .sparseResidencyBuffer = false,
+                .sparseResidencyImage2D = false,
+                .sparseResidencyImage3D = false,
+                .sparseResidency2Samples = false,
+                .sparseResidency4Samples = false,
+                .sparseResidency8Samples = false,
+                .sparseResidency16Samples = false,
+                .sparseResidencyAliased = false,
+                .variableMultisampleRate = false,
+                .inheritedQueries = false,
+        };
 
         logicalDevice = Tools::CreateLogicalDevice(
                 physicalDevice,

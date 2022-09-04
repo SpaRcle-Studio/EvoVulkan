@@ -96,32 +96,33 @@ namespace EvoVulkan::Complexes {
             std::vector<VkVertexInputAttributeDescription> m_attributeDescriptions;
         } m_vertices;
 
-        const Types::Device*                         m_device              = nullptr;
-        //VkRenderPass                                 m_renderPass          = VK_NULL_HANDLE;
-        Types::RenderPass                            m_renderPass          = { };
+        const Types::Device*                          m_device              = nullptr;
+        Types::RenderPass                             m_renderPass          = { };
 
-        VkDescriptorSetLayout                        m_descriptorSetLayout = VK_NULL_HANDLE;
-        std::vector<VkDescriptorSetLayoutBinding>    m_layoutBindings      = {};
+        VkDescriptorSetLayout                         m_descriptorSetLayout = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSetLayoutBinding>     m_layoutBindings      = {};
 
-        bool                                         m_hasVertices         = false;
+        bool                                          m_hasVertices         = false;
 
         /** \brief cache is reference. */
-        VkPipelineCache                              m_cache               = VK_NULL_HANDLE;
-        VkPipeline                                   m_pipeline            = VK_NULL_HANDLE;
-        VkPipelineLayout                             m_pipelineLayout      = VK_NULL_HANDLE;
+        VkPipelineCache                               m_cache               = VK_NULL_HANDLE;
+        VkPipeline                                    m_pipeline            = VK_NULL_HANDLE;
+        VkPipelineLayout                              m_pipelineLayout      = VK_NULL_HANDLE;
 
-        VkBool32                                     m_blendEnable         = VK_FALSE;
+        VkBool32                                      m_blendEnable         = VK_FALSE;
 
-        std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages        = {};
-        std::vector<VkShaderModule>                  m_shaderModules       = {};
+        std::vector<VkPipelineShaderStageCreateInfo>  m_shaderStages        = {};
+        std::vector<VkShaderModule>                   m_shaderModules       = {};
 
-        std::vector<VkDeviceSize>                    m_uniformSizes        = {};
+        std::vector<VkDeviceSize>                     m_uniformSizes        = {};
 
-        VkPipelineInputAssemblyStateCreateInfo       m_inputAssemblyState  = {};
-        VkPipelineRasterizationStateCreateInfo       m_rasterizationState  = {};
-        VkPipelineDepthStencilStateCreateInfo        m_depthStencilState   = {};
-        VkPipelineViewportStateCreateInfo            m_viewportState       = {};
-        VkPipelineMultisampleStateCreateInfo         m_multisampleState    = {};
+        VkPipelineInputAssemblyStateCreateInfo        m_inputAssemblyState  = {};
+        VkPipelineRasterizationStateCreateInfo        m_rasterizationState  = {};
+        VkPipelineDepthStencilStateCreateInfo         m_depthStencilState   = {};
+        VkPipelineViewportStateCreateInfo             m_viewportState       = {};
+        VkPipelineMultisampleStateCreateInfo          m_multisampleState    = {};
+        VkPipelineRasterizationLineStateCreateInfoEXT m_lineState           = {};
+
     };
 }
 
