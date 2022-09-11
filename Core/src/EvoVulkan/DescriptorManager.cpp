@@ -9,25 +9,30 @@
 
 namespace EvoVulkan::Core {
     Types::DescriptorSet DescriptorManager::AllocateDescriptorSet(VkDescriptorSetLayout layout, const RequestTypes& requestTypes, bool reallocate) {
-        auto&& pool = reallocate ? nullptr : FindDescriptorPool(layout, requestTypes);
+        auto&& pFound = reallocate ? nullptr : FindDescriptorPool(layout, requestTypes);
+        Types::DescriptorPool* pPool = pFound;
 
-        if (!pool) {
-            pool = AllocateDescriptorPool(layout, requestTypes);
+        if (!pPool) {
+            VK_LOG("DescriptorPool::Create() : create new descriptor pool. Total: " + std::to_string(m_pools.size() + 1));
+            pPool = AllocateDescriptorPool(layout, requestTypes);
         }
 
-        if (!pool) {
+        if (!pPool) {
             VK_ERROR("DescriptorManager::AllocateDescriptorSets() : failed to allocate descriptor pool!");
             return Types::DescriptorSet();
         }
 
-        auto&& [result, set] = pool->Allocate();
+        auto&& [result, set] = pPool->Allocate();
 
         switch (result) {
             case VK_SUCCESS:
                 /// all good, return
                 return set;
             case VK_ERROR_FRAGMENTED_POOL:
+                VK_ERROR("DescriptorManager::AllocateDescriptorSet(): descriptor pool is fragmented!");
+                return Types::DescriptorSet();
             case VK_ERROR_OUT_OF_POOL_MEMORY:
+                VK_ERROR("DescriptorManager::AllocateDescriptorSet(): out of memory descriptor pool!");
                 if (!reallocate) {
                     /// reallocate pool
                     return AllocateDescriptorSet(layout, requestTypes, true);
@@ -43,6 +48,8 @@ namespace EvoVulkan::Core {
     }
 
     void EvoVulkan::Core::DescriptorManager::Reset() {
+        VK_INFO("DescriptorManager::Reset() : reset all descriptor pools!");
+
         for (auto&& pool : m_pools) {
             delete pool;
         }
@@ -71,6 +78,7 @@ namespace EvoVulkan::Core {
         descriptorSet->Reset();
 
         if (pool->GetUsageCount() == 0) {
+            VK_LOG("DescriptorPool::Create() : free empty descriptor pool. Total: " + std::to_string(m_pools.size() - 1));
             delete pool;
             m_pools.erase(pool);
         }

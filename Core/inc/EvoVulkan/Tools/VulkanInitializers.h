@@ -168,7 +168,7 @@ namespace EvoVulkan::Tools::Initializers {
 
     static VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo(
             uint32_t poolSizeCount,
-            VkDescriptorPoolSize* pPoolSizes,
+            const VkDescriptorPoolSize* pPoolSizes,
             uint32_t maxSets)
     {
         VkDescriptorPoolCreateInfo descriptorPoolInfo = {};

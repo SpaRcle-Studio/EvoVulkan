@@ -22,25 +22,21 @@ namespace EvoVulkan::Types {
         return false;
     }
 
-    DescriptorPool *DescriptorPool::Create(VkDevice device, uint32_t maxSets, std::vector<VkDescriptorPoolSize> sizes) {
+    DescriptorPool *DescriptorPool::Create(VkDevice device, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& sizes) {
         auto&& pool = new DescriptorPool(maxSets);
 
         pool->m_layout       = VK_NULL_HANDLE;
         pool->m_device       = device;
         pool->m_requestTypes = {};
 
-        auto&& descriptorPoolCI = Tools::Initializers::DescriptorPoolCreateInfo(sizes.size(), sizes.data(), maxSets);
-
-        /// этот флаг позволяет осовбождать сеты дескрипторов по отдельности
-        descriptorPoolCI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
-        VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &pool->m_pool);
-        if (vkRes != VK_SUCCESS) {
-            VK_ERROR("DescriptorPool::Create() : failed to create vulkan descriptor pool!");
-            return VK_NULL_HANDLE;
+        if (pool->Initialize(sizes)) {
+            return pool;
         }
 
-        return pool;
+        VK_ERROR("DescriptorPool::Create() : failed to initialize descriptor pool!");
+
+        delete pool;
+        return nullptr;
     }
 
     DescriptorPool* DescriptorPool::Create(VkDevice device, uint32_t maxSets, VkDescriptorSetLayout layout, const RequestTypes& requestTypes) {
@@ -49,32 +45,43 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
-        auto&& pool = new DescriptorPool(maxSets);
+        auto &&pool = new DescriptorPool(maxSets);
 
-        pool->m_layout       = layout;
-        pool->m_device       = device;
+        pool->m_layout = layout;
+        pool->m_device = device;
         pool->m_requestTypes = requestTypes;
 
         std::vector<VkDescriptorPoolSize> sizes = {};
         sizes.reserve(pool->m_poolSizes.sizes.size());
-        for (auto&& [type, multiplier] : pool->m_poolSizes.sizes) {
+        for (auto&&[type, multiplier] : pool->m_poolSizes.sizes) {
             if (Contains(requestTypes, type)) {
-                sizes.push_back({ type, static_cast<uint32_t>(multiplier * maxSets) });
+                sizes.push_back({type, static_cast<uint32_t>(multiplier * maxSets)});
             }
         }
 
-        auto&& descriptorPoolCI = Tools::Initializers::DescriptorPoolCreateInfo(sizes.size(), sizes.data(), maxSets);
+        if (pool->Initialize(sizes)) {
+            return pool;
+        }
+
+        VK_ERROR("DescriptorPool::Create() : failed to initialize descriptor pool!");
+
+        delete pool;
+        return nullptr;
+    }
+
+    bool DescriptorPool::Initialize(const std::vector<VkDescriptorPoolSize>& sizes) {
+        auto&& descriptorPoolCI = Tools::Initializers::DescriptorPoolCreateInfo(sizes.size(), sizes.data(), m_maxSets);
 
         /// этот флаг позволяет осовбождать сеты дескрипторов по отдельности
         descriptorPoolCI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
-        VkResult vkRes = vkCreateDescriptorPool(device, &descriptorPoolCI, nullptr, &pool->m_pool);
+        VkResult vkRes = vkCreateDescriptorPool(m_device, &descriptorPoolCI, nullptr, &m_pool);
         if (vkRes != VK_SUCCESS) {
-            VK_ERROR("DescriptorPool::Create() : failed to create vulkan descriptor pool!");
-            return VK_NULL_HANDLE;
+            VK_ERROR("DescriptorPool::Initialize() : failed to create vulkan descriptor pool!");
+            return false;
         }
 
-        return pool;
+        return true;
     }
 
     bool DescriptorPool::Equal(const std::set<VkDescriptorType> &requestTypes) {
@@ -110,9 +117,12 @@ namespace EvoVulkan::Types {
         auto&& result = vkAllocateDescriptorSets(m_device, &descriptorSetAllocInfo, &descriptorSet);
 
         switch (result) {
-            case VK_SUCCESS:
-                ++m_used;
+            case VK_SUCCESS: {
+                if ((++m_used) >= m_maxSets) {
+                    m_outOfMemory = true;
+                }
                 break;
+            }
             case VK_ERROR_FRAGMENTED_POOL:
             case VK_ERROR_OUT_OF_POOL_MEMORY:
                 m_outOfMemory = true;

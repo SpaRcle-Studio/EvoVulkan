@@ -19,7 +19,7 @@ namespace EvoVulkan::Types {
                 { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          1.f  },
                 { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,   1.f  },
                 { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,   1.f  },
-                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         2.f  },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         4.f  },
                 { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         2.f  },
                 { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1.f  },
                 { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1.f  },
@@ -39,7 +39,7 @@ namespace EvoVulkan::Types {
         operator VkDescriptorPool() const { return m_pool; }
 
     public:
-        static DescriptorPool* Create(VkDevice device, uint32_t maxSets, std::vector<VkDescriptorPoolSize> sizes);
+        static DescriptorPool* Create(VkDevice device, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& sizes);
         static DescriptorPool* Create(VkDevice device, uint32_t maxSets, VkDescriptorSetLayout layout, const RequestTypes& requestTypes);
         static bool Contains(const std::set<VkDescriptorType>& types, const VkDescriptorType& type);
 
@@ -52,6 +52,9 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD bool IsOutOfMemory() const;
         EVK_NODISCARD uint32_t GetUsageCount() const { return m_used; }
         EVK_NODISCARD VkDescriptorSetLayout GetLayout() const { return m_layout; }
+
+    private:
+        bool Initialize(const std::vector<VkDescriptorPoolSize>& sizes);
 
     private:
         std::set<VkDescriptorType> m_requestTypes   = std::set<VkDescriptorType>();
