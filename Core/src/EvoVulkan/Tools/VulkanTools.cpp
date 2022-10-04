@@ -37,7 +37,11 @@ namespace EvoVulkan::Tools {
             return shaderModule;
         }
         else {
-            VK_ERROR("Tools::LoadShaderModule() : Could not open shader file! \n\tPath: " + std::string(fileName));
+            char buffer[80];
+            strerror_s(buffer, sizeof(buffer), NULL);
+
+            VK_ERROR("Tools::LoadShaderModule() : Could not open shader file! \n\tPath: " + std::string(fileName) + "\n\tReason: " + std::string(buffer));
+
             return VK_NULL_HANDLE;
         }
     }

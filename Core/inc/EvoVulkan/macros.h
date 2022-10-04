@@ -43,6 +43,7 @@
 #define EVK_CLAMP(x, upper, lower) (EVK_MIN(upper, EVK_MAX(x, lower)))
 
 #ifdef WIN32
+    #define EVK_WIN32
     #include <vulkan/vulkan_win32.h>
 #endif
 

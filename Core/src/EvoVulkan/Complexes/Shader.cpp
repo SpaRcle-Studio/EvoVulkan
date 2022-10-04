@@ -57,7 +57,13 @@ bool EvoVulkan::Complexes::Shader::Load(
 
         Tools::CreatePath(outFolder);
 
-        system(std::string((Complexes::GLSLCompiler::Instance().GetPath() + " -c ").append(path).append(" -o " + file)).c_str());
+    #ifdef EVK_WIN32
+        const auto&& command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(path).append("\" -o \"" + file + "\"\""));
+        VK_LOG("Shader::Load() : execute command: " + command);
+        system(command.c_str());
+    #else
+        VK_ERROR("Shader::Load() : the platform does not suppet shader compilation!");
+    #endif
 
         auto shaderModule = Tools::LoadShaderModule(file.c_str(), *m_device);
         if (shaderModule == VK_NULL_HANDLE) {
