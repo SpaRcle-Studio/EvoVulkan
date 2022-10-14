@@ -468,8 +468,94 @@ void EvoVulkan::Types::Texture::Destroy()  {
         m_allocator->FreeImage(m_image);
 }
 
-void EvoVulkan::Types::Texture::RandomizeSeed() {
-    m_seed = rand() % 10000;
+EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_t x, uint32_t y, uint32_t z) const {
+    const uint8_t channels = Tools::GetPixelChannelsCount(m_format);
+    const uint8_t pixelTypeSize = Tools::GetPixelTypeSize(m_format);
+    if (channels * pixelTypeSize == 0) {
+        VK_ERROR("Texture::GetPixel() : unsupported format! Format: " + Tools::Convert::format_to_string(m_format));
+        return {};
+    }
+
+    auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
+
+    auto&& pBuffer = EvoVulkan::Types::Buffer::Create(
+        m_device, m_allocator,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        pixelTypeSize * channels
+    );
+
+    VkBufferImageCopy bufferCopyRegion;
+    bufferCopyRegion.bufferOffset = 0;
+    bufferCopyRegion.bufferRowLength = 0;
+    bufferCopyRegion.bufferImageHeight = 0;
+    bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    bufferCopyRegion.imageSubresource.layerCount = 1;
+    bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegion.imageSubresource.mipLevel = 0;
+    bufferCopyRegion.imageOffset.x = x;
+    bufferCopyRegion.imageOffset.y = y;
+    bufferCopyRegion.imageOffset.z = z;
+    bufferCopyRegion.imageExtent.width = 1;
+    bufferCopyRegion.imageExtent.height = 1;
+    bufferCopyRegion.imageExtent.depth = 1;
+
+    EvoVulkan::Tools::TransitionImageLayout(
+            copyCmd, m_image,
+            m_imageLayout,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            1 /** mip levels*/,
+            1 /** layers count */,
+            false /** need end */
+    );
+
+    vkCmdCopyImageToBuffer(
+            *copyCmd,
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            *pBuffer,
+            1,
+            &bufferCopyRegion
+    );
+
+    EvoVulkan::Tools::TransitionImageLayout(
+            copyCmd, m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            m_imageLayout,
+            1 /** mip levels*/,
+            1 /** layers count */,
+            false /** need end */
+    );
+
+    copyCmd->End();
+    copyCmd->Destroy();
+    copyCmd->Free();
+
+    RGBAPixel pixel = {};
+
+    const auto&& GetPixelValue = [pixelTypeSize](void* pData, uint8_t offset) -> int64_t {
+        switch (pixelTypeSize) {
+            case 1: return ((uint8_t*)pData)[offset];
+            case 2: return ((uint16_t*)pData)[offset];
+            case 4: return ((uint32_t*)pData)[offset];
+            case 8: return ((uint64_t*)pData)[offset];
+            default:
+                return 0;
+        }
+    };
+
+    if (auto&& pData = pBuffer->MapData()) {
+        if (channels >= 1) { pixel.r = GetPixelValue(pData, 0); }
+        if (channels >= 2) { pixel.g = GetPixelValue(pData, 1); }
+        if (channels >= 3) { pixel.b = GetPixelValue(pData, 2); }
+        if (channels >= 4) { pixel.a = GetPixelValue(pData, 3); }
+        pBuffer->Unmap();
+    }
+
+    pBuffer->Destroy();
+    pBuffer->Free();
+
+    return pixel;
 }
 
 void EvoVulkan::Types::Texture::Free()  {

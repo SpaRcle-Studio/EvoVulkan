@@ -43,5 +43,6 @@ namespace EvoVulkan::Tools {
 #define VK_GRAPH(msg) EvoVulkan::Tools::VkDebug::Instance().Graph(msg);
 #define VK_ASSERT2(expr, msg) (!!(expr) || EvoVulkan::Tools::VkDebug::Instance().Assert(EVK_MAKE_ASSERT(msg)))
 #define VK_ASSERT(expr) VK_ASSERT2(expr, "An exception has been occured.")
+#define VK_HALT(msg) VK_ASSERT2(false, msg)
 
 #endif //EVOVULKAN_VULKANDEBUG_H

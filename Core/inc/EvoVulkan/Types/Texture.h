@@ -31,6 +31,10 @@ namespace EvoVulkan::Types {
 
     class DLL_EVK_EXPORT Texture : public Tools::NonCopyable {
         friend class EvoVulkan::Complexes::FrameBuffer;
+    public:
+        struct RGBAPixel {
+            uint64_t r, g, b, a;
+        };
     private:
         Texture() = default;
         ~Texture() override = default;
@@ -89,10 +93,10 @@ namespace EvoVulkan::Types {
         }
 
     public:
-        void RandomizeSeed();
-
         void Destroy();
         void Free();
+
+        EVK_NODISCARD RGBAPixel GetPixel(uint32_t x, uint32_t y, uint32_t z) const;
 
         EVK_NODISCARD EVK_INLINE VkDescriptorImageInfo* GetDescriptorRef() noexcept { return &m_descriptor; }
         EVK_NODISCARD EVK_INLINE VkSampler GetSampler() const { return m_sampler; }
@@ -101,7 +105,6 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD EVK_INLINE VkImage GetImage() const { return m_image; }
         EVK_NODISCARD EVK_INLINE uint32_t GetWidth() const { return m_width; }
         EVK_NODISCARD EVK_INLINE uint32_t GetHeight() const { return m_height; }
-        EVK_NODISCARD EVK_INLINE uint32_t GetSeed() const { return m_seed; }
         Types::DescriptorSet GetDescriptorSet(VkDescriptorSetLayout layout);
 
     private:
@@ -120,7 +123,7 @@ namespace EvoVulkan::Types {
         uint32_t           m_width                   = 0;
         uint32_t           m_height                  = 0;
         uint32_t           m_mipLevels               = 0;
-        uint32_t           m_seed                    = 0;
+        ///uint32_t           m_seed                    = 0;
 
         bool               m_canBeDestroyed          = false;
         bool               m_cubeMap                 = false;

@@ -22,6 +22,7 @@ namespace EvoVulkan::Types {
 
     public:
         static VkCommandBuffer CreateSimple(const Device* device, const CmdPool* cmdPool, const VkCommandBufferLevel& level);
+        static bool ExecuteSingleTime(const Device* device, const CmdPool* cmdPool, const std::function<bool(CmdBuffer*)>& fun);
         static CmdBuffer* BeginSingleTime(const Device* device, const CmdPool* cmdPool);
         static CmdBuffer* Create(const Device* device, const CmdPool* cmdPool, VkCommandBufferLevel level);
         static CmdBuffer* Create(const Device* device, const CmdPool* cmdPool, VkCommandBufferAllocateInfo cmdBufAllocateInfo);

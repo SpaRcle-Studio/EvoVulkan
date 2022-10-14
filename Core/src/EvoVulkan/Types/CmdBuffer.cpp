@@ -96,6 +96,8 @@ EvoVulkan::Types::CmdBuffer* EvoVulkan::Types::CmdBuffer::BeginSingleTime(const 
     }
     if (!buffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
         VK_ERROR("CmdBuffer::BeginSingleTime() : failed to begin command buffer!");
+        buffer->Destroy();
+        buffer->Free();
         return nullptr;
     }
     return buffer;
@@ -153,4 +155,21 @@ bool EvoVulkan::Types::CmdBuffer::Begin(const VkCommandBufferUsageFlagBits &usag
     m_isBegin = true;
 
     return true;
+}
+
+bool EvoVulkan::Types::CmdBuffer::ExecuteSingleTime(const EvoVulkan::Types::Device *device,
+                                                    const EvoVulkan::Types::CmdPool *cmdPool,
+                                                    const std::function<bool(CmdBuffer * )> &fun)
+{
+    auto&& cmdBuffer = BeginSingleTime(device, cmdPool);
+    if (!cmdBuffer || !fun) {
+        return false;
+    }
+
+    const bool result = fun(cmdBuffer);
+
+    cmdBuffer->Destroy();
+    cmdBuffer->Free();
+
+    return result;
 }

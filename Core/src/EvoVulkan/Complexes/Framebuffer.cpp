@@ -16,6 +16,9 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
 {
     VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM;
 
+    if (usage & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
+        aspectMask |= VK_IMAGE_USAGE_SAMPLED_BIT;
+
     if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
         aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
@@ -342,7 +345,7 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateAttachments()  {
                 m_allocator,
                 m_cmdPool,
                 m_attachFormats[i],
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                 { m_width, m_height }
         );
 
@@ -365,6 +368,7 @@ EvoVulkan::Types::Texture *EvoVulkan::Complexes::FrameBuffer::AllocateDepthTextu
     texture->m_sampler           = m_colorSampler;
     texture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     texture->m_device            = m_device;
+    texture->m_pool              = m_cmdPool;
     texture->m_allocator         = m_allocator;
     texture->m_width             = m_width;
     texture->m_height            = m_height;
@@ -378,7 +382,7 @@ EvoVulkan::Types::Texture *EvoVulkan::Complexes::FrameBuffer::AllocateDepthTextu
             texture->m_imageLayout
     };
 
-    texture->RandomizeSeed();
+    /// texture->RandomizeSeed();
 
     return texture;
 }
@@ -396,6 +400,7 @@ std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::Alloc
         texture->m_sampler           = m_colorSampler;
         texture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         texture->m_device            = m_device;
+        texture->m_pool              = m_cmdPool;
         texture->m_allocator         = m_allocator;
         texture->m_width             = m_width;
         texture->m_height            = m_height;
@@ -409,7 +414,7 @@ std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::Alloc
                 texture->m_imageLayout
         };
 
-        texture->RandomizeSeed();
+        /// texture->RandomizeSeed();
 
         references.emplace_back(texture);
     }

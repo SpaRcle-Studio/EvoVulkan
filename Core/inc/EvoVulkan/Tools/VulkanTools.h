@@ -36,6 +36,242 @@ namespace EvoVulkan::Tools {
 
     DLL_EVK_EXPORT VkDescriptorSetLayout CreateDescriptorLayout(const VkDevice& device, const std::vector<VkDescriptorSetLayoutBinding>& setLayoutBindings);
 
+    static uint8_t GetPixelTypeSize(VkFormat format) {
+        switch (format) {
+            case VK_FORMAT_R8_UNORM:
+            case VK_FORMAT_R8_SNORM:
+            case VK_FORMAT_R8_USCALED:
+            case VK_FORMAT_R8_SSCALED:
+            case VK_FORMAT_R8_UINT:
+            case VK_FORMAT_R8_SINT:
+            case VK_FORMAT_R8_SRGB:
+                return sizeof(int8_t);
+            case VK_FORMAT_R8G8_UNORM:
+            case VK_FORMAT_R8G8_SNORM:
+            case VK_FORMAT_R8G8_USCALED:
+            case VK_FORMAT_R8G8_SSCALED:
+            case VK_FORMAT_R8G8_UINT:
+            case VK_FORMAT_R8G8_SINT:
+            case VK_FORMAT_R8G8_SRGB:
+                return sizeof(int8_t);
+            case VK_FORMAT_R8G8B8_UNORM:
+            case VK_FORMAT_R8G8B8_SNORM:
+            case VK_FORMAT_R8G8B8_USCALED:
+            case VK_FORMAT_R8G8B8_SSCALED:
+            case VK_FORMAT_R8G8B8_UINT:
+            case VK_FORMAT_R8G8B8_SINT:
+            case VK_FORMAT_R8G8B8_SRGB:
+            case VK_FORMAT_B8G8R8_UNORM:
+            case VK_FORMAT_B8G8R8_SNORM:
+            case VK_FORMAT_B8G8R8_USCALED:
+            case VK_FORMAT_B8G8R8_SSCALED:
+            case VK_FORMAT_B8G8R8_UINT:
+            case VK_FORMAT_B8G8R8_SINT:
+            case VK_FORMAT_B8G8R8_SRGB:
+                return sizeof(int8_t);
+            case VK_FORMAT_R8G8B8A8_UNORM:
+            case VK_FORMAT_R8G8B8A8_SNORM:
+            case VK_FORMAT_R8G8B8A8_USCALED:
+            case VK_FORMAT_R8G8B8A8_SSCALED:
+            case VK_FORMAT_R8G8B8A8_UINT:
+            case VK_FORMAT_R8G8B8A8_SINT:
+            case VK_FORMAT_R8G8B8A8_SRGB:
+            case VK_FORMAT_B8G8R8A8_UNORM:
+            case VK_FORMAT_B8G8R8A8_SNORM:
+            case VK_FORMAT_B8G8R8A8_USCALED:
+            case VK_FORMAT_B8G8R8A8_SSCALED:
+            case VK_FORMAT_B8G8R8A8_UINT:
+            case VK_FORMAT_B8G8R8A8_SINT:
+            case VK_FORMAT_B8G8R8A8_SRGB:
+                return sizeof(int8_t);
+            case VK_FORMAT_R16_UNORM:
+            case VK_FORMAT_R16_SNORM:
+            case VK_FORMAT_R16_USCALED:
+            case VK_FORMAT_R16_SSCALED:
+            case VK_FORMAT_R16_UINT:
+            case VK_FORMAT_R16_SINT:
+            case VK_FORMAT_R16_SFLOAT:
+                return sizeof(int16_t);
+            case VK_FORMAT_R16G16_UNORM:
+            case VK_FORMAT_R16G16_SNORM:
+            case VK_FORMAT_R16G16_USCALED:
+            case VK_FORMAT_R16G16_SSCALED:
+            case VK_FORMAT_R16G16_UINT:
+            case VK_FORMAT_R16G16_SINT:
+            case VK_FORMAT_R16G16_SFLOAT:
+                return sizeof(int16_t);
+            case VK_FORMAT_R16G16B16_UNORM:
+            case VK_FORMAT_R16G16B16_SNORM:
+            case VK_FORMAT_R16G16B16_USCALED:
+            case VK_FORMAT_R16G16B16_SSCALED:
+            case VK_FORMAT_R16G16B16_UINT:
+            case VK_FORMAT_R16G16B16_SINT:
+            case VK_FORMAT_R16G16B16_SFLOAT:
+                return sizeof(int16_t);
+            case VK_FORMAT_R16G16B16A16_UNORM:
+            case VK_FORMAT_R16G16B16A16_SNORM:
+            case VK_FORMAT_R16G16B16A16_USCALED:
+            case VK_FORMAT_R16G16B16A16_SSCALED:
+            case VK_FORMAT_R16G16B16A16_UINT:
+            case VK_FORMAT_R16G16B16A16_SINT:
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+                return sizeof(int16_t);
+            case VK_FORMAT_R32_UINT:
+            case VK_FORMAT_R32_SINT:
+            case VK_FORMAT_R32_SFLOAT:
+                return sizeof(int32_t);
+            case VK_FORMAT_R32G32_UINT:
+            case VK_FORMAT_R32G32_SINT:
+            case VK_FORMAT_R32G32_SFLOAT:
+                return sizeof(int32_t);
+            case VK_FORMAT_R32G32B32_UINT:
+            case VK_FORMAT_R32G32B32_SINT:
+            case VK_FORMAT_R32G32B32_SFLOAT:
+                return sizeof(int32_t);
+            case VK_FORMAT_R32G32B32A32_UINT:
+            case VK_FORMAT_R32G32B32A32_SINT:
+            case VK_FORMAT_R32G32B32A32_SFLOAT:
+                return sizeof(int32_t);
+            case VK_FORMAT_R64_UINT:
+            case VK_FORMAT_R64_SINT:
+            case VK_FORMAT_R64_SFLOAT:
+                return sizeof(int64_t);
+            case VK_FORMAT_R64G64_UINT:
+            case VK_FORMAT_R64G64_SINT:
+            case VK_FORMAT_R64G64_SFLOAT:
+                return sizeof(int64_t);
+            case VK_FORMAT_R64G64B64_UINT:
+            case VK_FORMAT_R64G64B64_SINT:
+            case VK_FORMAT_R64G64B64_SFLOAT:
+                return sizeof(int64_t);
+            case VK_FORMAT_R64G64B64A64_UINT:
+            case VK_FORMAT_R64G64B64A64_SINT:
+            case VK_FORMAT_R64G64B64A64_SFLOAT:
+                return sizeof(int64_t);
+            default:
+                VK_HALT("Unknown format!");
+                return 0;
+        }
+    }
+
+    static uint8_t GetPixelChannelsCount(VkFormat format) {
+        switch (format) {
+            case VK_FORMAT_R8_UNORM:
+            case VK_FORMAT_R8_SNORM:
+            case VK_FORMAT_R8_USCALED:
+            case VK_FORMAT_R8_SSCALED:
+            case VK_FORMAT_R8_UINT:
+            case VK_FORMAT_R8_SINT:
+            case VK_FORMAT_R8_SRGB:
+                return 1;
+            case VK_FORMAT_R8G8_UNORM:
+            case VK_FORMAT_R8G8_SNORM:
+            case VK_FORMAT_R8G8_USCALED:
+            case VK_FORMAT_R8G8_SSCALED:
+            case VK_FORMAT_R8G8_UINT:
+            case VK_FORMAT_R8G8_SINT:
+            case VK_FORMAT_R8G8_SRGB:
+                return 2;
+            case VK_FORMAT_R8G8B8_UNORM:
+            case VK_FORMAT_R8G8B8_SNORM:
+            case VK_FORMAT_R8G8B8_USCALED:
+            case VK_FORMAT_R8G8B8_SSCALED:
+            case VK_FORMAT_R8G8B8_UINT:
+            case VK_FORMAT_R8G8B8_SINT:
+            case VK_FORMAT_R8G8B8_SRGB:
+            case VK_FORMAT_B8G8R8_UNORM:
+            case VK_FORMAT_B8G8R8_SNORM:
+            case VK_FORMAT_B8G8R8_USCALED:
+            case VK_FORMAT_B8G8R8_SSCALED:
+            case VK_FORMAT_B8G8R8_UINT:
+            case VK_FORMAT_B8G8R8_SINT:
+            case VK_FORMAT_B8G8R8_SRGB:
+                return 3;
+            case VK_FORMAT_R8G8B8A8_UNORM:
+            case VK_FORMAT_R8G8B8A8_SNORM:
+            case VK_FORMAT_R8G8B8A8_USCALED:
+            case VK_FORMAT_R8G8B8A8_SSCALED:
+            case VK_FORMAT_R8G8B8A8_UINT:
+            case VK_FORMAT_R8G8B8A8_SINT:
+            case VK_FORMAT_R8G8B8A8_SRGB:
+            case VK_FORMAT_B8G8R8A8_UNORM:
+            case VK_FORMAT_B8G8R8A8_SNORM:
+            case VK_FORMAT_B8G8R8A8_USCALED:
+            case VK_FORMAT_B8G8R8A8_SSCALED:
+            case VK_FORMAT_B8G8R8A8_UINT:
+            case VK_FORMAT_B8G8R8A8_SINT:
+            case VK_FORMAT_B8G8R8A8_SRGB:
+                return 4;
+            case VK_FORMAT_R16_UNORM:
+            case VK_FORMAT_R16_SNORM:
+            case VK_FORMAT_R16_USCALED:
+            case VK_FORMAT_R16_SSCALED:
+            case VK_FORMAT_R16_UINT:
+            case VK_FORMAT_R16_SINT:
+            case VK_FORMAT_R16_SFLOAT:
+                return 1;
+            case VK_FORMAT_R16G16_UNORM:
+            case VK_FORMAT_R16G16_SNORM:
+            case VK_FORMAT_R16G16_USCALED:
+            case VK_FORMAT_R16G16_SSCALED:
+            case VK_FORMAT_R16G16_UINT:
+            case VK_FORMAT_R16G16_SINT:
+            case VK_FORMAT_R16G16_SFLOAT:
+                return 2;
+            case VK_FORMAT_R16G16B16_UNORM:
+            case VK_FORMAT_R16G16B16_SNORM:
+            case VK_FORMAT_R16G16B16_USCALED:
+            case VK_FORMAT_R16G16B16_SSCALED:
+            case VK_FORMAT_R16G16B16_UINT:
+            case VK_FORMAT_R16G16B16_SINT:
+            case VK_FORMAT_R16G16B16_SFLOAT:
+                return 3;
+            case VK_FORMAT_R16G16B16A16_UNORM:
+            case VK_FORMAT_R16G16B16A16_SNORM:
+            case VK_FORMAT_R16G16B16A16_USCALED:
+            case VK_FORMAT_R16G16B16A16_SSCALED:
+            case VK_FORMAT_R16G16B16A16_UINT:
+            case VK_FORMAT_R16G16B16A16_SINT:
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+                return 4;
+            case VK_FORMAT_R32_UINT:
+            case VK_FORMAT_R32_SINT:
+            case VK_FORMAT_R32_SFLOAT:
+                return 1;
+            case VK_FORMAT_R32G32_UINT:
+            case VK_FORMAT_R32G32_SINT:
+            case VK_FORMAT_R32G32_SFLOAT:
+                return 2;
+            case VK_FORMAT_R32G32B32_UINT:
+            case VK_FORMAT_R32G32B32_SINT:
+            case VK_FORMAT_R32G32B32_SFLOAT:
+                return 3;
+            case VK_FORMAT_R32G32B32A32_UINT:
+            case VK_FORMAT_R32G32B32A32_SINT:
+            case VK_FORMAT_R32G32B32A32_SFLOAT:
+                return 4;
+            case VK_FORMAT_R64_UINT:
+            case VK_FORMAT_R64_SINT:
+            case VK_FORMAT_R64_SFLOAT:
+                return 1;
+            case VK_FORMAT_R64G64_UINT:
+            case VK_FORMAT_R64G64_SINT:
+            case VK_FORMAT_R64G64_SFLOAT:
+                return 2;
+            case VK_FORMAT_R64G64B64_UINT:
+            case VK_FORMAT_R64G64B64_SINT:
+            case VK_FORMAT_R64G64B64_SFLOAT:
+                return 3;
+            case VK_FORMAT_R64G64B64A64_UINT:
+            case VK_FORMAT_R64G64B64A64_SINT:
+            case VK_FORMAT_R64G64B64A64_SFLOAT:
+                return 4;
+            default:
+                VK_HALT("Unknown format!");
+                return 0;
+        }
+    }
+
     Types::Pipeline* CreateStandardGeometryPipeLine(
             const Types::Device* device,
             const std::vector<VkDynamicState>& dynamicStateEnables,
@@ -414,7 +650,8 @@ namespace EvoVulkan::Tools {
             VkImageLayout oldLayout,
             VkImageLayout newLayout,
             uint32_t mipLevels,
-            uint32_t layerCount = 1)
+            uint32_t layerCount = 1,
+            bool needEnd = true)
     {
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -442,8 +679,22 @@ namespace EvoVulkan::Tools {
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         }
+        else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        }
         else if (oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
             sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -476,7 +727,7 @@ namespace EvoVulkan::Tools {
                 1, &barrier
         );
 
-        return copyCmd->End();
+        return !needEnd || copyCmd->End();
     }
 
     static Types::Device* CreateDevice(
