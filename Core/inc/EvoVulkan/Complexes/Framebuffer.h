@@ -73,7 +73,9 @@ namespace EvoVulkan::Complexes {
                 Types::CmdPool* pool,
                 const std::vector<VkFormat>& colorAttachments,
                 uint32_t width, uint32_t height,
-                float scale = 1.f);
+                float scale = 1.f,
+                bool multisample = true,
+                bool depth = true);
 
         operator VkFramebuffer() const { return m_framebuffer; }
 
@@ -93,6 +95,9 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD std::vector<Types::Texture*> AllocateColorTextureReferences();
         EVK_NODISCARD Types::Texture* AllocateDepthTextureReference();
         EVK_NODISCARD std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
+
+        EVK_NODISCARD bool IsMultisampleEnabled() const;
+        EVK_NODISCARD VkSampleCountFlagBits GetSampleCount() const noexcept;
 
         EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const { return m_viewport; }
         EVK_NODISCARD EVK_INLINE VkRect2D GetScissor() const { return m_scissor; }
@@ -116,47 +121,47 @@ namespace EvoVulkan::Complexes {
 
     public:
         /// \Warn Unsafe access! But it's fast.
-        FrameBufferAttachment*    m_attachments       = nullptr;
+        FrameBufferAttachment*    m_attachments        = nullptr;
 
-        VkSemaphore               m_semaphore         = VK_NULL_HANDLE;
+        VkSemaphore               m_semaphore          = VK_NULL_HANDLE;
 
-        VkCommandBuffer           m_cmdBuff           = VK_NULL_HANDLE;
+        VkCommandBuffer           m_cmdBuff            = VK_NULL_HANDLE;
 
     private:
-        uint32_t                  m_width             = 0;
-        uint32_t                  m_height            = 0;
+        uint32_t                  m_width              = 0;
+        uint32_t                  m_height             = 0;
 
-        uint32_t                  m_baseWidth         = 0;
-        uint32_t                  m_baseHeight        = 0;
+        uint32_t                  m_baseWidth          = 0;
+        uint32_t                  m_baseHeight         = 0;
 
-        uint32_t                  m_countColorAttach  = 0;
+        float_t                   m_scale              = 1.f;
 
-        VkFramebuffer             m_framebuffer       = VK_NULL_HANDLE;
-        Types::RenderPass         m_renderPass        = { };
+        uint32_t                  m_countColorAttach   = 0;
 
-        VkSampler                 m_colorSampler      = VK_NULL_HANDLE;
+        VkSampler                 m_colorSampler       = VK_NULL_HANDLE;
+        VkFramebuffer             m_framebuffer        = VK_NULL_HANDLE;
+        Types::RenderPass         m_renderPass         = {};
 
-        std::vector<VkFormat>     m_attachFormats     = {};
-        VkFormat                  m_depthFormat       = VK_FORMAT_UNDEFINED;
+        std::vector<VkFormat>     m_attachFormats      = {};
+        VkFormat                  m_depthFormat        = VK_FORMAT_UNDEFINED;
 
-        float_t                   m_scale             = 1.f;
+        Types::MultisampleTarget* m_multisampleTarget  = nullptr;
+        Types::Device*            m_device             = nullptr;
+        Memory::Allocator*        m_allocator          = nullptr;
+        Types::Swapchain*         m_swapchain          = nullptr;
+        Types::CmdPool*           m_cmdPool            = nullptr;
+        Core::DescriptorManager*  m_descriptorManager  = nullptr;
 
-        Types::MultisampleTarget* m_multisampleTarget = nullptr;
-        Types::Device*            m_device            = nullptr;
-        Memory::Allocator*        m_allocator         = nullptr;
-        Types::Swapchain*         m_swapchain         = nullptr;
-        Types::CmdPool*           m_cmdPool           = nullptr;
-        Core::DescriptorManager*  m_descriptorManager = nullptr;
+        VkRect2D                  m_scissor            = {};
+        VkViewport                m_viewport           = {};
 
-        VkRect2D                  m_scissor           = {};
-        VkViewport                m_viewport          = {};
+        VkCommandBufferBeginInfo  m_cmdBufInfo         = {};
 
-        VkCommandBufferBeginInfo  m_cmdBufInfo        = {};
+        std::vector<VkClearValue> m_clearValues        = {};
+        uint32_t                  m_countClearValues   = 0;
 
-        std::vector<VkClearValue> m_clearValues       = {};
-        uint32_t                  m_countClearValues  = 0;
-
-        bool                      m_depthEnabled      = true;
+        bool                      m_depthEnabled       = true;
+        bool                      m_multisampleEnabled = true;
 
     };
 }

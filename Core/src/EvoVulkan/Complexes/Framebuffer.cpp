@@ -94,11 +94,12 @@ void EvoVulkan::Complexes::FrameBuffer::Free()  {
 std::vector<VkDescriptorImageInfo> EvoVulkan::Complexes::FrameBuffer::GetImageDescriptors() const  {
     auto descriptors = std::vector<VkDescriptorImageInfo>();
 
-    for (uint32_t i = 0; i < m_countColorAttach; i++)
+    for (uint32_t i = 0; i < m_countColorAttach; ++i) {
         descriptors.push_back(Tools::Initializers::DescriptorImageInfo(
                 m_colorSampler,
                 m_attachments[i].m_view,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+    }
 
     return descriptors;
 }
@@ -112,7 +113,9 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         const std::vector<VkFormat> &colorAttachments,
         uint32_t width,
         uint32_t height,
-        float scale)
+        float scale,
+        bool multisample,
+        bool depth)
 {
     if (scale <= 0.f) {
         VK_ERROR("Framebuffer::Create() : scale <= zero!");
@@ -121,15 +124,17 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
 
     auto fbo = new FrameBuffer();
     {
-        fbo->m_scale             = scale;
-        fbo->m_cmdPool           = pool;
-        fbo->m_device            = device;
-        fbo->m_allocator         = allocator;
-        fbo->m_descriptorManager = manager;
-        fbo->m_swapchain         = swapchain;
-        fbo->m_countColorAttach  = colorAttachments.size();
-        fbo->m_attachFormats     = colorAttachments;
-        fbo->m_depthFormat       = Tools::GetDepthFormat(*device);
+        fbo->m_scale              = scale;
+        fbo->m_cmdPool            = pool;
+        fbo->m_device             = device;
+        fbo->m_allocator          = allocator;
+        fbo->m_descriptorManager  = manager;
+        fbo->m_swapchain          = swapchain;
+        fbo->m_countColorAttach   = colorAttachments.size();
+        fbo->m_attachFormats      = colorAttachments;
+        fbo->m_depthFormat        = Tools::GetDepthFormat(*device);
+        fbo->m_multisampleEnabled = multisample;
+        fbo->m_depthEnabled       = depth;
     }
 
     auto semaphoreCI  = Tools::Initializers::SemaphoreCreateInfo();
@@ -155,7 +160,7 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
 }
 
 bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height)  {
-    this->Destroy();
+    Destroy();
 
     m_multisampleTarget = Types::MultisampleTarget::Create(
             m_device,
@@ -164,7 +169,8 @@ bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height
             m_swapchain,
             width, height,
             m_attachFormats,
-            m_device->MultisampleEnabled()
+            IsMultisampleEnabled(),
+            m_depthEnabled
     );
 
     if (!m_multisampleTarget) {
@@ -172,19 +178,16 @@ bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height
         return false;
     }
 
-    this->m_baseWidth  = width;
-    this->m_baseHeight = height;
+    m_baseWidth  = width;
+    m_baseHeight = height;
 
-    this->m_width    = m_baseWidth  * m_scale;
-    this->m_height   = m_baseHeight * m_scale;
+    m_width    = m_baseWidth  * m_scale;
+    m_height   = m_baseHeight * m_scale;
 
-    this->m_viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
-    this->m_scissor  = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
+    m_viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
+    m_scissor  = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
 
-    if (!this->CreateAttachments() ||
-        !this->CreateFramebuffer() ||
-        !this->CreateSampler()
-            ) {
+    if (!CreateAttachments() || !CreateFramebuffer() || !CreateSampler()) {
         VK_ERROR("Framebuffer::ReCreate() : failed to re-create frame buffer!");
         return false;
     }
@@ -244,29 +247,34 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateFramebuffer()  {
 
     std::vector<VkImageView> attachments = {};
 
-    for (uint32_t i = 0; i < m_countColorAttach; i++) {
-        if (m_device->MultisampleEnabled())
+    /**
+     *  0 - resolve
+     *  1 - color
+     *  2 - resolve
+     *  3 - color
+     *  ...
+     *  n - depth
+    */
+
+    for (uint32_t i = 0; i < m_countColorAttach; ++i) {
+        if (IsMultisampleEnabled()) {
             attachments.push_back(m_multisampleTarget->GetResolve(i));
+        }
+
         attachments.push_back(m_attachments[i].m_view);
-        /*
-         *  0 - resolve
-         *  1 - color
-         *  2 - resolve
-         *  3 - color
-         *  ...
-         *  n - depth
-         */
     }
 
-    attachments.push_back(m_multisampleTarget->GetDepth());
+    if (m_depthEnabled) {
+        attachments.push_back(m_multisampleTarget->GetDepth());
+    }
 
-    VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {};
-    framebufferAttachmentsCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO;
+    /// VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {};
+    /// framebufferAttachmentsCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO;
 
     VkFramebufferCreateInfo FBO_CI = {};
-    //FBO_CI.flags                   = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
     FBO_CI.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    //FBO_CI.pNext                   = &framebufferAttachmentsCreateInfo;
+    /// FBO_CI.pNext               = &framebufferAttachmentsCreateInfo;
+    /// FBO_CI.flags               = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
     FBO_CI.renderPass              = m_renderPass.m_self;
     FBO_CI.pAttachments            = attachments.data();
     FBO_CI.attachmentCount         = static_cast<uint32_t>(attachments.size());
@@ -286,9 +294,9 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
     std::vector<VkAttachmentDescription> attachmentDescs = {};
     VkAttachmentDescription attachmentDesc = {};
 
-    // Init attachment properties
+    /// Init attachment properties
     for (uint32_t i = 0; i < m_countColorAttach + (m_depthEnabled ? 1 : 0); ++i) {
-        attachmentDesc.samples = m_device->GetMSAASamples();
+        attachmentDesc.samples = GetSampleCount();
         attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -308,20 +316,32 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
         attachmentDescs.push_back(attachmentDesc);
     }
 
-    this->m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, attachmentDescs,
-                                                 m_device->MultisampleEnabled(), m_depthEnabled);
+    m_renderPass = Types::CreateRenderPass(
+        m_device,
+        m_swapchain,
+        attachmentDescs,
+        IsMultisampleEnabled(),
+        m_depthEnabled
+    );
+
     if (!m_renderPass.Ready()) {
         VK_ERROR("Framebuffer::CreateRenderPass() : failed to create render pass!");
         return false;
     }
 
-    //clear values
+    /// clear values
     {
-        this->m_clearValues.clear();
-        for (uint32_t i = 0; i < m_countColorAttach * (m_device->MultisampleEnabled() ? 2 : 1); i++)
-            m_clearValues.emplace_back(VkClearValue{ .color = {{ 0.0, 0.0, 0.0, 1.0 }} });
-        m_clearValues.emplace_back(VkClearValue{ .depthStencil = { 1.0, 0 } }); // TODO: maybe check depth enabled?
-        this->m_countClearValues = m_clearValues.size();
+        m_clearValues.clear();
+
+        for (uint32_t i = 0; i < m_countColorAttach * (IsMultisampleEnabled() ? 2 : 1); ++i) {
+            m_clearValues.emplace_back(VkClearValue{.color = {{0.0, 0.0, 0.0, 1.0}}});
+        }
+
+        if (m_depthEnabled) {
+            m_clearValues.emplace_back(VkClearValue{.depthStencil = {1.0, 0}});
+        }
+
+        m_countClearValues = m_clearValues.size();
     }
 
     return true;
@@ -455,6 +475,14 @@ VkRenderPassBeginInfo EvoVulkan::Complexes::FrameBuffer::BeginRenderPass(VkClear
     renderPassBeginInfo.pClearValues             = clearValues;
 
     return renderPassBeginInfo;
+}
+
+bool EvoVulkan::Complexes::FrameBuffer::IsMultisampleEnabled() const {
+    return m_device->MultisampleEnabled() && m_multisampleEnabled;
+}
+
+VkSampleCountFlagBits EvoVulkan::Complexes::FrameBuffer::GetSampleCount() const noexcept {
+    return IsMultisampleEnabled() ? m_device->GetMSAASamples() : VK_SAMPLE_COUNT_1_BIT;
 }
 
 bool EvoVulkan::Complexes::FrameBufferAttachment::Ready() const {

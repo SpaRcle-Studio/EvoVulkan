@@ -41,13 +41,14 @@ namespace EvoVulkan::Types {
         std::vector<VkAttachmentReference> colorReferences = {};
         std::vector<VkAttachmentReference> resolveReferences = {};
         VkAttachmentReference depthReference = {};
-        // Resolve attachment reference for the color attachment
+        /// Resolve attachment reference for the color attachment
 
         if (attachments.empty()) {
             attachments.resize(multisampling ? 3 : 2);
 
-            // Color attachment
+            /// Color attachment
             attachments[0].format = swapchain->GetColorFormat();
+            /// TODO: maybe "multisampling ? device->GetMSAASamples() : VK_SAMPLE_COUNT_1_BIT"
             attachments[0].samples = device->GetMSAASamples();
             attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -57,8 +58,8 @@ namespace EvoVulkan::Types {
             attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
             if (multisampling) {
-                // This is the frame buffer attachment to where the multisampled image
-                // will be resolved to and which will be presented to the swapchain
+                /// This is the frame buffer attachment to where the multisampled image
+                /// will be resolved to and which will be presented to the swapchain
                 attachments[1].format = swapchain->GetColorFormat();
                 attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
                 attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -68,7 +69,7 @@ namespace EvoVulkan::Types {
                 attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 attachments[1].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-                // Multisampled depth attachment we render to
+                /// Multisampled depth attachment we render to
                 attachments[2].format = swapchain->GetDepthFormat();
                 attachments[2].samples = device->GetMSAASamples();
                 attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -79,7 +80,7 @@ namespace EvoVulkan::Types {
                 attachments[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             }
             else {
-                // Depth attachment
+                /// Depth attachment
                 attachments[1].format = swapchain->GetDepthFormat();
                 attachments[1].samples = device->GetMSAASamples();
                 attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -93,8 +94,9 @@ namespace EvoVulkan::Types {
             colorReferences.push_back({0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
             depthReference = { multisampling ? 2u : 1u, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
             resolveReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-        } else {
-            //uint32_t bind = 0;
+        }
+        else {
+            ///uint32_t bind = 0;
             for (uint32_t i = 0; i < attachments.size() - (depth ? 1 : 0); i++) {
                 colorReferences.push_back({i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
                 if (multisampling) {
@@ -116,8 +118,10 @@ namespace EvoVulkan::Types {
                 }
             }
 
-            if (depth)
-                depthReference = { static_cast<uint32_t>(colorReferences.size() + resolveReferences.size()), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+            if (depth) {
+                depthReference = {static_cast<uint32_t>(colorReferences.size() + resolveReferences.size()),
+                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+            }
         }
 
         {

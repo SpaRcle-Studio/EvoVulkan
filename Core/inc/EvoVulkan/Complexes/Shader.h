@@ -68,7 +68,8 @@ namespace EvoVulkan::Complexes {
                 VkBool32 blendEnable,
                 VkBool32 depthWrite,
                 VkBool32 depthTest,
-                VkPrimitiveTopology topology);
+                VkPrimitiveTopology topology,
+                VkSampleCountFlagBits rasterizationSamples);
 
     public:
         /**
