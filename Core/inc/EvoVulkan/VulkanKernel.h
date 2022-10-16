@@ -69,7 +69,7 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE VkRect2D   GetRenderArea() const noexcept { return { VkOffset2D(), { m_width, m_height } };                                    }
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
-        EVK_NODISCARD EVK_INLINE bool MultisamplingEnabled() const noexcept { return m_multisampling; }
+        EVK_NODISCARD EVK_INLINE bool MultisamplingEnabled() const noexcept { return m_sampleCount > 1; }
 
         EVK_NODISCARD Core::DescriptorManager* GetDescriptorManager() const;
         EVK_NODISCARD uint32_t GetCountBuildIterations() const;
@@ -108,7 +108,6 @@ namespace EvoVulkan::Core {
     protected:
         std::mutex                 m_mutex                = std::mutex();
 
-        bool                       m_multisampling        = false;
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
 

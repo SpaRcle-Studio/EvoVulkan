@@ -29,29 +29,29 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
         return nullptr;
     }
 
-    auto* swapchain = new Swapchain();
+    auto&& pSwapchain = new Swapchain();
     {
-        swapchain->m_instance  = instance;
-        swapchain->m_device    = device;
-        swapchain->m_surface   = surface;
+        pSwapchain->m_instance  = instance;
+        pSwapchain->m_device    = device;
+        pSwapchain->m_surface   = surface;
 
-        swapchain->m_swapchain = VK_NULL_HANDLE;
-        swapchain->m_vsync     = vsync;
+        pSwapchain->m_swapchain = VK_NULL_HANDLE;
+        pSwapchain->m_vsync     = vsync;
     }
 
-    if (!swapchain->InitFormats()) {
+    if (!pSwapchain->InitFormats()) {
         VK_ERROR("Swapchain::Create() : failed to init depth format!");
         return nullptr;
     }
 
-    if (!swapchain->ReSetup(width, height, imagesCount)) {
+    if (!pSwapchain->ReSetup(width, height, imagesCount)) {
         VK_ERROR("Swapchain::Create() : failed to setup swapchain!");
         return nullptr;
     }
 
     VK_GRAPH("Swapchain::Create() : swapchain successfully created!");
 
-    return swapchain;
+    return pSwapchain;
 }
 
 bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint32_t countImages) {

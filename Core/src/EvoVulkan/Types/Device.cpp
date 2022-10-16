@@ -43,31 +43,33 @@ EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(const EvoDeviceCreate
         device->m_enableSamplerAnisotropy = deviceFeatures.features.samplerAnisotropy;
     }
 
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(device->m_physicalDevice, &deviceProperties);
-    {
-        device->m_maxSamplerAnisotropy = deviceProperties.limits.maxSamplerAnisotropy;
-    }
-
+    device->m_maxSamplerAnisotropy = Tools::GetMaxSamplerAnisotropy(*device);
     device->m_deviceName = Tools::GetDeviceName(info.physicalDevice);
 
     /// device->m_maxCountMSAASamples = calculate...
     if (info.multisampling) {
-        if (info.sampleCount <= 0)
+        if (info.sampleCount <= 0) {
             device->m_maxCountMSAASamples = Tools::GetMaxUsableSampleCount(device->m_physicalDevice);
+        }
         else {
             if (info.sampleCount == 1) {
-                VK_ERROR("Device::Create() : incorrect sample count!");
+                VK_ERROR("Device::Create() : sample count is 1, but multisample disabled!");
                 return nullptr;
             }
 
-            if (info.sampleCount > Tools::Convert::SampleCountToInt(Tools::GetMaxUsableSampleCount(device->m_physicalDevice))) {
-                VK_ERROR("Device::Create() : incorrect sample count!");
-                return nullptr;
-            } else {
+            auto&& maxSampleCount = Tools::Convert::SampleCountToInt(Tools::GetMaxUsableSampleCount(device->m_physicalDevice));
+            if (info.sampleCount > maxSampleCount) {
+                device->m_maxCountMSAASamples = Tools::Convert::IntToSampleCount(maxSampleCount);
+                VK_LOG("Device::Create() : sample count = " + std::to_string(info.sampleCount) + ", but max sample count " + std::to_string(maxSampleCount));
+                if (device->m_maxCountMSAASamples == VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM) {
+                    VK_ERROR("Device::Create() : incorrect truncated sample count! Count: " + std::to_string(info.sampleCount));
+                    return nullptr;
+                }
+            }
+            else {
                 device->m_maxCountMSAASamples = Tools::Convert::IntToSampleCount(info.sampleCount);
                 if (device->m_maxCountMSAASamples == VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM) {
-                    VK_ERROR("Device::Create() : incorrect sample count!");
+                    VK_ERROR("Device::Create() : incorrect sample count! Count: " + std::to_string(info.sampleCount));
                     return nullptr;
                 }
             }
@@ -161,5 +163,9 @@ VkCommandPool EvoVulkan::Types::Device::CreateCommandPool(VkCommandPoolCreateFla
     }
 
     return cmdPool;
+}
+
+uint8_t EvoVulkan::Types::Device::GetMSAASamplesCount() const {
+    return Tools::Convert::SampleCountToInt(m_maxCountMSAASamples);
 }
 

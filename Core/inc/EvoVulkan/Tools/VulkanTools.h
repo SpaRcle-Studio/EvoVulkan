@@ -644,6 +644,12 @@ namespace EvoVulkan::Tools {
         return image;
     }*/
 
+    static uint8_t GetMaxSamplerAnisotropy(VkPhysicalDevice physicalDevice) {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+        return deviceProperties.limits.maxSamplerAnisotropy;
+    }
+
     static bool TransitionImageLayout(
             Types::CmdBuffer* copyCmd,
             VkImage image,

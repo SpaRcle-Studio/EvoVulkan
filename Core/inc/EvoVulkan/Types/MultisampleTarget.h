@@ -31,7 +31,7 @@ namespace EvoVulkan::Types {
                 Swapchain* swapchain,
                 uint32_t w, uint32_t h,
                 const std::vector<VkFormat>& formats,
-                bool multisampling,
+                uint8_t m_sampleCount,
                 bool depth);
 
     public:
@@ -51,7 +51,7 @@ namespace EvoVulkan::Types {
         Swapchain*         m_swapchain = nullptr;
         Types::CmdPool*    m_cmdPool   = nullptr;
 
-        bool m_multisampling = true;
+        uint8_t m_sampleCount = 0;
         bool m_depthEnabled = true;
 
         uint32_t m_countResolves = 0;

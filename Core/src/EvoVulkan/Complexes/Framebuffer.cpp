@@ -39,7 +39,7 @@ static EvoVulkan::Complexes::FrameBufferAttachment CreateAttachment(
             imageSize.height,
             format,
             usage,
-            false
+            1 /** sample count */
     );
 
     FBOAttachment.m_image = EvoVulkan::Types::Image::Create(imageCI);
@@ -114,12 +114,19 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         uint32_t width,
         uint32_t height,
         float scale,
-        bool multisample,
+        uint8_t sampleCount,
         bool depth)
 {
     if (scale <= 0.f) {
         VK_ERROR("Framebuffer::Create() : scale <= zero!");
         return nullptr;
+    }
+
+    if (sampleCount == 0) {
+        sampleCount = device->GetMSAASamplesCount();
+    }
+    else {
+        sampleCount = EVK_MIN(sampleCount, device->GetMSAASamplesCount());
     }
 
     auto fbo = new FrameBuffer();
@@ -133,7 +140,7 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         fbo->m_countColorAttach   = colorAttachments.size();
         fbo->m_attachFormats      = colorAttachments;
         fbo->m_depthFormat        = Tools::GetDepthFormat(*device);
-        fbo->m_multisampleEnabled = multisample;
+        fbo->m_sampleCount        = sampleCount;
         fbo->m_depthEnabled       = depth;
     }
 
@@ -169,7 +176,7 @@ bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height
             m_swapchain,
             width, height,
             m_attachFormats,
-            IsMultisampleEnabled(),
+            GetSampleCount(),
             m_depthEnabled
     );
 
@@ -181,8 +188,8 @@ bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height
     m_baseWidth  = width;
     m_baseHeight = height;
 
-    m_width    = m_baseWidth  * m_scale;
-    m_height   = m_baseHeight * m_scale;
+    m_width  = m_baseWidth  * m_scale;
+    m_height = m_baseHeight * m_scale;
 
     m_viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
     m_scissor  = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
@@ -320,7 +327,7 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
         m_device,
         m_swapchain,
         attachmentDescs,
-        IsMultisampleEnabled(),
+        Tools::Convert::SampleCountToInt(GetSampleCount()),
         m_depthEnabled
     );
 
@@ -379,11 +386,11 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateAttachments()  {
 }
 
 EvoVulkan::Types::Texture *EvoVulkan::Complexes::FrameBuffer::AllocateDepthTextureReference() {
-    auto* texture = new EvoVulkan::Types::Texture();
+    auto&& texture = new EvoVulkan::Types::Texture();
 
     texture->m_view              = m_multisampleTarget->GetDepth();
     texture->m_image             = m_multisampleTarget->GetDepthImage().Copy();
-    texture->m_format            = VK_FORMAT_B8G8R8A8_UNORM;
+    texture->m_format            = m_depthFormat; /// TODO: why used VK_FORMAT_B8G8R8A8_UNORM?
     texture->m_descriptorManager = m_descriptorManager;
     texture->m_sampler           = m_colorSampler;
     texture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -478,11 +485,11 @@ VkRenderPassBeginInfo EvoVulkan::Complexes::FrameBuffer::BeginRenderPass(VkClear
 }
 
 bool EvoVulkan::Complexes::FrameBuffer::IsMultisampleEnabled() const {
-    return m_device->MultisampleEnabled() && m_multisampleEnabled;
+    return m_device->MultisampleEnabled() && m_sampleCount > 1;
 }
 
 VkSampleCountFlagBits EvoVulkan::Complexes::FrameBuffer::GetSampleCount() const noexcept {
-    return IsMultisampleEnabled() ? m_device->GetMSAASamples() : VK_SAMPLE_COUNT_1_BIT;
+    return IsMultisampleEnabled() ? Tools::Convert::IntToSampleCount(m_sampleCount) : VK_SAMPLE_COUNT_1_BIT;
 }
 
 bool EvoVulkan::Complexes::FrameBufferAttachment::Ready() const {

@@ -19,8 +19,8 @@ namespace EvoVulkan::Types {
                         Memory::Allocator* _allocator,
                         uint32_t _width, uint32_t _height,
                         VkImageUsageFlags _usage,
-                        bool _multisampling = true)
-            : ImageCreateInfo(_device, _allocator, _width, _height, VK_FORMAT_UNDEFINED, _usage, _multisampling)
+                        uint8_t _sampleCount = 0)
+            : ImageCreateInfo(_device, _allocator, _width, _height, VK_FORMAT_UNDEFINED, _usage, _sampleCount)
         { }
 
         ImageCreateInfo(Types::Device* _device,
@@ -28,7 +28,7 @@ namespace EvoVulkan::Types {
                         uint32_t _width, uint32_t _height,
                         VkFormat _format,
                         VkImageUsageFlags _usage,
-                        bool _multisampling = true,
+                        uint8_t _sampleCount = 0,
                         bool _cpuUsage = false,
                         uint32_t _mipLevels = 1,
                         uint32_t _arrayLayers = 1,
@@ -38,7 +38,7 @@ namespace EvoVulkan::Types {
             , width(_width)
             , height(_height)
             , usage(_usage)
-            , multisampling(_multisampling)
+            , sampleCount(_sampleCount)
             , CPUUsage(_cpuUsage)
             , format(_format)
             , mipLevels(_mipLevels)
@@ -56,7 +56,7 @@ namespace EvoVulkan::Types {
         VkFormat format = VK_FORMAT_UNDEFINED;
         VkImageTiling tiling = VK_IMAGE_TILING_MAX_ENUM;
         VkImageUsageFlags usage = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
-        bool multisampling = true;
+        uint8_t sampleCount = 0;
         VkImageCreateFlagBits createFlagBits = VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM;
         uint32_t arrayLayers = 1;
         bool CPUUsage = false;

@@ -76,41 +76,38 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     }
     else {
         const uint64_t layerSize = imageSize / 6;
-        for (uint8_t i = 0; i < 6; ++i)
-            memcpy(static_cast<uint8_t*>(data) + (layerSize * i), sides[i], layerSize);
+        for (uint8_t i = 0; i < 6; ++i) {
+            memcpy(static_cast<uint8_t *>(data) + (layerSize * i), sides[i], layerSize);
+        }
         stagingBuffer->Unmap();
     }
 
-    /*texture->m_image = Tools::CreateImage(
-            texture->m_device,
-            texture->m_width, texture->m_height,
-            texture->m_mipLevels,
-            texture->m_format,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            &texture->m_deviceMemory,
-            false, // multisampling
-            VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, // flags
-            6); // cube map*/
-
-    auto imageCI = Types::ImageCreateInfo(
-            texture->m_device, texture->m_allocator, texture->m_width, texture->m_height, texture->m_format,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            false, false, texture->m_mipLevels, 6, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
+    auto&& imageCI = Types::ImageCreateInfo(
+        texture->m_device,
+        texture->m_allocator,
+        texture->m_width, texture->m_height,
+        texture->m_format,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
+        1 /** sample count */,
+        false /** cpu usage */,
+        texture->m_mipLevels,
+        6 /** array layers */,
+        VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT /** flags */
+    );
 
     if (!(texture->m_image = Types::Image::Create(imageCI)).Valid()) {
         VK_ERROR("Texture::LoadCubeMap() : failed to create image!");
         return nullptr;
     }
 
-    std::vector<VkBufferImageCopy> bufferCopyRegions = {};
-    for (uint8_t face = 0; face < 6; face++) {
-        for (uint8_t level = 0; level < (uint8_t) mipLevels; level++) {
+    std::vector<VkBufferImageCopy> bufferCopyRegions = { };
+    for (uint8_t face = 0; face < 6; ++face) {
+        for (uint8_t level = 0; level < (uint8_t) mipLevels; ++level) {
             uint64_t offset = GetDataSize(width, height, level);
 
-            if (face != 0)
+            if (face != 0) {
                 offset += GetImageSize(width, height, level, face);
+            }
 
             VkBufferImageCopy bufferCopyRegion = {};
             bufferCopyRegion.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -137,7 +134,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-        // Copy the cube map faces from the staging buffer to the optimal tiled image
+        /// Copy the cube map faces from the staging buffer to the optimal tiled image
         vkCmdCopyBufferToImage(
                 *copyCmd,
                 *stagingBuffer,
@@ -174,7 +171,9 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
             texture->m_format,
             texture->m_mipLevels,
             VK_IMAGE_ASPECT_COLOR_BIT,
-            true);
+            true /** cube map */
+    );
+
     if (texture->m_view == VK_NULL_HANDLE) {
         VK_ERROR("Texture::LoadCubeMap() : failed to create image view!");
         return nullptr;
@@ -187,7 +186,9 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
             texture->m_mipLevels,
             texture->m_filter, texture->m_filter,
             VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            VK_COMPARE_OP_NEVER);
+            VK_COMPARE_OP_NEVER
+    );
+
     if (texture->m_sampler == VK_NULL_HANDLE) {
         VK_ERROR("Texture::Create() : LoadCubeMap to create sampler image!");
         return nullptr;
@@ -258,37 +259,45 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
 }
 
 bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffer) {
-    /*m_image = Tools::CreateImage(
+    auto&& imageCI = Types::ImageCreateInfo(
             m_device,
+            m_allocator,
             m_width, m_height,
-            m_mipLevels,
             m_format,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            &m_deviceMemory,
-            false); */
-
-    auto imageCI = Types::ImageCreateInfo(
-            m_device, m_allocator, m_width, m_height, m_format,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            false, m_cpuUsage, m_mipLevels);
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
+            1 /** sample count */,
+            m_cpuUsage /** cpu usage */,
+            m_mipLevels
+    );
 
     if (!(m_image = Types::Image::Create(imageCI)).Valid()) {
         VK_ERROR("Texture::Create() : failed to create image!");
         return false;
     }
 
-    auto copyCmd = Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
+    auto&& copyCmd = Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
 
-    Tools::TransitionImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
+    Tools::TransitionImageLayout(
+            copyCmd,
+            m_image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            m_mipLevels
+    );
+
     Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_width, m_height);
+
     if (m_mipLevels == 1) {
-        Tools::TransitionImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_mipLevels);
+        Tools::TransitionImageLayout(
+                copyCmd,
+                m_image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                m_mipLevels
+        );
         m_imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    } else
-    if (!GenerateMipmaps(this, copyCmd)) {
+    }
+    else if (!GenerateMipmaps(this, copyCmd)) {
         VK_ERROR("Texture::Create() : failed to generate mip maps!");
         return false;
     }
@@ -309,7 +318,9 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
             m_format,
             m_mipLevels,
             VK_IMAGE_ASPECT_COLOR_BIT,
-            m_cubeMap);
+            m_cubeMap
+    );
+
     if (m_view == VK_NULL_HANDLE) {
         VK_ERROR("Texture::Create() : failed to create image view!");
         return false;
@@ -320,9 +331,12 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
     m_sampler = Tools::CreateSampler(
             m_device,
             m_mipLevels,
-            m_filter, m_filter,
+            m_filter /** min filter */,
+            m_filter /** mag filter */,
             VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            VK_COMPARE_OP_NEVER);
+            VK_COMPARE_OP_NEVER
+    );
+
     if (m_sampler == VK_NULL_HANDLE) {
         VK_ERROR("Texture::Create() : failed to create sampler image!");
         return false;

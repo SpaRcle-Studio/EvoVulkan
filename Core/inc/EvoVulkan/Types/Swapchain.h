@@ -40,13 +40,17 @@ namespace EvoVulkan::Types {
 
         bool ReSetup(uint32_t width, uint32_t height, uint32_t countImages);
 
-        EVK_NODISCARD SwapChainBuffer* GetBuffers()   const { return m_buffers;       }
-        EVK_NODISCARD uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;  }
-        EVK_NODISCARD uint32_t GetSurfaceHeight()     const { return m_surfaceHeight; }
-        EVK_NODISCARD VkFormat GetDepthFormat()       const { return m_depthFormat;   }
-        EVK_NODISCARD VkFormat GetColorFormat()       const { return m_colorFormat;   }
-        EVK_NODISCARD VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;    }
-        EVK_NODISCARD uint32_t GetCountImages()       const { return m_countImages;   }
+        void SetSampleCount(uint8_t sampleCount) { m_sampleCount = sampleCount; }
+
+        EVK_NODISCARD SwapChainBuffer* GetBuffers()   const { return m_buffers;         }
+        EVK_NODISCARD uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;    }
+        EVK_NODISCARD uint32_t GetSurfaceHeight()     const { return m_surfaceHeight;   }
+        EVK_NODISCARD VkFormat GetDepthFormat()       const { return m_depthFormat;     }
+        EVK_NODISCARD VkFormat GetColorFormat()       const { return m_colorFormat;     }
+        EVK_NODISCARD uint32_t GetCountImages()       const { return m_countImages;     }
+        EVK_NODISCARD uint8_t GetSampleCount()        const { return m_sampleCount;     }
+        EVK_NODISCARD bool IsMultisamplingEnabled()   const { return m_sampleCount > 1; }
+        EVK_NODISCARD VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;      }
         EVK_NODISCARD bool IsReady() const override;
 
     public:
@@ -122,6 +126,8 @@ namespace EvoVulkan::Types {
 
         uint32_t         m_surfaceWidth    = 0;
         uint32_t         m_surfaceHeight   = 0;
+
+        uint8_t          m_sampleCount     = 0;
 
         bool             m_vsync           = false;
 

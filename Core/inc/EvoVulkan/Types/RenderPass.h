@@ -34,7 +34,7 @@ namespace EvoVulkan::Types {
     }
 
     static RenderPass CreateRenderPass(const EvoVulkan::Types::Device *device, const Types::Swapchain *swapchain,
-                                       std::vector<VkAttachmentDescription> attachments = {}, bool multisampling = false, bool depth = true) {
+                                       std::vector<VkAttachmentDescription> attachments = {}, uint8_t sampleCount = 1, bool depth = true) {
         VK_GRAPH("Types::CreateRenderPass() : create vulkan render pass...");
 
         VkSubpassDescription subpassDescription = {};
@@ -43,13 +43,14 @@ namespace EvoVulkan::Types {
         VkAttachmentReference depthReference = {};
         /// Resolve attachment reference for the color attachment
 
+        const bool multisampling = sampleCount > 1;
+
         if (attachments.empty()) {
             attachments.resize(multisampling ? 3 : 2);
 
             /// Color attachment
             attachments[0].format = swapchain->GetColorFormat();
-            /// TODO: maybe "multisampling ? device->GetMSAASamples() : VK_SAMPLE_COUNT_1_BIT"
-            attachments[0].samples = device->GetMSAASamples();
+            attachments[0].samples = Tools::Convert::IntToSampleCount(sampleCount);
             attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -71,18 +72,20 @@ namespace EvoVulkan::Types {
 
                 /// Multisampled depth attachment we render to
                 attachments[2].format = swapchain->GetDepthFormat();
-                attachments[2].samples = device->GetMSAASamples();
+                attachments[2].samples =  Tools::Convert::IntToSampleCount(sampleCount);
                 attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 attachments[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+                resolveReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
             }
             else {
                 /// Depth attachment
                 attachments[1].format = swapchain->GetDepthFormat();
-                attachments[1].samples = device->GetMSAASamples();
+                attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
                 attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
                 attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -93,7 +96,6 @@ namespace EvoVulkan::Types {
 
             colorReferences.push_back({0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
             depthReference = { multisampling ? 2u : 1u, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
-            resolveReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
         }
         else {
             ///uint32_t bind = 0;

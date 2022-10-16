@@ -74,7 +74,7 @@ namespace EvoVulkan::Complexes {
                 const std::vector<VkFormat>& colorAttachments,
                 uint32_t width, uint32_t height,
                 float scale = 1.f,
-                bool multisample = true,
+                uint8_t multisample = 0,
                 bool depth = true);
 
         operator VkFramebuffer() const { return m_framebuffer; }
@@ -161,7 +161,7 @@ namespace EvoVulkan::Complexes {
         uint32_t                  m_countClearValues   = 0;
 
         bool                      m_depthEnabled       = true;
-        bool                      m_multisampleEnabled = true;
+        uint8_t                   m_sampleCount        = 0;
 
     };
 }

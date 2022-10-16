@@ -37,7 +37,17 @@ EvoVulkan::Types::Image EvoVulkan::Types::Image::Create(const ImageCreateInfo &i
     imageInfo.tiling        = info.tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage         = info.usage;
-    imageInfo.samples       = (info.mipLevels > 1 || !info.multisampling) ? VK_SAMPLE_COUNT_1_BIT : info.device->GetMSAASamples();
+
+    if (info.mipLevels > 1) {
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    }
+    else if (info.sampleCount == 0) {
+        imageInfo.samples = info.device->GetMSAASamples();
+    }
+    else {
+        imageInfo.samples = Tools::Convert::IntToSampleCount(info.sampleCount);
+    }
+
     imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
     if (info.createFlagBits != VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM)
@@ -49,11 +59,6 @@ EvoVulkan::Types::Image EvoVulkan::Types::Image::Create(const ImageCreateInfo &i
         VK_ERROR("Image::Image() : failed to create vulkan image!");
         return image;
     }
-
-    //if (image.Bind()) {
-    //    VK_ERROR("Image::Image() : failed to bind vulkan image memory!");
-    //    return Image();
-    //}
 
     return image;
 }

@@ -57,6 +57,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD EVK_INLINE VkSampleCountFlagBits GetMSAASamples() const { return (VkSampleCountFlagBits)m_maxCountMSAASamples; }
         EVK_NODISCARD EVK_INLINE VkPhysicalDeviceMemoryProperties GetMemoryProperties() const { return m_memoryProperties; }
 
+        EVK_NODISCARD uint8_t GetMSAASamplesCount() const;
         EVK_NODISCARD FamilyQueues* GetQueues() const;
         EVK_NODISCARD bool IsReady() const;
         EVK_NODISCARD bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;

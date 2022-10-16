@@ -84,7 +84,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     //!=============================================[Create surface]====================================================
 
     VK_GRAPH("VulkanKernel::Init() : create vulkan surface...");
-    this->m_surface = Tools::CreateSurface(*m_instance, platformCreate, windowHandle);
+    m_surface = Tools::CreateSurface(*m_instance, platformCreate, windowHandle);
     if (!m_surface) {
         VK_ERROR("VulkanKernel::Init() : failed create vulkan surface!");
         return false;
@@ -100,7 +100,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
             deviceExtensions,
             m_validationEnabled ? m_validationLayers : std::vector<const char*>(),
             enableSampleShading,
-            m_multisampling,
+            m_sampleCount > 1,
             m_sampleCount
     );
 
@@ -109,13 +109,13 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         return false;
     }
 
+    m_sampleCount = m_device->GetMSAASamples();
     if (!m_device->IsReady()) {
         VK_ERROR("VulkanKernel::Init() : something went wrong! Device isn't ready...");
         return false;
     }
 
-    VK_LOG("VulkanKernel::Init() : count MSAA samples is "
-        + std::to_string(m_device->GetMSAASamples()));
+    VK_LOG("VulkanKernel::Init() : count MSAA samples is " + std::to_string(m_device->GetMSAASamples()));
 
     //!=============================================[Create allocator]==================================================
 
@@ -125,7 +125,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     //!========================================[Create descriptor manager]==============================================
 
     VK_LOG("VulkanKernel::Init() : create descriptor manager...");
-    this->m_descriptorManager = Core::DescriptorManager::Create(m_device);
+    m_descriptorManager = Core::DescriptorManager::Create(m_device);
     if (!m_descriptorManager) {
         VK_ERROR("VulkanKernel::Init() : failed to create descriptor manager!");
         return false;
@@ -155,19 +155,21 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     m_height = m_newHeight;
 
     m_swapchain = Types::Swapchain::Create(
-            *m_instance,
-            m_surface,
-            m_device,
-            vsync,
-            m_width,
-            m_height,
-            m_swapchainImages);
+        *m_instance,
+        m_surface,
+        m_device,
+        vsync,
+        m_width,
+        m_height,
+        m_swapchainImages
+    );
 
     if (!m_swapchain) {
         VK_ERROR("VulkanKernel::Init() : failed to create swapchain!");
         return false;
     }
 
+    m_swapchain->SetSampleCount(m_sampleCount);
     if (!m_swapchain->IsReady()) {
         VK_ERROR("VulkanKernel::Init() : swapchain isn't ready!");
         return false;
@@ -178,7 +180,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     //!=================================================================================================================
 
-    this->m_isInitialized = true;
+    m_isInitialized = true;
 
     VK_INFO("VulkanKernel::Init() : Evo Vulkan successfully initialized!");
 
@@ -229,8 +231,8 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
             m_swapchain->GetSurfaceWidth(),
             m_swapchain->GetSurfaceHeight(),
             { m_swapchain->GetColorFormat() },
-            m_device->MultisampleEnabled(),
-            true /** depth */
+            m_swapchain->GetSampleCount(),
+            true /** depth buffer */
     );
 
     if (!m_multisample) {
@@ -241,7 +243,14 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : create render pass...");
-    m_renderPass = Types::CreateRenderPass(m_device, m_swapchain, {}, m_device->MultisampleEnabled());
+    m_renderPass = Types::CreateRenderPass(
+            m_device,
+            m_swapchain,
+            { } /** color attachment */,
+            m_swapchain->GetSampleCount(),
+            true /** depth buffer */
+    );
+
     if (!m_renderPass.Ready()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
         return false;
@@ -265,12 +274,12 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     //!=================================================================================================================
 
-    if (!this->ReCreateFrameBuffers()) {
+    if (!ReCreateFrameBuffers()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to re-create frame buffers!");
         return false;
     }
 
-    this->m_isPostInitialized = true;
+    m_isPostInitialized = true;
 
     VK_LOG("VulkanKernel::PostInit() : call custom on-complete function...");
     if (!OnComplete()) {
@@ -340,7 +349,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
         return false;
     }
 
-    this->m_multisample->ReCreate(m_swapchain->GetSurfaceWidth(), m_swapchain->GetSurfaceHeight());
+    m_multisample->ReCreate(m_swapchain->GetSurfaceWidth(), m_swapchain->GetSurfaceHeight());
 
     for (auto & m_frameBuffer : m_frameBuffers)
         vkDestroyFramebuffer(*m_device, m_frameBuffer, nullptr);
@@ -350,7 +359,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     attachments.resize(m_renderPass.m_countAttachments);
 
     /// Depth/Stencil attachment is the same for all frame buffers
-    if (m_device->MultisampleEnabled()) {
+    if (m_swapchain->IsMultisamplingEnabled()) {
         attachments[0] = m_multisample->GetResolve(0);
         /// attachment[1] = swapchain image
         attachments[2] = m_multisample->GetDepth();
@@ -375,7 +384,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     for (uint32_t i = 0; i < m_countDCB; i++) {
         //!attachments[0] = m_swapchain->GetBuffers()[i].m_view;
 
-        attachments[m_device->MultisampleEnabled() ? 1 : 0] = m_swapchain->GetBuffers()[i].m_view;
+        attachments[m_swapchain->IsMultisamplingEnabled() ? 1 : 0] = m_swapchain->GetBuffers()[i].m_view;
 
         auto result = vkCreateFramebuffer(*m_device, &frameBufferCreateInfo, nullptr, &m_frameBuffers[i]);
 
@@ -506,11 +515,6 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
         return false;
     }
 
-    //if (!m_depthStencil->ReCreate(m_width, m_height)) {
-    //    VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create depth stencil!");
-    //    return false;
-   // }
-
     if (!ReCreateFrameBuffers()) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create frame buffers!");
         return false;
@@ -537,8 +541,8 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
 }
 
 void EvoVulkan::Core::VulkanKernel::SetMultisampling(uint32_t sampleCount) {
-    m_multisampling = sampleCount > 1;
-    m_sampleCount   = sampleCount;
+    m_sampleCount = sampleCount;
+    VK_ASSERT2(!m_device, "The device is already initialized!");
 }
 
 void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {

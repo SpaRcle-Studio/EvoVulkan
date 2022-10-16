@@ -13,9 +13,13 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
         Swapchain* swapchain,
         uint32_t w, uint32_t h,
         const std::vector<VkFormat>& formats,
-        bool multisampling,
+        uint8_t sampleCount,
         bool depth)
 {
+    if (sampleCount == 0) {
+        sampleCount = device->GetMSAASamplesCount();
+    }
+
     auto&& multisample = new MultisampleTarget();
     multisample->m_device        = device;
     multisample->m_allocator     = allocator;
@@ -23,7 +27,7 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
     multisample->m_cmdPool       = cmdPool;
     multisample->m_countResolves = formats.size();
     multisample->m_formats       = formats;
-    multisample->m_multisampling = multisampling;
+    multisample->m_sampleCount   = sampleCount;
     multisample->m_depthEnabled  = depth;
 
     if (!multisample->ReCreate(w, h)) {
@@ -37,25 +41,23 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
 bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
     Destroy();
 
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(*m_device, &deviceProperties);
-
-    if (m_multisampling) {
-        if (!((deviceProperties.limits.framebufferColorSampleCounts >= m_device->GetMSAASamples()) && (deviceProperties.limits.framebufferDepthSampleCounts >= m_device->GetMSAASamples()))) {
-            VK_ERROR("MultisampleTarget::ReCreate() : multisampling is unsupported!");
-            return false;
-        }
-    }
-
     auto&& imageCI = Types::ImageCreateInfo(
             m_device, m_allocator, w, h,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            m_multisampling
+            m_sampleCount
     );
 
     //! ----------------------------------- Color target -----------------------------------
 
-    if (m_multisampling) {
+    if (m_sampleCount > 1) {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(*m_device, &deviceProperties);
+
+        if (!((deviceProperties.limits.framebufferColorSampleCounts >= m_device->GetMSAASamples()) && (deviceProperties.limits.framebufferDepthSampleCounts >= m_device->GetMSAASamples()))) {
+            VK_ERROR("MultisampleTarget::ReCreate() : multisampling is unsupported!");
+            return false;
+        }
+
         m_resolves = (Image*)malloc(sizeof(Image) * m_countResolves);
 
         for (uint32_t i = 0; i < m_countResolves; ++i) {
@@ -119,7 +121,7 @@ void EvoVulkan::Types::MultisampleTarget::Destroy() {
 }
 
 VkImageView EvoVulkan::Types::MultisampleTarget::GetResolve(const uint32_t &id) const noexcept {
-    if (!m_multisampling) {
+    if (m_sampleCount <= 1) {
         return VK_NULL_HANDLE;
     }
 
