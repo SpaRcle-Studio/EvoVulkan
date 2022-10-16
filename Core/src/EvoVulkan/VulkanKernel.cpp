@@ -2,15 +2,7 @@
 // Created by Nikita on 12.04.2021.
 //
 
-#define VK_PROTOTYPES
-
-#ifdef _WIN32
-    #define VK_USE_PLATFORM_WIN32_KHR
-#endif
-
-#include <vulkan/vulkan.h>
-
-#include "EvoVulkan/VulkanKernel.h"
+#include <EvoVulkan/VulkanKernel.h>
 #include <EvoVulkan/Complexes/Shader.h>
 
 bool EvoVulkan::Core::VulkanKernel::PreInit(
@@ -351,8 +343,9 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
 
     m_multisample->ReCreate(m_swapchain->GetSurfaceWidth(), m_swapchain->GetSurfaceHeight());
 
-    for (auto & m_frameBuffer : m_frameBuffers)
-        vkDestroyFramebuffer(*m_device, m_frameBuffer, nullptr);
+    for (auto&& frameBuffer : m_frameBuffers) {
+        vkDestroyFramebuffer(*m_device, frameBuffer, nullptr);
+    }
     m_frameBuffers.clear();
 
     std::vector<VkImageView> attachments = {};
@@ -361,12 +354,10 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     /// Depth/Stencil attachment is the same for all frame buffers
     if (m_swapchain->IsMultisamplingEnabled()) {
         attachments[0] = m_multisample->GetResolve(0);
-        /// attachment[1] = swapchain image
         attachments[2] = m_multisample->GetDepth();
     }
     else {
         attachments[1] = m_multisample->GetDepth();
-        ///attachments[1] = m_depthStencil->GetImageView();
     }
 
     VkFramebufferCreateInfo frameBufferCreateInfo = {};
@@ -381,7 +372,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
 
     /// Create frame buffers for every swap chain image
     m_frameBuffers.resize(m_countDCB);
-    for (uint32_t i = 0; i < m_countDCB; i++) {
+    for (uint32_t i = 0; i < m_countDCB; ++i) {
         //!attachments[0] = m_swapchain->GetBuffers()[i].m_view;
 
         attachments[m_swapchain->IsMultisamplingEnabled() ? 1 : 0] = m_swapchain->GetBuffers()[i].m_view;
@@ -408,24 +399,14 @@ EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
     if (m_paused)
         return EvoVulkan::Core::RenderResult::Success;
 
-    //if (viewUpdated) {
-    //    viewUpdated = false;
-    //    viewChanged();
-    //}
-
-    return this->Render();
-
-    //camera.update(frameTimer);
-    //if (camera.moving())
-    //    viewUpdated = true;
+    return Render();
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
-    // Acquire the next image from the swap chain
+    /// Acquire the next image from the swap chain
     VkResult result = m_swapchain->AcquireNextImage(m_syncs.m_presentComplete, &m_currentBuffer);
-    // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+    /// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
     if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-        //windowResize();
         VK_LOG("VulkanKernel::PrepareFrame() : window has been resized!");
         return FrameResult::OutOfDate;
     }
@@ -433,22 +414,17 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
         VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " +
             Tools::Convert::result_to_description(result));
 
-        //this->m_hasErrors = true;
-
         return FrameResult::Error;
     }
 
     return FrameResult::Success;
-    //vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
-    //vkResetFences(*m_device, 1, &m_waitFences[m_currentBuffer]);
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
     VkResult result = m_swapchain->QueuePresent(m_device->GetGraphicsQueue(), m_currentBuffer, m_syncs.m_renderComplete);
     if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            // Swap chain is no longer compatible with the surface and needs to be recreated
-            //windowResize();
+            /// Swap chain is no longer compatible with the surface and needs to be recreated
             VK_LOG("VulkanKernel::SubmitFrame() : window has been resized!");
             return FrameResult::OutOfDate;
         }
@@ -482,7 +458,7 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
 bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
     VK_LOG("VulkanKernel::ResizeWindow() : waiting for a change in the size of the client window...");
 
-    // ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
+    /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
     while(true) {
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_newWidth != -1 && m_newHeight != -1)
@@ -559,8 +535,9 @@ void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
         if (m_paused) {
             VK_LOG("VulkanKernel::SetSize() : window has been collapsed!");
         }
-        else
+        else {
             VK_LOG("VulkanKernel::SetSize() : window has been expanded!");
+        }
     }
 }
 

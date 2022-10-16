@@ -87,6 +87,7 @@ namespace EvoVulkan::Complexes {
         void BeginCmd();
         void End() const;
         void SetViewportAndScissor() const;
+        void SetSampleCount(uint8_t sampleCount);
 
     public:
         /// \Warn Slow access! But it's safe.
@@ -97,6 +98,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
 
         EVK_NODISCARD bool IsMultisampleEnabled() const;
+        EVK_NODISCARD bool IsDepthEnabled() const { return m_depthEnabled; }
         EVK_NODISCARD VkSampleCountFlagBits GetSampleCount() const noexcept;
 
         EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const { return m_viewport; }

@@ -16,6 +16,10 @@
     #define EVK_LINUX
 #endif
 
+#ifdef WIN32
+    #define EVK_WIN32
+#endif
+
 #define EVK_EXPORTS 1
 
 #ifndef EVK_LINUX
@@ -42,10 +46,13 @@
 #define EVK_MIN(a, b) (a < b ? a : b)
 #define EVK_CLAMP(x, upper, lower) (EVK_MIN(upper, EVK_MAX(x, lower)))
 
-#ifdef WIN32
-    #define EVK_WIN32
-    #include <vulkan/vulkan_win32.h>
+#define VK_PROTOTYPES
+
+#ifdef EVK_WIN32
+    #define VK_USE_PLATFORM_WIN32_KHR
 #endif
+
+#include <vulkan/vulkan.h>
 
 #include <direct.h>
 #include <variant>
@@ -60,7 +67,6 @@
 #include <sys/stat.h>
 #include <fstream>
 #include <array>
-#include <vulkan/vulkan.h>
 #include <cstring>
 #include <cmath>
 #include <unordered_set>

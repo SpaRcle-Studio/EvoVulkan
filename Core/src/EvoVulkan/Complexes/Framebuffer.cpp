@@ -122,13 +122,6 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         return nullptr;
     }
 
-    if (sampleCount == 0) {
-        sampleCount = device->GetMSAASamplesCount();
-    }
-    else {
-        sampleCount = EVK_MIN(sampleCount, device->GetMSAASamplesCount());
-    }
-
     auto fbo = new FrameBuffer();
     {
         fbo->m_scale              = scale;
@@ -140,9 +133,10 @@ EvoVulkan::Complexes::FrameBuffer *EvoVulkan::Complexes::FrameBuffer::Create(
         fbo->m_countColorAttach   = colorAttachments.size();
         fbo->m_attachFormats      = colorAttachments;
         fbo->m_depthFormat        = Tools::GetDepthFormat(*device);
-        fbo->m_sampleCount        = sampleCount;
         fbo->m_depthEnabled       = depth;
     }
+
+    fbo->SetSampleCount(sampleCount);
 
     auto semaphoreCI  = Tools::Initializers::SemaphoreCreateInfo();
     if (vkCreateSemaphore(*device, &semaphoreCI, nullptr, &fbo->m_semaphore) != VK_SUCCESS) {
@@ -386,6 +380,10 @@ bool EvoVulkan::Complexes::FrameBuffer::CreateAttachments()  {
 }
 
 EvoVulkan::Types::Texture *EvoVulkan::Complexes::FrameBuffer::AllocateDepthTextureReference() {
+    if (!m_depthEnabled) {
+        return nullptr;
+    }
+
     auto&& texture = new EvoVulkan::Types::Texture();
 
     texture->m_view              = m_multisampleTarget->GetDepth();
@@ -490,6 +488,15 @@ bool EvoVulkan::Complexes::FrameBuffer::IsMultisampleEnabled() const {
 
 VkSampleCountFlagBits EvoVulkan::Complexes::FrameBuffer::GetSampleCount() const noexcept {
     return IsMultisampleEnabled() ? Tools::Convert::IntToSampleCount(m_sampleCount) : VK_SAMPLE_COUNT_1_BIT;
+}
+
+void EvoVulkan::Complexes::FrameBuffer::SetSampleCount(uint8_t sampleCount) {
+    if (sampleCount == 0) {
+        m_sampleCount = m_device->GetMSAASamplesCount();
+    }
+    else {
+        m_sampleCount = EVK_MIN(sampleCount, m_device->GetMSAASamplesCount());
+    }
 }
 
 bool EvoVulkan::Complexes::FrameBufferAttachment::Ready() const {
