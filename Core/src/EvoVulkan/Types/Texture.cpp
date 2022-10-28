@@ -218,6 +218,11 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
         VkFilter filter,
         bool cpuUsage)
 {
+    if (width == 0 || height == 0) {
+        VK_ERROR("Texture::Load() : invalid texture! \n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height));
+        return nullptr;
+    }
+
     if (!pixels) {
         VK_ERROR("Texture::Load() : pixels is nullptr!");
         return nullptr;
