@@ -8,6 +8,20 @@
 #include <EvoVulkan/Tools/Singleton.h>
 
 namespace EvoVulkan::Tools {
+    enum class LogLevel : int {
+        None = 1 << 0,
+        Errors = 1 << 1,
+        Logs = 1 << 2,
+        Warns = 1 << 3,
+        Graphical = 1 << 4,
+        Asserts = 1 << 5,
+
+        ErrorsOnly = Errors | Asserts,
+
+        Full = Errors | Logs | Warns | Graphical | Asserts
+    };
+    typedef int LogLevelFlags;
+
     class DLL_EVK_EXPORT VkDebug : public Tools::Singleton<VkDebug> {
         friend class Tools::Singleton<VkDebug>;
     protected:
@@ -24,11 +38,20 @@ namespace EvoVulkan::Tools {
         bool Assert(const std::string &msg);
 
     public:
+        void PushLogLevel(LogLevel logLevel);
+        void PopLogLevel();
+
+        EVK_NODISCARD LogLevelFlags GetLogLevel() const;
+
+    public:
         std::function<void(const std::string &msg)> ErrorCallback;
         std::function<void(const std::string &msg)> LogCallback;
         std::function<void(const std::string &msg)> GraphCallback;
         std::function<void(const std::string &msg)> WarnCallback;
         std::function<bool(const std::string &msg)> AssertCallback;
+
+    private:
+        std::stack<LogLevel> m_logLevelStack;
 
     };
 }

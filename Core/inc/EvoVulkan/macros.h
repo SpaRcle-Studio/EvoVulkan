@@ -63,6 +63,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <stack>
 #include <mutex>
 #include <sys/stat.h>
 #include <fstream>
