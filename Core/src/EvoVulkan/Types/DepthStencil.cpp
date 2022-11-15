@@ -11,6 +11,7 @@
 #include <EvoVulkan/Types/Swapchain.h>
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 
 EvoVulkan::Types::DepthStencil* EvoVulkan::Types::DepthStencil::Create(
         EvoVulkan::Types::Device *device,

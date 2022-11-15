@@ -8,6 +8,7 @@
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 
 #define EVSafeFreeObject(object) \
     if (object) {                \
@@ -17,12 +18,12 @@
     }                            \
 
 namespace EvoVulkan::Tools {
-    static void DestroyFences(const VkDevice& device, const std::vector<VkFence>& fences) {
+    EVK_MAYBE_UNUSED static void DestroyFences(const VkDevice& device, const std::vector<VkFence>& fences) {
         for (auto& fence : fences)
             vkDestroyFence(device, fence, nullptr);
     }
 
-    static std::vector<VkFence> CreateFences(const VkDevice& device, uint32_t count) {
+    EVK_MAYBE_UNUSED static std::vector<VkFence> CreateFences(const VkDevice& device, uint32_t count) {
         auto waitFences = std::vector<VkFence>(count);
 
         // Wait fences to sync command buffer access
@@ -39,7 +40,7 @@ namespace EvoVulkan::Tools {
         return waitFences;
     }
 
-    static void SetImageLayout(VkCommandBuffer cmdbuffer,
+    EVK_MAYBE_UNUSED static void SetImageLayout(VkCommandBuffer cmdbuffer,
                                VkImage image,
                                VkImageLayout oldImageLayout,
                                VkImageLayout newImageLayout,
@@ -159,13 +160,13 @@ namespace EvoVulkan::Tools {
                 1, &imageMemoryBarrier);
     }
 
-    static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    EVK_MAYBE_UNUSED static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr)
             func(instance, debugMessenger, pAllocator);
     }
 
-    static VkPresentModeKHR GetPresentMode(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, bool vsync) {
+    EVK_MAYBE_UNUSED static VkPresentModeKHR GetPresentMode(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, bool vsync) {
         uint32_t presentModeCount = 0;
         if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL) != VK_SUCCESS) {
             VK_ERROR("VulkanTools::GetPresentMode() : failed get physical device surface present modes! (count)");
@@ -197,7 +198,7 @@ namespace EvoVulkan::Tools {
         return swapchainPresentMode;
     }
 
-    static VkFormat GetDepthFormat(const VkPhysicalDevice& physicalDevice) {
+    EVK_MAYBE_UNUSED static VkFormat GetDepthFormat(const VkPhysicalDevice& physicalDevice) {
         VkFormat depthFormat = VK_FORMAT_UNDEFINED;
 
         //! Find supported depth format
@@ -216,7 +217,7 @@ namespace EvoVulkan::Tools {
             VkFormatProperties formatProps;
             vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
             //! Format must support depth stencil attachment for optimal tiling
-            if (formatProps.optimalTilingFeatures && VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+            if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
                 depthFormat = format;
                 break;
             }
@@ -225,7 +226,7 @@ namespace EvoVulkan::Tools {
         return depthFormat;
     }
 
-    static VkSampleCountFlagBits GetMaxUsableSampleCount(const VkPhysicalDevice& physicalDevice) {
+    EVK_MAYBE_UNUSED static VkSampleCountFlagBits GetMaxUsableSampleCount(const VkPhysicalDevice& physicalDevice) {
         VkPhysicalDeviceProperties physicalDeviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
@@ -242,7 +243,7 @@ namespace EvoVulkan::Tools {
         return VK_SAMPLE_COUNT_1_BIT;
     }
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
+    EVK_MAYBE_UNUSED static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageType,
             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -254,13 +255,13 @@ namespace EvoVulkan::Tools {
         return VK_FALSE;    // Т.к. мы не хотим чтобы вызывающая функция упала.
     }
 
-    static VkPhysicalDeviceProperties GetDeviceProperties(const VkPhysicalDevice& physicalDevice) {
+    EVK_MAYBE_UNUSED static VkPhysicalDeviceProperties GetDeviceProperties(const VkPhysicalDevice& physicalDevice) {
         VkPhysicalDeviceProperties physicalDeviceProperties = {};
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
         return physicalDeviceProperties;
     }
 
-    static void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+    EVK_MAYBE_UNUSED static void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
         createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -268,7 +269,7 @@ namespace EvoVulkan::Tools {
         createInfo.pfnUserCallback = DebugReportCallback;
     }
 
-    static std::vector<std::string> GetSupportedDeviceExtensions(const VkPhysicalDevice& device) {
+    EVK_MAYBE_UNUSED static std::vector<std::string> GetSupportedDeviceExtensions(const VkPhysicalDevice& device) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -285,7 +286,7 @@ namespace EvoVulkan::Tools {
         return extensions;
     }
 
-    static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& extensions) {
+    EVK_MAYBE_UNUSED static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& extensions) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -316,7 +317,7 @@ namespace EvoVulkan::Tools {
         return true;
     }
 
-    static std::vector<VkPhysicalDevice> GetAllDevices(const VkInstance& instance) {
+    EVK_MAYBE_UNUSED static std::vector<VkPhysicalDevice> GetAllDevices(const VkInstance& instance) {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 

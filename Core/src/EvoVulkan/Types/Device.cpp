@@ -5,6 +5,8 @@
 #include <EvoVulkan/Types/Device.h>
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
+#include <EvoVulkan/Tools/VulkanConverter.h>
 #include <EvoVulkan/Tools/DeviceTools.h>
 
 EvoVulkan::Types::Device *EvoVulkan::Types::Device::Create(const EvoDeviceCreateInfo& info) {

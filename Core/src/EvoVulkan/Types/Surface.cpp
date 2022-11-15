@@ -4,6 +4,7 @@
 
 #include <EvoVulkan/Types/Surface.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Types/Device.h>
 
 namespace EvoVulkan::Types {

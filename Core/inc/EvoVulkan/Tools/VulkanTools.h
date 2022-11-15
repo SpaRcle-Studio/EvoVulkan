@@ -36,7 +36,7 @@ namespace EvoVulkan::Tools {
 
     DLL_EVK_EXPORT VkDescriptorSetLayout CreateDescriptorLayout(const VkDevice& device, const std::vector<VkDescriptorSetLayoutBinding>& setLayoutBindings);
 
-    static uint8_t GetPixelTypeSize(VkFormat format) {
+    EVK_MAYBE_UNUSED static uint8_t GetPixelTypeSize(VkFormat format) {
         switch (format) {
             case VK_FORMAT_R8_UNORM:
             case VK_FORMAT_R8_SNORM:
@@ -154,7 +154,7 @@ namespace EvoVulkan::Tools {
         }
     }
 
-    static uint8_t GetPixelChannelsCount(VkFormat format) {
+    EVK_MAYBE_UNUSED static uint8_t GetPixelChannelsCount(VkFormat format) {
         switch (format) {
             case VK_FORMAT_R8_UNORM:
             case VK_FORMAT_R8_SNORM:
@@ -272,7 +272,7 @@ namespace EvoVulkan::Tools {
         }
     }
 
-    Types::Pipeline* CreateStandardGeometryPipeLine(
+    EVK_MAYBE_UNUSED Types::Pipeline* CreateStandardGeometryPipeLine(
             const Types::Device* device,
             const std::vector<VkDynamicState>& dynamicStateEnables,
             std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
@@ -280,7 +280,7 @@ namespace EvoVulkan::Tools {
             std::vector<VkVertexInputAttributeDescription> vertexInputAttributes,
             VkPipelineCache pipelineCache);
 
-    static VkCommandBuffer* AllocateCommandBuffers(const VkDevice& device, VkCommandBufferAllocateInfo allocInfo) {
+    EVK_MAYBE_UNUSED static VkCommandBuffer* AllocateCommandBuffers(const VkDevice& device, VkCommandBufferAllocateInfo allocInfo) {
         auto cmdBuffs = (VkCommandBuffer*)malloc(sizeof(VkCommandBuffer) * allocInfo.commandBufferCount);
 
         auto result = vkAllocateCommandBuffers(device, &allocInfo, cmdBuffs);
@@ -292,7 +292,7 @@ namespace EvoVulkan::Tools {
         return cmdBuffs;
     }
 
-    static void FreeCommandBuffers(const VkDevice& device, const VkCommandPool& cmdPool, VkCommandBuffer** cmdBuffs, uint32_t count) {
+    EVK_MAYBE_UNUSED static void FreeCommandBuffers(const VkDevice& device, const VkCommandPool& cmdPool, VkCommandBuffer** cmdBuffs, uint32_t count) {
         if (cmdBuffs && *cmdBuffs) {
             vkFreeCommandBuffers(device, cmdPool, count, *cmdBuffs);
 
@@ -302,15 +302,15 @@ namespace EvoVulkan::Tools {
             VK_ERROR("Tools::FreeCommandBuffers() : command buffers in nullptr!");
     }
 
-    void DestroyPipelineCache(const VkDevice& device, VkPipelineCache* cache);
+    EVK_MAYBE_UNUSED void DestroyPipelineCache(const VkDevice& device, VkPipelineCache* cache);
 
-    VkPipelineCache CreatePipelineCache(const VkDevice& device);
+    EVK_MAYBE_UNUSED VkPipelineCache CreatePipelineCache(const VkDevice& device);
 
-    void DestroySynchronization(const VkDevice& device, Types::Synchronization* sync);
+    EVK_MAYBE_UNUSED void DestroySynchronization(const VkDevice& device, Types::Synchronization* sync);
 
-    Types::Synchronization CreateSynchronization(const VkDevice& device);
+    EVK_MAYBE_UNUSED Types::Synchronization CreateSynchronization(const VkDevice& device);
 
-    static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    EVK_MAYBE_UNUSED static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
         if (func != nullptr) {
             return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -319,7 +319,7 @@ namespace EvoVulkan::Tools {
         }
     }
 
-    static VkDebugUtilsMessengerEXT SetupDebugMessenger(const VkInstance& instance) {
+    EVK_MAYBE_UNUSED static VkDebugUtilsMessengerEXT SetupDebugMessenger(const VkInstance& instance) {
         VK_GRAPH("VulkanTools::SetupDebugMessenger() : setup vulkan debug messenger...");
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
@@ -336,14 +336,14 @@ namespace EvoVulkan::Tools {
         return debugMessenger;
     }
 
-    static Types::Surface* CreateSurface(const VkInstance& instance, const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate, void* windowHandle) {
-        VkSurfaceKHR surfaceKhr = platformCreate(instance);
+    EVK_MAYBE_UNUSED static Types::Surface* CreateSurface(const VkInstance& instance, const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate, void* windowHandle) {
+        EVK_MAYBE_UNUSED VkSurfaceKHR surfaceKhr = platformCreate(instance);
         if (surfaceKhr == VK_NULL_HANDLE) {
             VK_ERROR("VulkanTools::CreateSurface() : failed platform-create vulkan surface!");
             return nullptr;
         }
 
-        Types::Surface* surface = Types::Surface::Create(
+        EVK_MAYBE_UNUSED Types::Surface* surface = Types::Surface::Create(
                 surfaceKhr,
                 instance,
                 windowHandle);
@@ -351,7 +351,7 @@ namespace EvoVulkan::Tools {
         return surface;
     }
 
-    static VkDevice CreateLogicalDevice(
+    EVK_MAYBE_UNUSED static VkDevice CreateLogicalDevice(
             VkPhysicalDevice physicalDevice,
             Types::FamilyQueues *pQueues,
             const std::vector<const char *> &extensions,
@@ -462,7 +462,7 @@ namespace EvoVulkan::Tools {
         return device;
     }
 
-    static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+    EVK_MAYBE_UNUSED static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -488,7 +488,7 @@ namespace EvoVulkan::Tools {
         return true;
     }
 
-    static VkSampler CreateSampler(
+    EVK_MAYBE_UNUSED static VkSampler CreateSampler(
             const Types::Device* device,
             uint32_t mipLevels,
             VkFilter minFilter,
@@ -531,7 +531,7 @@ namespace EvoVulkan::Tools {
         return sampler;
     }
 
-    static std::set<std::string> GetSupportedInstanceExtensions() {
+    EVK_MAYBE_UNUSED static std::set<std::string> GetSupportedInstanceExtensions() {
         uint32_t count;
         vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr); //get number of extensions
         std::vector<VkExtensionProperties> extensions(count);
@@ -543,7 +543,7 @@ namespace EvoVulkan::Tools {
         return results;
     }
 
-    static VkImageView CreateImageView(
+    EVK_MAYBE_UNUSED static VkImageView CreateImageView(
             const VkDevice& device,
             VkImage image,
             VkFormat format,
@@ -644,13 +644,13 @@ namespace EvoVulkan::Tools {
         return image;
     }*/
 
-    static uint8_t GetMaxSamplerAnisotropy(VkPhysicalDevice physicalDevice) {
+    EVK_MAYBE_UNUSED static uint8_t GetMaxSamplerAnisotropy(VkPhysicalDevice physicalDevice) {
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
         return deviceProperties.limits.maxSamplerAnisotropy;
     }
 
-    static bool TransitionImageLayout(
+    EVK_MAYBE_UNUSED static bool TransitionImageLayout(
             Types::CmdBuffer* copyCmd,
             VkImage image,
             VkImageLayout oldLayout,
@@ -736,7 +736,7 @@ namespace EvoVulkan::Tools {
         return !needEnd || copyCmd->End();
     }
 
-    static Types::Device* CreateDevice(
+    EVK_MAYBE_UNUSED static Types::Device* CreateDevice(
             Types::Instance* instance, const Types::Surface* surface,
             const std::vector<const char*>& extensions,
             const std::vector<const char*>& validationLayers,

@@ -6,6 +6,7 @@
 #define EVOVULKAN_SWAPCHAINSUPPORTDETAILS_H
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
 namespace EvoVulkan::Types {
@@ -17,7 +18,7 @@ namespace EvoVulkan::Types {
         bool                            m_complete     = false;
     };
 
-    static SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& surface) {
+    EVK_MAYBE_UNUSED static SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& surface) {
         SwapChainSupportDetails details = {};
 
         auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.m_capabilities);

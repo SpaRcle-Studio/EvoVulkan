@@ -32,21 +32,20 @@ namespace EvoVulkan::Types {
                         bool _cpuUsage = false,
                         uint32_t _mipLevels = 1,
                         uint32_t _arrayLayers = 1,
-                        VkImageCreateFlagBits _flags = VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM)
-            : device(_device)
+                        VkImageCreateFlagBits _flags = VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM
+        ) : device(_device)
             , allocator(_allocator)
             , width(_width)
             , height(_height)
+            , mipLevels(_mipLevels)
+            , format(_format)
+            , tiling(_cpuUsage ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL)
             , usage(_usage)
             , sampleCount(_sampleCount)
-            , CPUUsage(_cpuUsage)
-            , format(_format)
-            , mipLevels(_mipLevels)
             , createFlagBits(_flags)
             , arrayLayers(_arrayLayers)
-        {
-            tiling = _cpuUsage ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
-        }
+            , CPUUsage(_cpuUsage)
+        { }
 
         Types::Device* device = nullptr;
         Memory::Allocator* allocator = nullptr;

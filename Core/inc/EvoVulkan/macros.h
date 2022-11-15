@@ -12,8 +12,16 @@
     #pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
+#ifdef ANDROID
+    #define EVK_ANDROID
+#endif
+
 #ifdef __linux__
     #define EVK_LINUX
+#endif
+
+#ifdef _MSVC_LANG
+    #define EVK_MSVC
 #endif
 
 #ifdef WIN32
@@ -54,7 +62,10 @@
 
 #include <vulkan/vulkan.h>
 
-#include <direct.h>
+#ifndef EVK_ANDROID
+    #include <direct.h>
+#endif
+
 #include <variant>
 #include <string>
 #include <iostream>

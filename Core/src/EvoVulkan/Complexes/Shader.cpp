@@ -51,8 +51,8 @@ bool EvoVulkan::Complexes::Shader::Load(
                 return false;
         }
 
-        if (Tools::FileExists(file)) {
-            Tools::RemoveFile(file);
+        if (EVK_IS_EXISTS(file)) {
+            EVK_DELETE_FILE(file);
         }
 
         Tools::CreatePath(outFolder);

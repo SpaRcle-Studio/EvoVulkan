@@ -58,6 +58,7 @@ namespace EvoVulkan::Tools {
 }
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Complexes/Shader.h>
 
 /**
@@ -67,8 +68,8 @@ namespace EvoVulkan::Tools {
 */
 namespace EvoVulkan {
     EVK_MAYBE_UNUSED void CompileTimeFunctionsHolder() {
-        EvoVulkan::Tools::VkDebug::Instance();
-        EvoVulkan::Tools::VkDebug::Destroy();
+        EvoVulkan::Tools::VkFunctionsHolder::Instance();
+        EvoVulkan::Tools::VkFunctionsHolder::Destroy();
         EvoVulkan::Complexes::GLSLCompiler::Instance();
         EvoVulkan::Complexes::GLSLCompiler::Destroy();
     }

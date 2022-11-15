@@ -8,6 +8,7 @@
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanInsert.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
 #include <EvoVulkan/Types/Image.h>
 #include <EvoVulkan/Types/DescriptorSet.h>

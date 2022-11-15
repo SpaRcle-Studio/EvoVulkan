@@ -6,6 +6,7 @@
 
 #include <EvoVulkan/Tools/VulkanHelper.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Surface.h>

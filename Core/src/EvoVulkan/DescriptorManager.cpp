@@ -6,6 +6,7 @@
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/DescriptorPool.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 
 namespace EvoVulkan::Core {
     Types::DescriptorSet DescriptorManager::AllocateDescriptorSet(VkDescriptorSetLayout layout, const RequestTypes& requestTypes, bool reallocate) {

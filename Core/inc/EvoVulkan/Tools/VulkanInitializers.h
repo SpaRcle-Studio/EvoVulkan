@@ -6,21 +6,22 @@
 #define EVOVULKAN_VULKANINITIALIZERS_H
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 
 namespace EvoVulkan::Tools::Initializers {
-    static VkMappedMemoryRange MappedMemoryRange(){
+    EVK_MAYBE_UNUSED static VkMappedMemoryRange MappedMemoryRange(){
         VkMappedMemoryRange mappedMemoryRange = {};
         mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         return mappedMemoryRange;
     }
 
-    static VkRenderPassCreateInfo RenderPassCreateInfo() {
+    EVK_MAYBE_UNUSED static VkRenderPassCreateInfo RenderPassCreateInfo() {
         VkRenderPassCreateInfo renderPassCreateInfo {};
         renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         return renderPassCreateInfo;
     }
 
-    static VkViewport Viewport(
+    EVK_MAYBE_UNUSED static VkViewport Viewport(
             float width,
             float height,
             float minDepth,
@@ -34,7 +35,7 @@ namespace EvoVulkan::Tools::Initializers {
         return viewport;
     }
 
-    static VkRect2D Rect2D(
+    EVK_MAYBE_UNUSED static VkRect2D Rect2D(
             int32_t width,
             int32_t height,
             int32_t offsetX,
@@ -48,7 +49,7 @@ namespace EvoVulkan::Tools::Initializers {
         return rect2D;
     }
 
-    static VkVertexInputBindingDescription VertexInputBindingDescription(
+    EVK_MAYBE_UNUSED static VkVertexInputBindingDescription VertexInputBindingDescription(
             uint32_t binding,
             uint32_t stride,
             VkVertexInputRate inputRate)
@@ -61,7 +62,7 @@ namespace EvoVulkan::Tools::Initializers {
         return vInputBindDescription;
     }
 
-    static VkVertexInputAttributeDescription VertexInputAttributeDescription(
+    EVK_MAYBE_UNUSED static VkVertexInputAttributeDescription VertexInputAttributeDescription(
             uint32_t binding,
             uint32_t location,
             VkFormat format,
@@ -76,7 +77,7 @@ namespace EvoVulkan::Tools::Initializers {
         return vInputAttribDescription;
     }
 
-    static VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(VkShaderModule shaderModule, VkShaderStageFlagBits stage) {
+    EVK_MAYBE_UNUSED static VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(VkShaderModule shaderModule, VkShaderStageFlagBits stage) {
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage  = stage;
@@ -86,19 +87,19 @@ namespace EvoVulkan::Tools::Initializers {
         return shaderStage;
     }
 
-    static VkMemoryAllocateInfo MemoryAllocateInfo() {
+    EVK_MAYBE_UNUSED static VkMemoryAllocateInfo MemoryAllocateInfo() {
         VkMemoryAllocateInfo memAllocInfo = {};
         memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         return memAllocInfo;
     }
 
-    static VkRenderPassBeginInfo RenderPassBeginInfo() {
+    EVK_MAYBE_UNUSED static VkRenderPassBeginInfo RenderPassBeginInfo() {
         VkRenderPassBeginInfo renderPassBeginInfo {};
         renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         return renderPassBeginInfo;
     }
 
-    static VkBufferCreateInfo BufferCreateInfo(
+    EVK_MAYBE_UNUSED static VkBufferCreateInfo BufferCreateInfo(
             VkBufferUsageFlags usage,
             VkDeviceSize size)
     {
@@ -110,7 +111,7 @@ namespace EvoVulkan::Tools::Initializers {
         return bufCreateInfo;
     }
 
-    static VkDescriptorImageInfo DescriptorImageInfo(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout)
+    EVK_MAYBE_UNUSED static VkDescriptorImageInfo DescriptorImageInfo(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout)
     {
         VkDescriptorImageInfo descriptorImageInfo {};
         descriptorImageInfo.sampler = sampler;
@@ -119,13 +120,13 @@ namespace EvoVulkan::Tools::Initializers {
         return descriptorImageInfo;
     }
 
-    static VkImageCreateInfo ImageCreateInfo() {
+    EVK_MAYBE_UNUSED static VkImageCreateInfo ImageCreateInfo() {
         VkImageCreateInfo imageCreateInfo {};
         imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         return imageCreateInfo;
     }
 
-    static VkWriteDescriptorSet WriteDescriptorSet(
+    EVK_MAYBE_UNUSED static VkWriteDescriptorSet WriteDescriptorSet(
             VkDescriptorSet dstSet,
             VkDescriptorType type,
             uint32_t binding,
@@ -143,7 +144,7 @@ namespace EvoVulkan::Tools::Initializers {
         return writeDescriptorSet;
     }
 
-    static VkWriteDescriptorSet WriteDescriptorSet(
+    EVK_MAYBE_UNUSED static VkWriteDescriptorSet WriteDescriptorSet(
             VkDescriptorSet dstSet,
             VkDescriptorType type,
             uint32_t binding,
@@ -166,7 +167,7 @@ namespace EvoVulkan::Tools::Initializers {
         return writeDescriptorSet;
     }
 
-    static VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo(
+    EVK_MAYBE_UNUSED static VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo(
             uint32_t poolSizeCount,
             const VkDescriptorPoolSize* pPoolSizes,
             uint32_t maxSets)
@@ -181,7 +182,7 @@ namespace EvoVulkan::Tools::Initializers {
         return descriptorPoolInfo;
     }
 
-    static VkDescriptorPoolSize DescriptorPoolSize(
+    EVK_MAYBE_UNUSED static VkDescriptorPoolSize DescriptorPoolSize(
             VkDescriptorType type,
             uint32_t descriptorCount)
     {
@@ -192,7 +193,7 @@ namespace EvoVulkan::Tools::Initializers {
         return descriptorPoolSize;
     }
 
-    static VkDescriptorSetLayoutBinding DescriptorSetLayoutBinding(
+    EVK_MAYBE_UNUSED static VkDescriptorSetLayoutBinding DescriptorSetLayoutBinding(
             VkDescriptorType type,
             VkShaderStageFlags stageFlags,
             uint32_t binding,
@@ -207,20 +208,20 @@ namespace EvoVulkan::Tools::Initializers {
         return setLayoutBinding;
     }
 
-    static VkImageViewCreateInfo ImageViewCreateInfo() {
+    EVK_MAYBE_UNUSED static VkImageViewCreateInfo ImageViewCreateInfo() {
         VkImageViewCreateInfo image_view_create_info = {};
         image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         return image_view_create_info;
     }
 
-    static VkSamplerCreateInfo SamplerCreateInfo() {
+    EVK_MAYBE_UNUSED static VkSamplerCreateInfo SamplerCreateInfo() {
         VkSamplerCreateInfo samplerCreateInfo {};
         samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerCreateInfo.maxAnisotropy = 1.0f;
         return samplerCreateInfo;
     }
 
-    static VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(
+    EVK_MAYBE_UNUSED static VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(
             const VkDescriptorSetLayoutBinding* pBindings,
             uint32_t bindingCount)
     {
@@ -232,7 +233,7 @@ namespace EvoVulkan::Tools::Initializers {
         return descriptorSetLayoutCreateInfo;
     }
 
-    static VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo(
+    EVK_MAYBE_UNUSED static VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo(
             VkDescriptorPool descriptorPool,
             const VkDescriptorSetLayout* pSetLayouts,
             uint32_t descriptorSetCount)
@@ -246,7 +247,7 @@ namespace EvoVulkan::Tools::Initializers {
         return descriptorSetAllocateInfo;
     }
 
-    static VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo(
             const VkDescriptorSetLayout* pSetLayouts,
             uint32_t setLayoutCount = 1)
     {
@@ -258,7 +259,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineLayoutCreateInfo;
     }
 
-    static VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(
+    EVK_MAYBE_UNUSED static VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(
             const std::vector<VkDescriptorSetLayoutBinding>& bindings)
     {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
@@ -269,21 +270,21 @@ namespace EvoVulkan::Tools::Initializers {
         return descriptorSetLayoutCreateInfo;
     }
 
-    static VkSubmitInfo SubmitInfo() {
+    EVK_MAYBE_UNUSED static VkSubmitInfo SubmitInfo() {
         VkSubmitInfo submitInfo = {};
         submitInfo.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         return submitInfo;
     }
 
-    static VkSemaphoreCreateInfo SemaphoreCreateInfo() {
+    EVK_MAYBE_UNUSED static VkSemaphoreCreateInfo SemaphoreCreateInfo() {
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
         return semaphoreCreateInfo;
     }
 
-    static VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags = 0) {
+    EVK_MAYBE_UNUSED static VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags = 0) {
         VkFenceCreateInfo fenceCreateInfo = {};
         fenceCreateInfo.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceCreateInfo.flags             = flags;
@@ -291,7 +292,7 @@ namespace EvoVulkan::Tools::Initializers {
         return fenceCreateInfo;
     }
 
-    static VkCommandBufferAllocateInfo CommandBufferAllocateInfo(const VkCommandPool& commandPool, const VkCommandBufferLevel& level, uint32_t bufferCount) {
+    EVK_MAYBE_UNUSED static VkCommandBufferAllocateInfo CommandBufferAllocateInfo(const VkCommandPool& commandPool, const VkCommandBufferLevel& level, uint32_t bufferCount) {
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
         commandBufferAllocateInfo.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         commandBufferAllocateInfo.commandPool                 = commandPool;
@@ -301,7 +302,7 @@ namespace EvoVulkan::Tools::Initializers {
         return commandBufferAllocateInfo;
     }
 
-    static VkImageMemoryBarrier ImageMemoryBarrier() {
+    EVK_MAYBE_UNUSED static VkImageMemoryBarrier ImageMemoryBarrier() {
         VkImageMemoryBarrier imageMemoryBarrier = {};
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.pNext = NULL;
@@ -313,13 +314,13 @@ namespace EvoVulkan::Tools::Initializers {
         return imageMemoryBarrier;
     }
 
-    static VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo() {
+    EVK_MAYBE_UNUSED static VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo() {
         VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
         pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         return pipelineVertexInputStateCreateInfo;
     }
 
-    static VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo(
             const std::vector<VkVertexInputBindingDescription> &vertexBindingDescriptions,
             const std::vector<VkVertexInputAttributeDescription> &vertexAttributeDescriptions
     )
@@ -333,7 +334,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineVertexInputStateCreateInfo;
     }
 
-    static VkPipelineInputAssemblyStateCreateInfo PipelineInputAssemblyStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineInputAssemblyStateCreateInfo PipelineInputAssemblyStateCreateInfo(
             VkPrimitiveTopology topology,
             VkPipelineInputAssemblyStateCreateFlags flags,
             VkBool32 primitiveRestartEnable)
@@ -346,7 +347,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineInputAssemblyStateCreateInfo;
     }
 
-    static VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo(
             VkPolygonMode polygonMode,
             VkCullModeFlags cullMode,
             VkFrontFace frontFace,
@@ -367,7 +368,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineRasterizationStateCreateInfo;
     }
 
-    static VkPipelineColorBlendAttachmentState PipelineColorBlendAttachmentState(
+    EVK_MAYBE_UNUSED static VkPipelineColorBlendAttachmentState PipelineColorBlendAttachmentState(
             VkColorComponentFlags colorWriteMask,
             VkBool32 blendEnable)
     {
@@ -377,13 +378,13 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineColorBlendAttachmentState;
     }
 
-    static VkCommandBufferBeginInfo CommandBufferBeginInfo() {
+    EVK_MAYBE_UNUSED static VkCommandBufferBeginInfo CommandBufferBeginInfo() {
         VkCommandBufferBeginInfo cmdBufferBeginInfo {};
         cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         return cmdBufferBeginInfo;
     }
 
-    static VkPipelineColorBlendStateCreateInfo PipelineColorBlendStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineColorBlendStateCreateInfo PipelineColorBlendStateCreateInfo(
             uint32_t attachmentCount,
             const VkPipelineColorBlendAttachmentState * pAttachments)
     {
@@ -394,7 +395,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineColorBlendStateCreateInfo;
     }
 
-    static VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilStateCreateInfo(
             VkBool32 depthTestEnable,
             VkBool32 depthWriteEnable,
             VkCompareOp depthCompareOp)
@@ -408,7 +409,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineDepthStencilStateCreateInfo;
     }
 
-    static VkPipelineViewportStateCreateInfo PipelineViewportStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineViewportStateCreateInfo PipelineViewportStateCreateInfo(
             uint32_t viewportCount,
             uint32_t scissorCount,
             VkPipelineViewportStateCreateFlags flags = 0)
@@ -421,7 +422,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineViewportStateCreateInfo;
     }
 
-    static VkPipelineMultisampleStateCreateInfo PipelineMultisampleStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineMultisampleStateCreateInfo PipelineMultisampleStateCreateInfo(
             VkSampleCountFlagBits rasterizationSamples,
             VkPipelineMultisampleStateCreateFlags flags = 0)
     {
@@ -434,7 +435,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineMultisampleStateCreateInfo;
     }
 
-    static VkPipelineDynamicStateCreateInfo PipelineDynamicStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineDynamicStateCreateInfo PipelineDynamicStateCreateInfo(
             const VkDynamicState * pDynamicStates,
             uint32_t dynamicStateCount,
             VkPipelineDynamicStateCreateFlags flags = 0)
@@ -447,7 +448,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineDynamicStateCreateInfo;
     }
 
-    static VkPipelineDynamicStateCreateInfo PipelineDynamicStateCreateInfo(
+    EVK_MAYBE_UNUSED static VkPipelineDynamicStateCreateInfo PipelineDynamicStateCreateInfo(
             const std::vector<VkDynamicState>& pDynamicStates,
             VkPipelineDynamicStateCreateFlags flags = 0)
     {
@@ -459,7 +460,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineDynamicStateCreateInfo;
     }
 
-    static VkPipelineTessellationStateCreateInfo PipelineTessellationStateCreateInfo(uint32_t patchControlPoints)
+    EVK_MAYBE_UNUSED static VkPipelineTessellationStateCreateInfo PipelineTessellationStateCreateInfo(uint32_t patchControlPoints)
     {
         VkPipelineTessellationStateCreateInfo pipelineTessellationStateCreateInfo {};
         pipelineTessellationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
@@ -467,7 +468,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineTessellationStateCreateInfo;
     }
 
-    static VkGraphicsPipelineCreateInfo PipelineCreateInfo(
+    EVK_MAYBE_UNUSED static VkGraphicsPipelineCreateInfo PipelineCreateInfo(
             VkPipelineLayout layout,
             VkRenderPass renderPass,
             VkPipelineCreateFlags flags = 0)
@@ -482,7 +483,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineCreateInfo;
     }
 
-    static VkGraphicsPipelineCreateInfo PipelineCreateInfo()
+    EVK_MAYBE_UNUSED static VkGraphicsPipelineCreateInfo PipelineCreateInfo()
     {
         VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
         pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -491,7 +492,7 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineCreateInfo;
     }
 
-    static VkComputePipelineCreateInfo ComputePipelineCreateInfo(
+    EVK_MAYBE_UNUSED static VkComputePipelineCreateInfo ComputePipelineCreateInfo(
             VkPipelineLayout layout,
             VkPipelineCreateFlags flags = 0)
     {
@@ -502,7 +503,7 @@ namespace EvoVulkan::Tools::Initializers {
         return computePipelineCreateInfo;
     }
 
-    static VkFramebufferCreateInfo FrameBufferCI(VkRenderPass renderPass, uint32_t width, uint32_t height) {
+    EVK_MAYBE_UNUSED static VkFramebufferCreateInfo FrameBufferCI(VkRenderPass renderPass, uint32_t width, uint32_t height) {
         auto info = VkFramebufferCreateInfo();
 
         info.sType      = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

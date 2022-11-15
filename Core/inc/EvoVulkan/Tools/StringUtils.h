@@ -8,7 +8,7 @@
 #include <EvoVulkan/macros.h>
 
 namespace EvoVulkan::Tools {
-    static std::string Format(const char* fmt, ...) {
+    EVK_MAYBE_UNUSED static std::string Format(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
         std::vector<char> v(1024);
@@ -32,11 +32,11 @@ namespace EvoVulkan::Tools {
         }
     }
 
-    inline static std::string Read(const std::string& str, uint32_t count) {
+    EVK_MAYBE_UNUSED inline static std::string Read(const std::string& str, uint32_t count) {
         return str.substr(0, count);
     }
 
-    static std::string Replace(std::string str, const std::string& from, const std::string& to) {
+    EVK_MAYBE_UNUSED static std::string Replace(std::string str, const std::string& from, const std::string& to) {
         ret:
         size_t start_pos = str.find(from);
         if(start_pos == std::string::npos)
@@ -45,11 +45,11 @@ namespace EvoVulkan::Tools {
         goto ret;
     }
 
-    static std::string FixPath(const std::string& path) {
+    EVK_MAYBE_UNUSED static std::string FixPath(const std::string& path) {
         return Tools::Replace(Tools::Replace(path, "\\", "/"), "//", "/");
     }
 
-    static inline bool Contains(const std::string& str, const std::string& subStr) {
+    EVK_MAYBE_UNUSED static inline bool Contains(const std::string& str, const std::string& subStr) {
         return str.find(subStr) != std::string::npos;
     }
 

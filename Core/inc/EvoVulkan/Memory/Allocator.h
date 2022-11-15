@@ -6,7 +6,8 @@
 #define EVOVULKAN_ALLOCATOR_H
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
-#include "../../../libs/VMA/src/VmaUsage.h"
+#include <EvoVulkan/Tools/FileSystem.h>
+#include <EvoVulkan/VmaUsage.h>
 
 namespace EvoVulkan::Types {
     class Device;

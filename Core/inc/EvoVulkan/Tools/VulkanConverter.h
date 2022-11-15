@@ -28,7 +28,7 @@ namespace EvoVulkan::Tools::Convert {
         }
     }
 
-    static VkFormat CompressedFormatToDecodedFormat(VkFormat format) {
+    EVK_MAYBE_UNUSED static VkFormat CompressedFormatToDecodedFormat(VkFormat format) {
         switch (format) {
             case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
             case VK_FORMAT_BC1_RGBA_SRGB_BLOCK:
@@ -128,7 +128,7 @@ namespace EvoVulkan::Tools::Convert {
         }
     }
 
-    static uint32_t SampleCountToInt(VkSampleCountFlagBits samples) {
+    EVK_MAYBE_UNUSED static uint32_t SampleCountToInt(VkSampleCountFlagBits samples) {
         switch (samples) {
             case VK_SAMPLE_COUNT_1_BIT: return 1;
             case VK_SAMPLE_COUNT_2_BIT: return 2;
@@ -154,7 +154,7 @@ namespace EvoVulkan::Tools::Convert {
         }
     }
 
-    static std::string present_mode_khr_to_string(const VkPresentModeKHR present_mode) {
+    EVK_MAYBE_UNUSED static std::string present_mode_khr_to_string(const VkPresentModeKHR present_mode) {
         switch (present_mode) {
             case VK_PRESENT_MODE_IMMEDIATE_KHR:
                 return "VK_PRESENT_MODE_IMMEDIATE_KHR";
@@ -176,7 +176,7 @@ namespace EvoVulkan::Tools::Convert {
         return std::to_string(present_mode);
     }
 
-    static std::string physical_device_type_to_string(const VkPhysicalDeviceType gpu_type) {
+    EVK_MAYBE_UNUSED static std::string physical_device_type_to_string(const VkPhysicalDeviceType gpu_type) {
         switch (gpu_type) {
             case VK_PHYSICAL_DEVICE_TYPE_OTHER:
                 return "VK_PHYSICAL_DEVICE_TYPE_OTHER";
@@ -196,7 +196,7 @@ namespace EvoVulkan::Tools::Convert {
         return std::to_string(gpu_type);
     }
 
-    static std::string format_to_string(const VkFormat format) {
+    EVK_MAYBE_UNUSED static std::string format_to_string(const VkFormat format) {
         switch (format) {
             case VK_FORMAT_UNDEFINED:
                 return "VK_FORMAT_UNDEFINED";
@@ -688,7 +688,7 @@ namespace EvoVulkan::Tools::Convert {
         return std::to_string(format);
     }
 
-    static std::string result_to_string(const VkResult result) {
+    EVK_MAYBE_UNUSED static std::string result_to_string(const VkResult result) {
         switch (result) {
             case VK_SUCCESS:
                 return "VK_SUCCESS";
@@ -758,7 +758,7 @@ namespace EvoVulkan::Tools::Convert {
         return "Unknown";
     }
 
-    static std::string result_to_description(const VkResult result) {
+    EVK_MAYBE_UNUSED static std::string result_to_description(const VkResult result) {
         switch (result) {
             case VK_SUCCESS:
                 return "Command successfully completed";
@@ -843,7 +843,7 @@ namespace EvoVulkan::Tools::Convert {
         return "Unknown";
     }
 
-    static std::string queue_flag_bit_to_string(const VkQueueFlagBits bit) {
+    EVK_MAYBE_UNUSED static std::string queue_flag_bit_to_string(const VkQueueFlagBits bit) {
         switch (bit) {
             case VK_QUEUE_GRAPHICS_BIT:
                 return "VK_QUEUE_GRAPHICS_BIT";
@@ -871,7 +871,7 @@ namespace EvoVulkan::Tools::Convert {
         return "Unknown";
     }
 
-    static std::string memory_property_flag_to_string(const VkMemoryPropertyFlags bit) {
+    EVK_MAYBE_UNUSED static std::string memory_property_flag_to_string(const VkMemoryPropertyFlags bit) {
         switch (bit) {
             case VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT:
                 return "VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT";
@@ -899,7 +899,7 @@ namespace EvoVulkan::Tools::Convert {
         return "Unknown";
     }
 
-    static std::string memory_heap_flag_to_string(const VkMemoryHeapFlagBits bit) {
+    EVK_MAYBE_UNUSED static std::string memory_heap_flag_to_string(const VkMemoryHeapFlagBits bit) {
         switch (bit) {
             case VK_MEMORY_HEAP_DEVICE_LOCAL_BIT:
                 return "VK_MEMORY_HEAP_DEVICE_LOCAL_BIT";

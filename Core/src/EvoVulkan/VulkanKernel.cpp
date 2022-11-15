@@ -26,8 +26,10 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 #ifdef _WIN32
     //m_instExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #else
-    // todo : linux/android
-	m_instExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+    #ifdef EVK_ANDROID
+    #else
+	    m_instExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+    #endif
 #endif
 
     VK_GRAPH("VulkanKernel::PreInit() : create vulkan instance...");
@@ -58,8 +60,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
         }
     }
 
-
-    this->m_isPreInitialized = true;
+    m_isPreInitialized = true;
 
     return true;
 }

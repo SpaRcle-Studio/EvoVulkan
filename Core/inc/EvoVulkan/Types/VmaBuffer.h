@@ -14,7 +14,7 @@ namespace EvoVulkan::Memory {
 namespace EvoVulkan::Types {
     class Device;
 
-    struct DLL_EVK_EXPORT VmaBuffer : Tools::NonCopyable {
+    class DLL_EVK_EXPORT VmaBuffer : Tools::NonCopyable {
     private:
         VmaBuffer(Memory::Allocator* allocator, VkDeviceSize size);
         ~VmaBuffer() override = default;

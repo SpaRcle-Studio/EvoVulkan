@@ -4,6 +4,7 @@
 
 #include <EvoVulkan/Tools/DeviceTools.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Types/SwapChainSupportDetails.h>
 
 std::string EvoVulkan::Tools::GetDeviceName(VkPhysicalDevice const &physicalDevice) {

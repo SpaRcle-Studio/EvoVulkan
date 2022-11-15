@@ -1,3 +1,5 @@
+#include "src/EvoVulkan/VmaUsage.cpp"
+
 #include "src/EvoVulkan/VulkanKernel.cpp"
 #include "src/EvoVulkan/DescriptorManager.cpp"
 
@@ -23,6 +25,7 @@
 #include "src/EvoVulkan/Tools/VulkanDebug.cpp"
 #include "src/EvoVulkan/Tools/DeviceTools.cpp"
 #include "src/EvoVulkan/Tools/Singleton.cpp"
+#include "src/EvoVulkan/Tools/FileSystem.cpp"
 
 #include "src/EvoVulkan/Memory/Allocator.cpp"
 

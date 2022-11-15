@@ -8,7 +8,7 @@
 #include <vulkan/vulkan.h>
 
 namespace EvoVulkan::Tools::Insert {
-    static VkRenderPassBeginInfo RenderPassBeginInfo(
+    EVK_MAYBE_UNUSED static VkRenderPassBeginInfo RenderPassBeginInfo(
             const uint32_t width,
             const uint32_t height,
             const VkRenderPass& renderPass,
@@ -27,7 +27,7 @@ namespace EvoVulkan::Tools::Insert {
         };
     }
 
-    static void ImageMemoryBarrier(
+    EVK_MAYBE_UNUSED static void ImageMemoryBarrier(
             VkCommandBuffer command_buffer,
             VkImage image,
             VkAccessFlags src_access_mask,

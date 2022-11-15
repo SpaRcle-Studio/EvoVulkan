@@ -6,6 +6,7 @@
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
+#include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
 bool EvoVulkan::Types::CmdPool::IsReady() const {
