@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 message("[EvoVulkan] Vulkan sdk path: $ENV{VULKAN_SDK}")
 
-find_package(Vulkan REQUIRED FATAL_ERROR)
+find_package(Vulkan REQUIRED)
 
 if (EVO_VULKAN_STATIC_LIBRARY)
     add_library(EvoVulkan STATIC EvoVulkan.cxx)
