@@ -462,8 +462,15 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
     /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
     while(true) {
         std::lock_guard<std::mutex> lock(m_mutex);
-        if (m_newWidth != -1 && m_newHeight != -1)
+
+        if (!IsWindowValid()) {
+            VK_LOG("VulkanKernel::ResizeWindow() : window was closed.");
             break;
+        }
+
+        if (m_newWidth != -1 && m_newHeight != -1) {
+            break;
+        }
     }
 
     std::lock_guard<std::mutex> lock(m_mutex);

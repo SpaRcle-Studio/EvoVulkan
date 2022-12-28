@@ -76,11 +76,13 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD bool IsValidationLayersEnabled() const { return m_validationEnabled; }
         EVK_NODISCARD bool IsSurfaceCollapsed() const { return m_paused; }
 
+        EVK_NODISCARD virtual bool IsWindowValid() const { return true; }
+
         void SetFramebuffersQueue(const std::vector<Complexes::FrameBuffer*>& queue);
         void SetMultisampling(uint32_t sampleCount);
         void SetSwapchainImagesCount(uint32_t count);
 
-         virtual void SetGUIEnabled(bool enabled);
+        virtual void SetGUIEnabled(bool enabled);
 
         bool SetValidationLayersEnabled(bool value);
         void SetSize(uint32_t width, uint32_t height);
