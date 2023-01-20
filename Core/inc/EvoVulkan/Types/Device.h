@@ -20,24 +20,26 @@ namespace EvoVulkan::Memory {
 
 namespace EvoVulkan::Types {
     class Device;
+    class FamilyQueues;
 
-    struct DLL_EVK_EXPORT EvoDeviceCreateInfo {
-        VkPhysicalDevice physicalDevice;
-        VkDevice logicalDevice;
-        Types::Instance* instance;
-        FamilyQueues* familyQueues;
-        bool enableSampleShading;
-        bool multisampling;
-        int32_t sampleCount;
+    struct EvoDeviceCreateInfo {
+        Instance* pInstance = nullptr;
+        const Surface* pSurface = nullptr;
+        std::vector<const char*> extensions;
+        std::vector<const char*> validationLayers;
+        bool enableSampleShading = false;
+        bool rayTracing = false;
+        bool multisampling = false;
+        uint32_t sampleCount = 0;
     };
 
     class DLL_EVK_EXPORT Device : public Tools::NonCopyable {
     private:
-        Device() = default;
+        Device(Instance* pInstance, FamilyQueues* pQueues, VkPhysicalDevice physicalDevice, VkDevice logicalDevice);
         ~Device() override = default;
 
     public:
-        static Device* Create(const EvoDeviceCreateInfo& info);
+        EVK_MAYBE_UNUSED static Types::Device* Create(const EvoDeviceCreateInfo& info);
 
         operator VkDevice()         const { return m_logicalDevice;  }
         operator VkPhysicalDevice() const { return m_physicalDevice; }
@@ -66,6 +68,9 @@ namespace EvoVulkan::Types {
         uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;
 
     private:
+        bool Initialize(bool enableSampleShading, bool multisampling, bool requestRayTrace, uint32_t sampleCount);
+
+    private:
         FamilyQueues*                    m_familyQueues            = nullptr;
 
         VkPhysicalDevice                 m_physicalDevice          = VK_NULL_HANDLE;
@@ -75,7 +80,8 @@ namespace EvoVulkan::Types {
         bool                             m_enableSamplerAnisotropy = false;
         float_t                          m_maxSamplerAnisotropy    = 0.f;
 
-        VkPhysicalDeviceMemoryProperties m_memoryProperties        = {};
+        VkPhysicalDeviceMemoryProperties m_memoryProperties        = { };
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_RTProps  = { };
 
         std::string                      m_deviceName              = "Unknown";
 
@@ -85,6 +91,8 @@ namespace EvoVulkan::Types {
 
         /// for deviceFeatures and multisampling
         bool                             m_enableSampleShading     = false;
+        bool                             m_multisampling           = false;
+        bool                             m_rayTracing              = false;
 
     };
 }

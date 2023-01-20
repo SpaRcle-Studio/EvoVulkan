@@ -87,28 +87,32 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     VK_GRAPH("VulkanKernel::Init() : create vulkan logical device...");
 
-    m_device = Tools::CreateDevice(
-            m_instance,
-            m_surface,
-            deviceExtensions,
-            m_validationEnabled ? m_validationLayers : std::vector<const char*>(),
-            enableSampleShading,
-            m_sampleCount > 1,
-            m_sampleCount
-    );
+    Types::EvoDeviceCreateInfo deviceCreateInfo;
+    deviceCreateInfo.pInstance = m_instance;
+    deviceCreateInfo.pSurface = m_surface;
+    deviceCreateInfo.enableSampleShading = enableSampleShading;
+    deviceCreateInfo.sampleCount = m_sampleCount;
+    deviceCreateInfo.multisampling = m_sampleCount > 1;
+    deviceCreateInfo.rayTracing = true;
+    deviceCreateInfo.extensions = deviceExtensions;
+    deviceCreateInfo.validationLayers = m_validationEnabled ? m_validationLayers : std::vector<const char*>();
 
+    m_device = Types::Device::Create(deviceCreateInfo);
     if (!m_device) {
-        VK_ERROR("VulkanKernel::Init() : failed to create logical device!");
+        VK_ERROR("VulkanKernel::Init() : failed to create evo device!");
         return false;
     }
 
+    /// так как при создании устройства мы передаем ему желаемое значение,
+    /// то нам стоит переспросить у устройства реальное значение, которое оно поддерживает
     m_sampleCount = m_device->GetMSAASamples();
+
     if (!m_device->IsReady()) {
         VK_ERROR("VulkanKernel::Init() : something went wrong! Device isn't ready...");
         return false;
     }
 
-    VK_LOG("VulkanKernel::Init() : count MSAA samples is " + std::to_string(m_device->GetMSAASamples()));
+    VK_LOG("VulkanKernel::Init() : supported and used count MSAA samples is " + std::to_string(m_sampleCount));
 
     //!=============================================[Create allocator]==================================================
 
