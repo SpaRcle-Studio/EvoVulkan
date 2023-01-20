@@ -27,10 +27,13 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD bool IsReady() const override;
 
         EVK_NODISCARD VkQueue GetGraphicsQueue() const noexcept { return m_graphicsQueue; }
-        EVK_NODISCARD VkQueue GetPresentQueue() const noexcept { return m_presentQueue; }
 
-        EVK_NODISCARD uint32_t GetGraphicsIndex() const noexcept { return static_cast<uint32_t>(m_iGraphics); }
-        EVK_NODISCARD uint32_t GetPresentIndex() const noexcept { return static_cast<uint32_t>(m_iPresent); }
+        EVK_NODISCARD uint32_t GetGraphicsIndex() const noexcept { return static_cast<uint32_t>(m_graphicsQueueFamilyIndex); }
+        EVK_NODISCARD uint32_t GetComputeIndex() const noexcept { return static_cast<uint32_t>(m_computeQueueFamilyIndex); }
+        EVK_NODISCARD uint32_t GetTransferIndex() const noexcept { return static_cast<uint32_t>(m_transferQueueFamilyIndex); }
+
+    private:
+        bool FindIndices();
 
     private:
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
@@ -39,12 +42,12 @@ namespace EvoVulkan::Types {
         const Surface* m_surface = nullptr;
 
         VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-        VkQueue m_presentQueue = VK_NULL_HANDLE;
         VkQueue m_transferQueue = VK_NULL_HANDLE;
-        VkQueue m_computeQueue = VK_NULL_HANDLE;
+        VkQueue m_computeQueue  = VK_NULL_HANDLE;
 
-        int32_t m_iGraphics = EVK_ID_INVALID;
-        int32_t m_iPresent  = EVK_ID_INVALID;
+        int32_t m_graphicsQueueFamilyIndex = EVK_ID_INVALID;
+        int32_t m_computeQueueFamilyIndex  = EVK_ID_INVALID;
+        int32_t m_transferQueueFamilyIndex = EVK_ID_INVALID;
 
     };
 }

@@ -360,17 +360,28 @@ namespace EvoVulkan::Tools {
     {
         VK_GRAPH("VulkanTools::CreateLogicalDevice() : create vulkan logical device...");
 
-        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = { pQueues->GetGraphicsIndex(), pQueues->GetPresentIndex() };
+        //!=============================================================================================================
 
-        std::vector<float_t> queuePriorities = { 1.0f }; //, 1.0f
-        for (uint32_t queueFamily : uniqueQueueFamilies) {
-            VkDeviceQueueCreateInfo queueCreateInfo{};
-            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfo.queueFamilyIndex = queueFamily;
-            queueCreateInfo.queueCount = queuePriorities.size();
-            queueCreateInfo.pQueuePriorities = queuePriorities.data();
-            queueCreateInfos.push_back(queueCreateInfo);
+        std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos;
+        const float priority = 0.0f;
+
+        VkDeviceQueueCreateInfo deviceQueueCreateInfo;
+        deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        deviceQueueCreateInfo.pNext = nullptr;
+        deviceQueueCreateInfo.flags = 0;
+        deviceQueueCreateInfo.queueFamilyIndex = pQueues->GetGraphicsIndex();
+        deviceQueueCreateInfo.queueCount = 1;
+        deviceQueueCreateInfo.pQueuePriorities = &priority;
+        deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
+
+        if (pQueues->GetComputeIndex() != pQueues->GetGraphicsIndex()) {
+            deviceQueueCreateInfo.queueFamilyIndex = pQueues->GetComputeIndex();
+            deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
+        }
+
+        if (pQueues->GetTransferIndex() != pQueues->GetGraphicsIndex() && pQueues->GetTransferIndex() != pQueues->GetComputeIndex()) {
+            deviceQueueCreateInfo.queueFamilyIndex = pQueues->GetTransferIndex();
+            deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
         }
 
         //!=============================================================================================================
@@ -432,8 +443,8 @@ namespace EvoVulkan::Tools {
         createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         createInfo.pNext                   = (void*)&deviceFeatures2;
 
-        createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
-        createInfo.pQueueCreateInfos       = queueCreateInfos.data();
+        createInfo.queueCreateInfoCount    = static_cast<uint32_t>(deviceQueueCreateInfos.size());
+        createInfo.pQueueCreateInfos       = deviceQueueCreateInfos.data();
 
         createInfo.pEnabledFeatures        = VK_FALSE; /// &deviceFeatures;
 
@@ -454,7 +465,7 @@ namespace EvoVulkan::Tools {
         VkDevice device = VK_NULL_HANDLE;
         auto result = vkCreateDevice(physicalDevice, &createInfo, nullptr, &device);
         if (result != VK_SUCCESS) {
-            VK_GRAPH("VulkanTools::CreateLogicalDevice() : failed to create logical device! \n\tReason: "
+            VK_ERROR("VulkanTools::CreateLogicalDevice() : failed to create logical device! \n\tReason: "
                 + Tools::Convert::result_to_string(result) + "\n\tDescription: " + Tools::Convert::result_to_description(result));
             return VK_NULL_HANDLE;
         }

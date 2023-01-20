@@ -16,24 +16,25 @@ namespace EvoVulkan::Types {
 
     FamilyQueues::~FamilyQueues() {
         VK_LOG("FamilyQueues::Destroy() : destroy family queues...");
-
-        m_graphicsQueue = VK_NULL_HANDLE;
-        m_presentQueue  = VK_NULL_HANDLE;
-
-        m_iPresent  = -2;
-        m_iGraphics = -2;
     }
 
     bool FamilyQueues::IsComplete() const {
-        return m_iGraphics >= 0 && m_iPresent >= 0;
+        return
+            m_graphicsQueueFamilyIndex >= 0 &&
+            m_computeQueueFamilyIndex >= 0 &&
+            m_transferQueueFamilyIndex >= 0;
     }
 
     bool FamilyQueues::IsReady() const {
-        return IsComplete() && (m_graphicsQueue != VK_NULL_HANDLE);
+        return
+            IsComplete() &&
+            m_graphicsQueue != VK_NULL_HANDLE &&
+            m_transferQueue != VK_NULL_HANDLE &&
+            m_computeQueue  != VK_NULL_HANDLE;
     }
 
     FamilyQueues* FamilyQueues::Find(VkPhysicalDevice physicalDevice, const Surface* pSurface) {
-        auto&& pQueues = new FamilyQueues(physicalDevice, pSurface);
+        /// =================================================[ DEBUG ]==================================================
 
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
@@ -52,42 +53,76 @@ namespace EvoVulkan::Types {
             );
         }
 
-        int i = 0;
-        for (const auto& queueFamily : queueFamilies) {
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                pQueues->m_iGraphics = i;
-            }
+        /// =================================================[ DEBUG ]==================================================
 
-            VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, *pSurface, &presentSupport);
+        auto&& pQueues = new FamilyQueues(physicalDevice, pSurface);
 
-            if (presentSupport) {
-                pQueues->m_iPresent = i;
-            }
-
-            if (pQueues->IsComplete()) {
-                break;
-            }
-
-            ++i;
+        if (!pQueues->FindIndices()) {
+            delete pQueues;
+            return nullptr;
         }
 
         return pQueues;
     }
 
     bool EvoVulkan::Types::FamilyQueues::Initialize(VkDevice logicalDevice) {
-        m_logicalDevice = logicalDevice;
-
         VK_GRAPH("FamilyQueues::Initialize() : initialize family queues queues...");
 
-        VkQueue graphics = VK_NULL_HANDLE;
-        /// VkQueue present = VK_NULL_HANDLE;
+        m_logicalDevice = logicalDevice;
 
-        vkGetDeviceQueue(logicalDevice, GetGraphicsIndex(), 0, &graphics);
-        /// vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 1, &present);
+        vkGetDeviceQueue(m_logicalDevice, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
+        vkGetDeviceQueue(m_logicalDevice, m_computeQueueFamilyIndex, 0, &m_computeQueue);
+        vkGetDeviceQueue(m_logicalDevice, m_transferQueueFamilyIndex, 0, &m_transferQueue);
 
-        m_graphicsQueue = graphics;
-        /// queues->SetPresentQueue(present);
+        return true;
+    }
+
+    bool FamilyQueues::FindIndices() {
+        const VkQueueFlagBits askingFlags[3] = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT };
+        uint32_t queuesIndices[3] = { ~0u, ~0u, ~0u };
+
+        uint32_t queueFamilyPropertyCount;
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyPropertyCount, nullptr);
+        std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties.data());
+
+        for (size_t i = 0; i < 3; ++i) {
+            const VkQueueFlagBits flag = askingFlags[i];
+            uint32_t& queueIdx = queuesIndices[i];
+
+            if (flag == VK_QUEUE_COMPUTE_BIT) {
+                for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                    if ((queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
+                        !(queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+                        queueIdx = j;
+                        break;
+                    }
+                }
+            }
+            else if (flag == VK_QUEUE_TRANSFER_BIT) {
+                for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                    if ((queueFamilyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
+                        !(queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+                        !(queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                        queueIdx = j;
+                        break;
+                    }
+                }
+            }
+
+            if (queueIdx == ~0u) {
+                for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                    if (queueFamilyProperties[j].queueFlags & flag) {
+                        queueIdx = j;
+                        break;
+                    }
+                }
+            }
+        }
+
+        m_graphicsQueueFamilyIndex = queuesIndices[0];
+        m_computeQueueFamilyIndex = queuesIndices[1];
+        m_transferQueueFamilyIndex = queuesIndices[2];
 
         return true;
     }
