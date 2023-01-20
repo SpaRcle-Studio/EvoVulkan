@@ -12,8 +12,7 @@
 
 #define EVSafeFreeObject(object) \
     if (object) {                \
-        object->Destroy();       \
-        object->Free();          \
+        delete object;           \
         object = nullptr;        \
     }                            \
 

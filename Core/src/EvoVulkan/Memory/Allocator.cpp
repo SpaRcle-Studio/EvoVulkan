@@ -80,11 +80,6 @@ EvoVulkan::Memory::Allocator::~Allocator() {
     }
 }
 
-void EvoVulkan::Memory::Allocator::Free() {
-    VK_LOG("Allocator::Free() : free allocator pointer...");
-    delete this;
-}
-
 void EvoVulkan::Memory::Allocator::FreeImage(Types::Image& image) {
     if (image.m_allocator != m_vmaAllocator) {
         VK_ERROR("Allocator::FreeImage() : allocators is different!");

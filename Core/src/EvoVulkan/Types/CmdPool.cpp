@@ -9,25 +9,19 @@
 #include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
-bool EvoVulkan::Types::CmdPool::IsReady() const {
-    return m_device && m_pool != VK_NULL_HANDLE;
-}
-
-void EvoVulkan::Types::CmdPool::Destroy() {
+EvoVulkan::Types::CmdPool::~CmdPool() {
     VK_LOG("CmdPool::Destroy() : destroy command pool...");
 
-    if (!IsReady())
-        return;
+    if (m_pool) {
+        vkDestroyCommandPool(*m_device, m_pool, nullptr);
 
-    vkDestroyCommandPool(*m_device, m_pool, nullptr);
-    m_device = nullptr;
-    m_pool   = VK_NULL_HANDLE;
+        m_device = nullptr;
+        m_pool = VK_NULL_HANDLE;
+    }
 }
 
-void EvoVulkan::Types::CmdPool::Free() {
-    VK_LOG("CmdPool::Free() : free command pool pointer...");
-
-    delete this;
+bool EvoVulkan::Types::CmdPool::IsReady() const {
+    return m_device && m_pool != VK_NULL_HANDLE;
 }
 
 EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::Device *device) {

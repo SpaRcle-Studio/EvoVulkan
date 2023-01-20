@@ -5,21 +5,18 @@
 #ifndef EVOVULKAN_SURFACE_H
 #define EVOVULKAN_SURFACE_H
 
-#include <EvoVulkan/Tools/NonCopyable.h>
-
-#ifdef EVK_MINGW
-    #pragma GCC diagnostic ignored "-Wattributes"
-#endif
+#include <EvoVulkan/Types/Base/VulkanObject.h>
 
 namespace EvoVulkan::Types {
     class Device;
 
-    class DLL_EVK_EXPORT Surface : public Tools::NonCopyable {
+    class DLL_EVK_EXPORT Surface : public IVkObject {
     private:
         Surface() = default;
-        ~Surface() override = default;
 
     public:
+        ~Surface() override;
+
         static Surface* Create(const VkSurfaceKHR& surfaceKhr, const VkInstance& instance, void* windowHandle);
 
         operator VkSurfaceKHR() const { return m_surface; }
@@ -27,14 +24,11 @@ namespace EvoVulkan::Types {
     public:
         bool Init(const Types::Device* device);
 
-        EVK_NODISCARD bool Ready() const;
+        EVK_NODISCARD bool IsReady() const override;
         EVK_NODISCARD bool IsInit() const noexcept { return m_isInit; }
         EVK_NODISCARD VkSurfaceFormatKHR* GetSurfaceFormats() const { return m_surfFormats; }
         EVK_NODISCARD uint32_t GetCountSurfFmts()  const { return m_countSurfaceFormats; }
         EVK_NODISCARD void* GetHandle() const { return m_windowHandle; }
-
-        void Destroy();
-        void Free();
 
     private:
         bool                m_isInit              = false;

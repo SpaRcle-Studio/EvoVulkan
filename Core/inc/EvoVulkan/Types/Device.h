@@ -36,24 +36,19 @@ namespace EvoVulkan::Types {
     class DLL_EVK_EXPORT Device : public Tools::NonCopyable {
     private:
         Device(Instance* pInstance, FamilyQueues* pQueues, VkPhysicalDevice physicalDevice, VkDevice logicalDevice);
-        ~Device() override = default;
 
     public:
+        ~Device() override;
+
         EVK_MAYBE_UNUSED static Types::Device* Create(const EvoDeviceCreateInfo& info);
 
         operator VkDevice()         const { return m_logicalDevice;  }
         operator VkPhysicalDevice() const { return m_physicalDevice; }
 
     public:
-        void Free();
-        bool Destroy();
-
-    public:
         EVK_NODISCARD EVK_INLINE std::string GetName() const noexcept { return m_deviceName; }
         EVK_NODISCARD EVK_INLINE bool SamplerAnisotropyEnabled() const noexcept { return m_enableSamplerAnisotropy; }
         EVK_NODISCARD EVK_INLINE float GetMaxSamplerAnisotropy() const noexcept { return m_maxSamplerAnisotropy;    }
-        EVK_NODISCARD EVK_INLINE VkQueue GetGraphicsQueue() const noexcept { return m_familyQueues->m_graphicsQueue;  }
-        EVK_NODISCARD EVK_INLINE VkQueue GetPresentQueue() const noexcept { return m_familyQueues->m_presentQueue;  }
         EVK_NODISCARD EVK_INLINE bool MultisampleEnabled() const noexcept { return m_maxCountMSAASamples != VK_SAMPLE_COUNT_1_BIT;  }
         EVK_NODISCARD EVK_INLINE Instance* GetInstance() const { return m_instance; }
         EVK_NODISCARD EVK_INLINE VkSampleCountFlagBits GetMSAASamples() const { return (VkSampleCountFlagBits)m_maxCountMSAASamples; }

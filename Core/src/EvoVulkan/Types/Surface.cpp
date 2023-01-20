@@ -8,6 +8,22 @@
 #include <EvoVulkan/Types/Device.h>
 
 namespace EvoVulkan::Types {
+    Surface::~Surface() {
+        VK_LOG("Surface::Destroy() : destroy vulkan surface...");
+
+        if (m_surfFormats) {
+            free(m_surfFormats);
+            m_surfFormats = nullptr;
+        }
+
+        if (m_surface) {
+            vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+            m_surface = VK_NULL_HANDLE;
+        }
+
+        m_instance = VK_NULL_HANDLE;
+    }
+
     Surface* Surface::Create(VkSurfaceKHR const &surfaceKhr, VkInstance const &instance, void *windowHandle) {
         auto&& surface = new Surface();
 
@@ -43,28 +59,7 @@ namespace EvoVulkan::Types {
         return true;
     }
 
-    void EvoVulkan::Types::Surface::Destroy() {
-        VK_LOG("Surface::Destroy() : destroy vulkan surface...");
-
-        if (!Ready()) {
-            VK_ERROR("Surface::Destroy() : surface isn't ready!");
-            return;
-        }
-
-        free(m_surfFormats);
-        m_surfFormats = nullptr;
-
-        vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-        m_surface     = VK_NULL_HANDLE;
-
-        m_instance    = VK_NULL_HANDLE;
-    }
-
-    void EvoVulkan::Types::Surface::Free() {
-        delete this;
-    }
-
-    bool EvoVulkan::Types::Surface::Ready() const {
+    bool EvoVulkan::Types::Surface::IsReady() const {
         return m_isInit && m_surface != VK_NULL_HANDLE && m_surfFormats;
     }
 }

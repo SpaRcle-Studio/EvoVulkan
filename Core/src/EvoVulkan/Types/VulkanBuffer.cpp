@@ -10,6 +10,16 @@
 #include <EvoVulkan/Types/Device.h>
 
 namespace EvoVulkan::Types {
+    Buffer::~Buffer() {
+        if (m_buffer)
+            vkDestroyBuffer(*m_device, m_buffer, nullptr);
+
+        m_buffer = VK_NULL_HANDLE;
+
+        if (m_memory.Ready())
+            m_allocator->FreeMemory(&m_memory);
+    }
+
     /**
     * Map a memory range of this buffer. If successful, mapped points to the specified buffer range.
     *
@@ -116,19 +126,6 @@ namespace EvoVulkan::Types {
         return vkInvalidateMappedMemoryRanges(*m_device, 1, &mappedRange);
     }
 
-    /**
-    * Release all Vulkan resources held by this buffer
-    */
-    void Buffer::Destroy() {
-        if (m_buffer)
-            vkDestroyBuffer(*m_device, m_buffer, nullptr);
-
-        m_buffer = VK_NULL_HANDLE;
-
-        if (m_memory.Ready())
-            m_allocator->FreeMemory(&m_memory);
-    }
-
     Buffer* Buffer::Create(
             Device *device,
             Memory::Allocator* allocator,
@@ -217,9 +214,5 @@ namespace EvoVulkan::Types {
             VK_ERROR("Buffer::Map() : failed to map memory!");
             return nullptr;
         }
-    }
-
-    void Buffer::Free() {
-        delete this;
     }
 }

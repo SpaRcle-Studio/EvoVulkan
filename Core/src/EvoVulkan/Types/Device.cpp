@@ -17,6 +17,20 @@ namespace EvoVulkan::Types {
         , m_logicalDevice(logicalDevice)
     { }
 
+    Device::~Device() {
+        VK_LOG("Device::Destroy() : destroying vulkan device...");
+
+        if (m_familyQueues) {
+            delete m_familyQueues;
+            m_familyQueues = nullptr;
+        }
+
+        if (m_logicalDevice) {
+            vkDestroyDevice(m_logicalDevice, nullptr);
+            m_logicalDevice = VK_NULL_HANDLE;
+        }
+    }
+
     Device* Device::Create(const EvoDeviceCreateInfo& info) {
         VK_GRAPH("Device::Create() : create vulkan device...");
 
@@ -42,8 +56,9 @@ namespace EvoVulkan::Types {
                     continue;
                 }
 
-                if (Tools::IsBetterThan(physDev, physicalDevice))
+                if (Tools::IsBetterThan(physDev, physicalDevice)) {
                     physicalDevice = physDev;
+                }
             }
             else {
                 VK_WARN("Device::Create() : device \"" + Tools::GetDeviceName(physDev) + "\" isn't suitable!");
@@ -182,32 +197,27 @@ namespace EvoVulkan::Types {
 
         if (logicalDevice == VK_NULL_HANDLE) {
             VK_ERROR("Device::Create() : failed create logical device!");
+            delete pQueues;
             return nullptr;
         }
 
-        VK_GRAPH("Device::Create() : set logical device queues...");
-        {
-            VkQueue graphics = VK_NULL_HANDLE;
-            /// VkQueue present  = VK_NULL_HANDLE;
-
-            vkGetDeviceQueue(logicalDevice, pQueues->GetGraphicsIndex(), 0, &graphics);
-            /// vkGetDeviceQueue(logicalDevice, queues->GetPresentIndex(), 1, &present);
-
-            pQueues->SetQueue(graphics);
-            /// queues->SetPresentQueue(present);
+        if (!pQueues->Initialize(logicalDevice)) {
+            vkDestroyDevice(logicalDevice, nullptr);
+            delete pQueues;
+            return nullptr;
         }
 
         auto&& pDevice = new Device(info.pInstance, pQueues, physicalDevice, logicalDevice);
 
-        if (pDevice->Initialize(info.enableSampleShading, info.multisampling, info.rayTracing, info.sampleCount)) {
-            VK_LOG("Device::Create() : the device was successfully initialized!");
-            return pDevice;
+        if (!pDevice->Initialize(info.enableSampleShading, info.multisampling, info.rayTracing, info.sampleCount)) {
+            VK_ERROR("Device::Create() : failed to initialize device!");
+            delete pDevice;
+            return nullptr;
         }
 
-        VK_ERROR("Device::Create() : failed to initialize device!");
+        VK_LOG("Device::Create() : the device was successfully initialized!");
 
-        delete pDevice;
-        return nullptr;
+        return pDevice;
     }
 
     bool Device::Initialize(bool enableSampleShading, bool multisampling, bool requestRayTrace, uint32_t sampleCount) {
@@ -291,47 +301,23 @@ namespace EvoVulkan::Types {
         return true;
     }
 
-    void EvoVulkan::Types::Device::Free() {
-        VK_LOG("Device::Free() : free device pointer...");
-
-        delete this;
-    }
-
-    bool EvoVulkan::Types::Device::IsReady() const {
+    bool Device::IsReady() const {
         return m_logicalDevice &&
                m_physicalDevice &&
                m_familyQueues &&
                m_familyQueues->IsReady();
     }
 
-    bool EvoVulkan::Types::Device::Destroy() {
-        VK_LOG("Device::Destroy() : destroying vulkan device...");
-
-        if (!IsReady()) {
-            VK_ERROR("Device::Destroy() : device isn't ready!");
-            return false;
-        }
-
-        m_familyQueues->Destroy();
-        m_familyQueues->Free();
-        m_familyQueues = nullptr;
-
-        vkDestroyDevice(m_logicalDevice, nullptr);
-        m_logicalDevice = VK_NULL_HANDLE;
-
-        return true;
-    }
-
-    EvoVulkan::Types::FamilyQueues *EvoVulkan::Types::Device::GetQueues() const {
+    FamilyQueues* Device::GetQueues() const {
         return m_familyQueues;
     }
 
-    uint32_t EvoVulkan::Types::Device::GetMemoryType(
+    uint32_t Device::GetMemoryType(
             uint32_t typeBits,
             VkMemoryPropertyFlags properties,
             VkBool32 *memTypeFound) const
     {
-        for (uint32_t i = 0; i < m_memoryProperties.memoryTypeCount; i++) {
+        for (uint32_t i = 0; i < m_memoryProperties.memoryTypeCount; ++i) {
             if ((typeBits & 1) == 1) {
                 if ((m_memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
                     if (memTypeFound) {
@@ -346,13 +332,14 @@ namespace EvoVulkan::Types {
         if (memTypeFound) {
             *memTypeFound = false;
             return 0;
-        } else {
-            VK_ERROR("Device::GetMemoryType() : Could not find a matching memory type");
-            return UINT32_MAX;
         }
+
+        VK_ERROR("Device::GetMemoryType() : could not find a matching memory type!");
+
+        return UINT32_MAX;
     }
 
-    bool EvoVulkan::Types::Device::IsSupportLinearBlitting(const VkFormat& imageFormat) const {
+    bool Device::IsSupportLinearBlitting(const VkFormat& imageFormat) const {
         /// Check if image format supports linear blitting
         VkFormatProperties formatProperties;
         vkGetPhysicalDeviceFormatProperties(m_physicalDevice, imageFormat, &formatProperties);
@@ -360,12 +347,12 @@ namespace EvoVulkan::Types {
         return (formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
     }
 
-    VkCommandPool EvoVulkan::Types::Device::CreateCommandPool(VkCommandPoolCreateFlags flagBits) const {
+    VkCommandPool Device::CreateCommandPool(VkCommandPoolCreateFlags flagBits) const {
         VkCommandPoolCreateInfo commandPoolCreateInfo = {
                 VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
                 nullptr,
                 flagBits,
-                this->GetQueues()->GetGraphicsIndex()
+                GetQueues()->GetGraphicsIndex()
             };
 
         VkCommandPool cmdPool = VK_NULL_HANDLE;
@@ -377,7 +364,7 @@ namespace EvoVulkan::Types {
         return cmdPool;
     }
 
-    uint8_t EvoVulkan::Types::Device::GetMSAASamplesCount() const {
+    uint8_t Device::GetMSAASamplesCount() const {
         return Tools::Convert::SampleCountToInt(m_maxCountMSAASamples);
     }
 }

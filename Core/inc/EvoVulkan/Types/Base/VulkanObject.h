@@ -14,14 +14,11 @@
 namespace EvoVulkan::Types {
     class DLL_EVK_EXPORT IVkObject : public Tools::NonCopyable {
     public:
-        virtual ~IVkObject() = default;
+        ~IVkObject() override = default;
 
     public:
         EVK_NODISCARD virtual bool IsReady()    const { return false; };
         EVK_NODISCARD virtual bool IsComplete() const { return false; };
-
-        virtual void Destroy() { };
-        virtual void Free()    { };
 
     };
 }

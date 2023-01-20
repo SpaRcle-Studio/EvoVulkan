@@ -15,9 +15,10 @@ namespace EvoVulkan::Types {
     class DLL_EVK_EXPORT CmdBuffer : public IVkObject {
     private:
         CmdBuffer()  = default;
-        ~CmdBuffer() override = default;
 
     public:
+        ~CmdBuffer() override;
+
         operator VkCommandBuffer() const { return m_buffer; }
 
     public:
@@ -32,9 +33,6 @@ namespace EvoVulkan::Types {
         bool End();
 
         bool ReAlloc();
-
-        void Destroy() override;
-        void Free() override;
 
         EVK_NODISCARD bool IsBegin() const { return m_isBegin; }
 

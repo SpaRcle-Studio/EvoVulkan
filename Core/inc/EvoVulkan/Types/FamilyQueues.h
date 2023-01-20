@@ -13,31 +13,36 @@ namespace EvoVulkan::Types {
     class Device;
 
     class DLL_EVK_EXPORT FamilyQueues : public IVkObject {
-        friend class Device;
-    protected:
-        FamilyQueues() = default;
-        ~FamilyQueues() override = default;
+    public:
+        FamilyQueues(VkPhysicalDevice physicalDevice, const Surface* pSurface);
+        ~FamilyQueues() override;
 
     public:
-        static FamilyQueues* Find(const VkPhysicalDevice& device, const Surface* surface);
+        static FamilyQueues* Find(VkPhysicalDevice physicalDevice, const Surface* pSurface);
 
     public:
-        void Destroy() override;
-        void Free() override;
-
-        void SetQueue(const VkQueue& graphics) { m_graphicsQueue = graphics; }
-        void SetPresentQueue(const VkQueue& graphics) { m_presentQueue = graphics; }
+        EVK_NODISCARD bool Initialize(VkDevice logicalDevice);
 
         EVK_NODISCARD bool IsComplete() const override;
         EVK_NODISCARD bool IsReady() const override;
+
+        EVK_NODISCARD VkQueue GetGraphicsQueue() const noexcept { return m_graphicsQueue; }
+        EVK_NODISCARD VkQueue GetPresentQueue() const noexcept { return m_presentQueue; }
+
         EVK_NODISCARD uint32_t GetGraphicsIndex() const noexcept { return static_cast<uint32_t>(m_iGraphics); }
         EVK_NODISCARD uint32_t GetPresentIndex() const noexcept { return static_cast<uint32_t>(m_iPresent); }
 
-    public:
-        VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-        VkQueue m_presentQueue  = VK_NULL_HANDLE;
-
     private:
+        VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+        VkDevice m_logicalDevice = VK_NULL_HANDLE;
+
+        const Surface* m_surface = nullptr;
+
+        VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+        VkQueue m_presentQueue = VK_NULL_HANDLE;
+        VkQueue m_transferQueue = VK_NULL_HANDLE;
+        VkQueue m_computeQueue = VK_NULL_HANDLE;
+
         int32_t m_iGraphics = EVK_ID_INVALID;
         int32_t m_iPresent  = EVK_ID_INVALID;
 

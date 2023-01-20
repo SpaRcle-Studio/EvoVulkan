@@ -20,9 +20,10 @@ namespace EvoVulkan::Types {
     class DLL_EVK_EXPORT Swapchain : public IVkObject {
     protected:
         Swapchain() = default;
-        ~Swapchain() override = default;
 
     public:
+        ~Swapchain() override;
+
         static Swapchain* Create(
                 const VkInstance& instance,
                 Surface* surface,
@@ -33,9 +34,6 @@ namespace EvoVulkan::Types {
                 uint32_t imagesCount);
 
     public:
-        void Destroy() override;
-        void Free() override;
-
         bool SurfaceIsAvailable();
 
         bool ReSetup(uint32_t width, uint32_t height, uint32_t countImages);

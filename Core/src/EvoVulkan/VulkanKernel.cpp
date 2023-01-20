@@ -248,7 +248,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
             true /** depth buffer */
     );
 
-    if (!m_renderPass.Ready()) {
+    if (!m_renderPass.IsReady()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
         return false;
     }
@@ -298,10 +298,10 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     }
 
     if (m_descriptorManager)
-        this->m_descriptorManager->Free();
+        m_descriptorManager->Free();
 
     if (!m_frameBuffers.empty())
-        this->DestroyFrameBuffers();
+        DestroyFrameBuffers();
 
     if (m_pipelineCache)
         Tools::DestroyPipelineCache(*m_device, &m_pipelineCache);
@@ -309,7 +309,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_syncs.IsReady())
         Tools::DestroySynchronization(*m_device, &m_syncs);
 
-    if (m_renderPass.Ready())
+    if (m_renderPass.IsReady())
         Types::DestroyRenderPass(m_device, &m_renderPass);
 
     if (!m_waitFences.empty()) {
@@ -317,8 +317,9 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
         m_waitFences.clear();
     }
 
-    if (m_drawCmdBuffs)
+    if (m_drawCmdBuffs) {
         Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
+    }
 
     EVSafeFreeObject(m_swapchain);
     EVSafeFreeObject(m_surface);
@@ -328,7 +329,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
 
     if (m_validationEnabled) {
         Tools::DestroyDebugUtilsMessengerEXT(*m_instance, m_debugMessenger, nullptr);
-        this->m_debugMessenger = VK_NULL_HANDLE;
+        m_debugMessenger = VK_NULL_HANDLE;
     }
 
     EVSafeFreeObject(m_instance);
@@ -341,7 +342,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
 bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     VK_GRAPH("VulkanKernel::ReCreateFrameBuffers() : re-create vulkan frame buffers...");
 
-    if (!m_renderPass.Ready()) {
+    if (!m_renderPass.IsReady()) {
         VK_ERROR("VulkanKernel::ReCreateFrameBuffers() : render pass in nullptr!");
         return false;
     }
@@ -426,7 +427,7 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
-    VkResult result = m_swapchain->QueuePresent(m_device->GetGraphicsQueue(), m_currentBuffer, m_syncs.m_renderComplete);
+    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentBuffer, m_syncs.m_renderComplete);
     if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             /// Swap chain is no longer compatible with the surface and needs to be recreated
@@ -445,7 +446,7 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
         }
     }
 
-    result = vkQueueWaitIdle(m_device->GetGraphicsQueue());
+    result = vkQueueWaitIdle(m_device->GetQueues()->GetGraphicsQueue());
 
     if (result != VK_SUCCESS) {
         VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue wait idle! Reason: " +

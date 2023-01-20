@@ -6,9 +6,20 @@
 #include <EvoVulkan/Tools/StringUtils.h>
 
 namespace EvoVulkan::Types {
-    Instance* Instance::Create(const std::string& appName, const std::string& engineName,
-            StringVector extensions, const StringVector& layers, bool validationEnabled)
-    {
+    Instance::~Instance() {
+        if (m_instance) {
+            vkDestroyInstance(m_instance, nullptr);
+            m_instance = VK_NULL_HANDLE;
+        }
+    }
+
+    Instance* Instance::Create(
+            const std::string& appName,
+            const std::string& engineName,
+            StringVector extensions,
+            const StringVector& layers,
+            bool validationEnabled
+    ) {
         const auto&& logExtensions = Tools::Combine<const char*>(extensions, [](const char* str, int32_t i, bool last) -> std::string {
             return last ? std::string(str) : std::string(str).append(", ");
         });
@@ -92,17 +103,8 @@ namespace EvoVulkan::Types {
     uint32_t Instance::GetVersion() const {
         return m_version;
     }
-
-    bool Instance::Valid() const {
+    
+    bool Instance::IsReady() const {
         return m_instance != VK_NULL_HANDLE;
-    }
-
-    void Instance::Destroy() {
-        vkDestroyInstance(m_instance, nullptr);
-        m_instance = VK_NULL_HANDLE;
-    }
-
-    void Instance::Free() {
-        delete this;
     }
 }

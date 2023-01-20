@@ -7,6 +7,7 @@
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
 #include <EvoVulkan/Tools/FileSystem.h>
+#include <EvoVulkan/Types/Base/VulkanObject.h>
 #include <EvoVulkan/VmaUsage.h>
 
 namespace EvoVulkan::Types {
@@ -41,21 +42,18 @@ namespace EvoVulkan::Memory {
 
     };
 
-    class DLL_EVK_EXPORT Allocator : public Tools::NonCopyable {
+    class DLL_EVK_EXPORT Allocator : public Types::IVkObject {
     private:
         explicit Allocator(Types::Device* device)
             : m_device(device)
         { }
 
+    public:
         ~Allocator() override;
 
-    public:
         static Allocator* Create(Types::Device* device);
 
         operator VmaAllocator() const { return m_vmaAllocator; }
-
-        void Destroy() { }
-        void Free();
 
     public:
         Buffer AllocBuffer(const VkBufferCreateInfo& info, VmaMemoryUsage usage);

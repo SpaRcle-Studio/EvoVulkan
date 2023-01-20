@@ -16,9 +16,10 @@ namespace EvoVulkan::Types {
     struct DLL_EVK_EXPORT Buffer : Tools::NonCopyable {
     private:
         Buffer() = default;
-        ~Buffer() override = default;
 
     public:
+        ~Buffer() override;
+
         static Buffer* Create(
                 Device* device,
                 Memory::Allocator* allocator,
@@ -47,9 +48,6 @@ namespace EvoVulkan::Types {
 
         void CopyTo(void *data, VkDeviceSize size);
         void CopyToDevice(void *data, VkDeviceSize size) const;
-
-        void Destroy();
-        void Free();
 
     private:
         Types::Device*         m_device              = nullptr;

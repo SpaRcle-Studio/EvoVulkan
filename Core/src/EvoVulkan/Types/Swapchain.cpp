@@ -14,6 +14,22 @@
 
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 
+EvoVulkan::Types::Swapchain::~Swapchain() {
+    VK_LOG("Swapchain::Destroy() : destroy vulkan swapchain...");
+
+    DestroyBuffers();
+
+    if (m_swapchain) {
+        vkDestroySwapchainKHR(*m_device, m_swapchain, nullptr);
+        m_swapchain = VK_NULL_HANDLE;
+    }
+
+    m_device      = nullptr;
+    m_surface     = nullptr;
+    m_presentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
+    m_instance    = VK_NULL_HANDLE;
+}
+
 EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
         VkInstance const &instance,
         EvoVulkan::Types::Surface *surface,
@@ -25,7 +41,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
 {
     VK_GRAPH("Swapchain::Create() : create vulkan swapchain...");
 
-    if (!surface->Ready()) {
+    if (!surface->IsReady()) {
         VK_ERROR("Swapchain::Create() : surface isn't ready!");
         return nullptr;
     }
@@ -185,30 +201,6 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
     return true;
 }
 
-void EvoVulkan::Types::Swapchain::Free() {
-    VK_LOG("Swapchain::Free() : free swapchain pointer...");
-    delete this;
-}
-
-void EvoVulkan::Types::Swapchain::Destroy() {
-    VK_LOG("Swapchain::Destroy() : destroy vulkan swapchain...");
-
-    if (!IsReady()) {
-        VK_ERROR("Swapchain::Destroy() : swapchain isn't ready!");
-        return;
-    }
-
-    DestroyBuffers();
-
-    vkDestroySwapchainKHR(*m_device, m_swapchain, nullptr);
-    m_swapchain = VK_NULL_HANDLE;
-
-    m_device      = nullptr;
-    m_surface     = nullptr;
-    m_presentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
-    m_instance    = VK_NULL_HANDLE;
-}
-
 bool EvoVulkan::Types::Swapchain::IsReady() const {
     return m_swapchain != VK_NULL_HANDLE &&
            m_device    != nullptr        &&
@@ -260,10 +252,14 @@ void EvoVulkan::Types::Swapchain::DestroyBuffers() {
         for (uint32_t i = 0; i < m_countImages; ++i)
             vkDestroyImageView(*m_device, m_buffers[i].m_view, nullptr);
 
-        free(m_buffers);
-        m_buffers = nullptr;
-    } else
+        if (m_buffers) {
+            free(m_buffers);
+            m_buffers = nullptr;
+        }
+    }
+    else {
         VK_WARN("Swapchain::DestroyBuffers() : failed to destroy swapchain buffers!");
+    }
 }
 
 bool EvoVulkan::Types::Swapchain::CreateImages() {
@@ -355,4 +351,5 @@ bool EvoVulkan::Types::Swapchain::SurfaceIsAvailable() {
     VkSurfaceCapabilitiesKHR surfCaps = {};
     return !(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS);
 }
+
 

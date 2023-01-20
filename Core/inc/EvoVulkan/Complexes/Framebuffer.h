@@ -61,9 +61,10 @@ namespace EvoVulkan::Complexes {
     class DLL_EVK_EXPORT FrameBuffer : private Tools::NonCopyable {
     protected:
         FrameBuffer() = default;
-        ~FrameBuffer() override = default;
 
     public:
+        ~FrameBuffer() override;
+
         /// depth will be auto added to end array of attachments
         static FrameBuffer* Create(
                 Types::Device* device,
@@ -80,8 +81,6 @@ namespace EvoVulkan::Complexes {
         operator VkFramebuffer() const { return m_framebuffer; }
 
     public:
-        void Destroy();
-        void Free();
         bool ReCreate(uint32_t width, uint32_t height);
 
         void BeginCmd();
@@ -116,6 +115,8 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls) const;
 
     private:
+        void DeInitialize();
+
         bool CreateAttachments();
         bool CreateRenderPass();
         bool CreateFramebuffer();

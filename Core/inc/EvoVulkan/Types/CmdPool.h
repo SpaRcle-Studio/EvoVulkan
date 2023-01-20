@@ -13,17 +13,14 @@ namespace EvoVulkan::Types {
     class DLL_EVK_EXPORT CmdPool : public IVkObject {
     private:
         CmdPool() = default;
-        ~CmdPool() override = default;
 
     public:
+        ~CmdPool() override;
+
         operator VkCommandPool() const { return m_pool; }
 
     public:
         static CmdPool* Create(Device* device);
-
-    public:
-        void Destroy() override;
-        void Free() override;
 
         EVK_NODISCARD bool IsReady() const override;
 

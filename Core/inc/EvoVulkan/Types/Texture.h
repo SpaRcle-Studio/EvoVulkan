@@ -38,9 +38,10 @@ namespace EvoVulkan::Types {
         };
     private:
         Texture() = default;
-        ~Texture() override = default;
 
     public:
+        ~Texture() override;
+
         static bool GenerateMipmaps(Texture* texture, Types::CmdBuffer* singleBuffer);
 
         static Texture* LoadCubeMap(
@@ -94,9 +95,6 @@ namespace EvoVulkan::Types {
         }
 
     public:
-        void Destroy();
-        void Free();
-
         EVK_NODISCARD RGBAPixel GetPixel(uint32_t x, uint32_t y, uint32_t z) const;
 
         EVK_NODISCARD EVK_INLINE VkDescriptorImageInfo* GetDescriptorRef() noexcept { return &m_descriptor; }

@@ -17,9 +17,10 @@ namespace EvoVulkan::Types {
     class DLL_EVK_EXPORT VmaBuffer : Tools::NonCopyable {
     private:
         VmaBuffer(Memory::Allocator* allocator, VkDeviceSize size);
-        ~VmaBuffer() override = default;
 
     public:
+        ~VmaBuffer() override;
+
         operator VkBuffer() const { return m_buffer.m_buffer; }
 
     public:
@@ -47,9 +48,6 @@ namespace EvoVulkan::Types {
         VkResult Map();
         void* MapData();
         void Unmap();
-
-        void Destroy();
-        void Free();
 
     private:
         void*                  m_mapped     = nullptr;

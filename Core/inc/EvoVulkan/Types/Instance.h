@@ -5,10 +5,10 @@
 #ifndef EVOVULKAN_INSTANCE_H
 #define EVOVULKAN_INSTANCE_H
 
-#include <EvoVulkan/Tools/NonCopyable.h>
+#include <EvoVulkan/Types/Base/VulkanObject.h>
 
 namespace EvoVulkan::Types {
-    class DLL_EVK_EXPORT Instance : public Tools::NonCopyable {
+    class DLL_EVK_EXPORT Instance : public IVkObject {
         using StringVector = std::vector<const char*>;
     private:
         explicit Instance(uint32_t version)
@@ -20,20 +20,21 @@ namespace EvoVulkan::Types {
             : Instance(UINT32_MAX)
         { }
 
-        ~Instance() override = default;
-
     public:
-        static Instance* Create(const std::string& appName, const std::string& engineName,
-                StringVector extensions, const StringVector& layers, bool validationEnabled);
+        ~Instance() override;
+
+        static Instance* Create(
+                const std::string& appName,
+                const std::string& engineName,
+                StringVector extensions,
+                const StringVector& layers,
+                bool validationEnabled);
 
         operator VkInstance() const { return m_instance; }
 
     public:
-        void Destroy();
-        void Free();
-
         EVK_NODISCARD uint32_t GetVersion() const;
-        EVK_NODISCARD bool Valid() const;
+        EVK_NODISCARD bool IsReady() const override;
 
     private:
         VkInstance m_instance;

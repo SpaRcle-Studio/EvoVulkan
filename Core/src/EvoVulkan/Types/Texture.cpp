@@ -28,6 +28,33 @@ uint64_t GetImageSize(uint32_t w, uint32_t h, uint8_t level, uint8_t face) {
     return (w * h * 4) * face;
 }
 
+EvoVulkan::Types::Texture::~Texture() {
+    m_isDestroyed = true;
+
+    if (m_descriptorManager && (m_descriptorSet != VK_NULL_HANDLE)) {
+        m_descriptorManager->FreeDescriptorSet(&m_descriptorSet);
+        m_descriptorManager = nullptr;
+    }
+
+    if (!m_canBeDestroyed) {
+        return;
+    }
+
+    if (m_sampler != VK_NULL_HANDLE) {
+        vkDestroySampler(*m_device, m_sampler, nullptr);
+        m_sampler = VK_NULL_HANDLE;
+    }
+
+    if (m_view != VK_NULL_HANDLE) {
+        vkDestroyImageView(*m_device, m_view, nullptr);
+        m_view = VK_NULL_HANDLE;
+    }
+
+    if (m_image.Valid()) {
+        m_allocator->FreeImage(m_image);
+    }
+}
+
 EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     Device *device,
     Memory::Allocator *allocator,
@@ -157,11 +184,8 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     //!=================================================================================================================
 
-    copyCmd->Destroy();
-    copyCmd->Free();
-
-    stagingBuffer->Destroy();
-    stagingBuffer->Free();
+    delete copyCmd;
+    delete stagingBuffer;
 
     //!=================================================================================================================
 
@@ -309,11 +333,8 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
 
     //!=================================================================================================================
 
-    copyCmd->Destroy();
-    copyCmd->Free();
-
-    stagingBuffer->Destroy();
-    stagingBuffer->Free();
+    delete copyCmd;
+    delete stagingBuffer;
 
     //!=================================================================================================================
 
@@ -462,31 +483,6 @@ EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDe
     return m_descriptorSet;
 }
 
-void EvoVulkan::Types::Texture::Destroy()  {
-    m_isDestroyed = true;
-
-    if (m_descriptorManager && (m_descriptorSet != VK_NULL_HANDLE)) {
-        m_descriptorManager->FreeDescriptorSet(&m_descriptorSet);
-        m_descriptorManager = nullptr;
-    }
-
-    if (!m_canBeDestroyed)
-        return;
-
-    if (m_sampler != VK_NULL_HANDLE) {
-        vkDestroySampler(*m_device, m_sampler, nullptr);
-        m_sampler = VK_NULL_HANDLE;
-    }
-
-    if (m_view != VK_NULL_HANDLE) {
-        vkDestroyImageView(*m_device, m_view, nullptr);
-        m_view = VK_NULL_HANDLE;
-    }
-
-    if (m_image.Valid())
-        m_allocator->FreeImage(m_image);
-}
-
 EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_t x, uint32_t y, uint32_t z) const {
     const uint8_t channels = Tools::GetPixelChannelsCount(m_format);
     const uint8_t pixelTypeSize = Tools::GetPixelTypeSize(m_format);
@@ -547,8 +543,7 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
     );
 
     copyCmd->End();
-    copyCmd->Destroy();
-    copyCmd->Free();
+    delete copyCmd;
 
     RGBAPixel pixel = {};
 
@@ -571,15 +566,8 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
         pBuffer->Unmap();
     }
 
-    pBuffer->Destroy();
-    pBuffer->Free();
+    delete pBuffer;
 
     return pixel;
 }
 
-void EvoVulkan::Types::Texture::Free()  {
-    if (!m_isDestroyed)
-        VK_ERROR("Texture::Free() : texture isn't destroyed!");
-
-    delete this;
-}
