@@ -47,10 +47,15 @@ namespace EvoVulkan::Complexes {
 
         /// ставим барьер памяти, чтобы можно было использовать в шейдерах
         {
-            auto &&copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(device, pool);
+            auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(device, pool);
 
-            EvoVulkan::Tools::TransitionImageLayout(copyCmd, FBOAttachment.m_image, VK_IMAGE_LAYOUT_UNDEFINED,
-                                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+            EvoVulkan::Tools::TransitionImageLayout(
+                copyCmd,
+                FBOAttachment.m_image,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                1 /** mip levels */
+            );
 
             delete copyCmd;
         }

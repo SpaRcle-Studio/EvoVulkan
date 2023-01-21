@@ -661,15 +661,16 @@ namespace EvoVulkan::Tools {
         return deviceProperties.limits.maxSamplerAnisotropy;
     }
 
-    EVK_MAYBE_UNUSED static bool TransitionImageLayout(
+    EVK_MAYBE_UNUSED static bool TransitionImageLayoutEx(
             Types::CmdBuffer* copyCmd,
             VkImage image,
             VkImageLayout oldLayout,
             VkImageLayout newLayout,
             uint32_t mipLevels,
+            VkImageAspectFlags aspectMask,
             uint32_t layerCount = 1,
-            bool needEnd = true)
-    {
+            bool needEnd = true
+    ) {
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -680,7 +681,7 @@ namespace EvoVulkan::Tools {
         barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
         barrier.image                = image;
-        barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.aspectMask     = aspectMask;
         barrier.subresourceRange.baseMipLevel   = 0;
         barrier.subresourceRange.levelCount     = mipLevels;
         barrier.subresourceRange.baseArrayLayer = 0;
@@ -730,8 +731,23 @@ namespace EvoVulkan::Tools {
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        } else {
-           VK_ERROR("Tools::TransitionImageLayout() : Unsupported layout transition!");
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else {
+           VK_ERROR("Tools::TransitionImageLayout() : unsupported layout transition!");
            return false;
         }
 
@@ -746,7 +762,18 @@ namespace EvoVulkan::Tools {
 
         return !needEnd || copyCmd->End();
     }
-    //VkRenderPass CreateRenderPass(const Types::Device* device, const Types::Swapchain* swapchain, std::vector<VkAttachmentDescription> attachments = {});
+
+    EVK_MAYBE_UNUSED static bool TransitionImageLayout(
+            Types::CmdBuffer* copyCmd,
+            VkImage image,
+            VkImageLayout oldLayout,
+            VkImageLayout newLayout,
+            uint32_t mipLevels,
+            uint32_t layerCount = 1,
+            bool needEnd = true
+    ) {
+        return TransitionImageLayoutEx(copyCmd, image, oldLayout, newLayout, mipLevels, VK_IMAGE_ASPECT_COLOR_BIT, layerCount, needEnd);
+    }
 }
 
 #endif //EVOVULKAN_VULKANTOOLS_H

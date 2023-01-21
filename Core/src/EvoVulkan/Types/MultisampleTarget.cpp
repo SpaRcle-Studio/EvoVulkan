@@ -82,11 +82,28 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
     if (m_depthEnabled) {
         imageCI.format = m_swapchain->GetDepthFormat();
         imageCI.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        /// imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
         if (!(m_depth.m_image = Types::Image::Create(imageCI)).Valid()) {
             VK_ERROR("MultisampleTarget::ReCreate() : failed to create depth image!");
             return false;
         }
+
+        /// ставим барьер памяти, чтобы можно было использовать в шейдерах
+        ///{
+        ///    auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_cmdPool);
+
+        ///    EvoVulkan::Tools::TransitionImageLayoutEx(
+        ///        copyCmd,
+        ///        m_depth.m_image,
+        ///        VK_IMAGE_LAYOUT_UNDEFINED,
+        ///        VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL,
+        ///        1, /** mip levels */
+        ///        VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
+        ///    );
+
+        ///    delete copyCmd;
+        ///}
 
         m_depth.m_view = Tools::CreateImageView(*m_device, m_depth.m_image, m_swapchain->GetDepthFormat(), 1, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
         if (m_depth.m_view == VK_NULL_HANDLE) {
