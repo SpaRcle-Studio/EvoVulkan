@@ -83,6 +83,7 @@ namespace EvoVulkan::Core {
         void SetSwapchainImagesCount(uint32_t count);
 
         virtual void SetGUIEnabled(bool enabled);
+        virtual bool IsRayTracingRequired() const noexcept { return false; }
 
         bool SetValidationLayersEnabled(bool value);
         void SetSize(uint32_t width, uint32_t height);

@@ -40,7 +40,7 @@ namespace EvoVulkan::Types {
     public:
         ~Device() override;
 
-        EVK_MAYBE_UNUSED static Types::Device* Create(const EvoDeviceCreateInfo& info);
+        EVK_MAYBE_UNUSED static Types::Device* Create(EvoDeviceCreateInfo info);
 
         operator VkDevice()         const { return m_logicalDevice;  }
         operator VkPhysicalDevice() const { return m_physicalDevice; }
@@ -56,14 +56,17 @@ namespace EvoVulkan::Types {
 
         EVK_NODISCARD uint8_t GetMSAASamplesCount() const;
         EVK_NODISCARD FamilyQueues* GetQueues() const;
+        EVK_NODISCARD bool IsRayTracingSupported() const noexcept { return m_rayTracingSupported; }
         EVK_NODISCARD bool IsReady() const;
+        EVK_NODISCARD bool IsExtensionSupported(const std::string& extension) const;
         EVK_NODISCARD bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
         EVK_NODISCARD VkCommandPool CreateCommandPool(VkCommandPoolCreateFlags flagBits) const;
 
         uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;
 
     private:
-        bool Initialize(bool enableSampleShading, bool multisampling, bool requestRayTrace, uint32_t sampleCount);
+        bool Initialize(bool enableSampleShading, bool multisampling, uint32_t sampleCount);
+        void CheckRayTracing(bool isRequested);
 
     private:
         FamilyQueues*                    m_familyQueues            = nullptr;
@@ -87,7 +90,7 @@ namespace EvoVulkan::Types {
         /// for deviceFeatures and multisampling
         bool                             m_enableSampleShading     = false;
         bool                             m_multisampling           = false;
-        bool                             m_rayTracing              = false;
+        bool                             m_rayTracingSupported     = false;
 
     };
 }

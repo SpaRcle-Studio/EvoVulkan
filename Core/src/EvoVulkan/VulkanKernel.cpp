@@ -93,11 +93,11 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     deviceCreateInfo.enableSampleShading = enableSampleShading;
     deviceCreateInfo.sampleCount = m_sampleCount;
     deviceCreateInfo.multisampling = m_sampleCount > 1;
-    deviceCreateInfo.rayTracing = true;
+    deviceCreateInfo.rayTracing = IsRayTracingRequired();
     deviceCreateInfo.extensions = deviceExtensions;
     deviceCreateInfo.validationLayers = m_validationEnabled ? m_validationLayers : std::vector<const char*>();
 
-    m_device = Types::Device::Create(deviceCreateInfo);
+    m_device = Types::Device::Create(std::move(deviceCreateInfo));
     if (!m_device) {
         VK_ERROR("VulkanKernel::Init() : failed to create evo device!");
         return false;

@@ -58,9 +58,15 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
     return true;
 }
 
-bool EvoVulkan::Tools::IsBetterThan(VkPhysicalDevice const &_new, VkPhysicalDevice const &_old)  {
-    auto _newProp = Tools::GetDeviceProperties(_new);
-    auto _oldProp = Tools::GetDeviceProperties(_old);
+bool EvoVulkan::Tools::IsBetterThan(VkPhysicalDevice const& newDevice, VkPhysicalDevice const& oldDevice)  {
+    auto newProp = Tools::GetDeviceProperties(newDevice);
+    auto oldProp = Tools::GetDeviceProperties(oldDevice);
 
-    return _newProp.limits.maxStorageBufferRange > _oldProp.limits.maxStorageBufferRange;
+    auto newExtensions = Tools::GetSupportedDeviceExtensions(newDevice);
+    auto oldExtensions = Tools::GetSupportedDeviceExtensions(oldDevice);
+
+    const int64_t storageDifference = newProp.limits.maxStorageBufferRange - oldProp.limits.maxStorageBufferRange;
+    const int64_t extensionsDifference = newExtensions.size() - oldExtensions.size();
+
+    return (storageDifference + extensionsDifference) > 0;
 }

@@ -31,7 +31,7 @@ namespace EvoVulkan::Types {
         }
     }
 
-    Device* Device::Create(const EvoDeviceCreateInfo& info) {
+    Device* Device::Create(EvoDeviceCreateInfo info) {
         VK_GRAPH("Device::Create() : create vulkan device...");
 
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -63,6 +63,12 @@ namespace EvoVulkan::Types {
             else {
                 VK_WARN("Device::Create() : device \"" + Tools::GetDeviceName(physDev) + "\" isn't suitable!");
             }
+        }
+
+        if (Tools::IsExtensionSupported(physicalDevice, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)) {
+            info.extensions.emplace_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+            info.extensions.emplace_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+            info.extensions.emplace_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
         }
 
         if (physicalDevice == VK_NULL_HANDLE) {
@@ -209,7 +215,9 @@ namespace EvoVulkan::Types {
 
         auto&& pDevice = new Device(info.pInstance, pQueues, physicalDevice, logicalDevice);
 
-        if (!pDevice->Initialize(info.enableSampleShading, info.multisampling, info.rayTracing, info.sampleCount)) {
+        pDevice->CheckRayTracing(info.rayTracing);
+
+        if (!pDevice->Initialize(info.enableSampleShading, info.multisampling, info.sampleCount)) {
             VK_ERROR("Device::Create() : failed to initialize device!");
             delete pDevice;
             return nullptr;
@@ -220,38 +228,9 @@ namespace EvoVulkan::Types {
         return pDevice;
     }
 
-    bool Device::Initialize(bool enableSampleShading, bool multisampling, bool requestRayTrace, uint32_t sampleCount) {
+    bool Device::Initialize(bool enableSampleShading, bool multisampling, uint32_t sampleCount) {
         m_enableSampleShading = enableSampleShading;
         m_multisampling = multisampling;
-
-        if (requestRayTrace) {
-            VK_LOG("Device::Initialize() : the ray-tracing was requested!");
-
-            m_RTProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
-            m_RTProps.pNext = nullptr;
-            m_RTProps.maxRayRecursionDepth = 0;
-            /// m_RTProps.shaderHeaderSize = 0;
-
-            VkPhysicalDeviceProperties2 devProps;
-            devProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-            devProps.pNext = &m_RTProps;
-            devProps.properties = { };
-
-            vkGetPhysicalDeviceProperties2(m_physicalDevice, &devProps);
-
-            VK_LOG(std::string("Device::Initialize() : VkPhysicalDeviceRayTracingPipelinePropertiesKHR: ")
-                .append("\n\tshaderGroupHandleSize = " + std::to_string(m_RTProps.shaderGroupHandleSize))
-                .append("\n\tmaxRayRecursionDepth = " + std::to_string(m_RTProps.maxRayRecursionDepth))
-                .append("\n\tmaxShaderGroupStride = " + std::to_string(m_RTProps.maxShaderGroupStride))
-                .append("\n\tshaderGroupBaseAlignment = " + std::to_string(m_RTProps.shaderGroupBaseAlignment))
-                .append("\n\tshaderGroupHandleCaptureReplaySize = " + std::to_string(m_RTProps.shaderGroupHandleCaptureReplaySize))
-                .append("\n\tmaxRayDispatchInvocationCount = " + std::to_string(m_RTProps.maxRayDispatchInvocationCount))
-                .append("\n\tshaderGroupHandleAlignment = " + std::to_string(m_RTProps.shaderGroupHandleAlignment))
-                .append("\n\tmaxRayHitAttributeSize = " + std::to_string(m_RTProps.maxRayHitAttributeSize))
-            );
-
-            m_rayTracing = true;
-        }
 
         /// Gather physical device memory properties
         vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &m_memoryProperties);
@@ -366,5 +345,55 @@ namespace EvoVulkan::Types {
 
     uint8_t Device::GetMSAASamplesCount() const {
         return Tools::Convert::SampleCountToInt(m_maxCountMSAASamples);
+    }
+
+    bool Device::IsExtensionSupported(const std::string& extension) const {
+        return Tools::IsExtensionSupported(m_physicalDevice, extension);
+    }
+
+    void Device::CheckRayTracing(bool isRequested) {
+        const bool isRayTraceSupport = IsExtensionSupported(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+
+        if (isRequested) {
+            if (isRayTraceSupport) {
+                VK_LOG("Device::CheckRayTracing() : the ray-tracing was requested and supported!");
+
+                m_RTProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+                m_RTProps.pNext = nullptr;
+                m_RTProps.maxRayRecursionDepth = 0;
+                /// m_RTProps.shaderHeaderSize = 0;
+
+                VkPhysicalDeviceProperties2 devProps;
+                devProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+                devProps.pNext = &m_RTProps;
+                devProps.properties = { };
+
+                vkGetPhysicalDeviceProperties2(m_physicalDevice, &devProps);
+
+                VK_LOG(std::string("Device::CheckRayTracing() : VkPhysicalDeviceRayTracingPipelinePropertiesKHR: ")
+                   .append("\n\tshaderGroupHandleSize = " + std::to_string(m_RTProps.shaderGroupHandleSize))
+                   .append("\n\tmaxRayRecursionDepth = " + std::to_string(m_RTProps.maxRayRecursionDepth))
+                   .append("\n\tmaxShaderGroupStride = " + std::to_string(m_RTProps.maxShaderGroupStride))
+                   .append("\n\tshaderGroupBaseAlignment = " + std::to_string(m_RTProps.shaderGroupBaseAlignment))
+                   .append("\n\tshaderGroupHandleCaptureReplaySize = " + std::to_string(m_RTProps.shaderGroupHandleCaptureReplaySize))
+                   .append("\n\tmaxRayDispatchInvocationCount = " + std::to_string(m_RTProps.maxRayDispatchInvocationCount))
+                   .append("\n\tshaderGroupHandleAlignment = " + std::to_string(m_RTProps.shaderGroupHandleAlignment))
+                   .append("\n\tmaxRayHitAttributeSize = " + std::to_string(m_RTProps.maxRayHitAttributeSize))
+                );
+
+                m_rayTracingSupported = true;
+            }
+            else {
+                VK_LOG("Device::CheckRayTracing() : the ray-tracing was requested but not supported!");
+            }
+        }
+        else {
+            if (isRayTraceSupport) {
+                VK_LOG("Device::CheckRayTracing() : the ray-tracing is supported!");
+            }
+            else {
+                VK_LOG("Device::CheckRayTracing() : the ray-tracing is not supported!");
+            }
+        }
     }
 }
