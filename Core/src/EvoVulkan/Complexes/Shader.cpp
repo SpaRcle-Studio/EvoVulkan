@@ -25,49 +25,37 @@ bool EvoVulkan::Complexes::Shader::Load(
         return false;
     }
 
-    auto modulePatches = std::string();
-    for (const auto& module : modules)
-        modulePatches += "\n\t" + module.m_path;
-
-    VK_LOG("Shader::Load() : load new shader! Modules:" + modulePatches);
+    /// just a log
+    {
+        auto modulePatches = std::string();
+        for (auto&& module : modules) {
+            modulePatches += "\n\t" + module.m_path;
+        }
+        VK_LOG("Shader::Load() : load new shader! Modules:" + modulePatches);
+    }
 
     m_uniformSizes = uniformSizes;
     m_layoutBindings = descriptorLayoutBindings;
 
-    for (const auto& [name, path, stage] : modules) {
-        const auto&& outFolder = std::string(cache).append("/") + name;
+    for (const auto& [path, stage] : modules) {
+        std::string inputFile = std::string(cache + "/").append(path);
+        std::string outputFile = inputFile + ".spv";
 
-        std::string file;
-
-        switch (stage) {
-            case VK_SHADER_STAGE_VERTEX_BIT:
-                file = outFolder + "/vertex.spv";
-                break;
-            case VK_SHADER_STAGE_FRAGMENT_BIT:
-                file = outFolder + "/fragment.spv";
-                break;
-            default:
-                VK_ERROR("Shader::Load() : unknown shader stage!");
-                return false;
+        if (EVK_IS_EXISTS(outputFile)) {
+            EVK_DELETE_FILE(outputFile);
         }
-
-        if (EVK_IS_EXISTS(file)) {
-            EVK_DELETE_FILE(file);
-        }
-
-        Tools::CreatePath(outFolder);
 
     #ifdef EVK_WIN32
-        const auto&& command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(path).append("\" -o \"" + file + "\"\""));
+        const auto&& command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
         /// VK_LOG("Shader::Load() : execute command: " + command);
         system(command.c_str());
     #else
         VK_ERROR("Shader::Load() : the platform does not suppet shader compilation!");
     #endif
 
-        auto shaderModule = Tools::LoadShaderModule(file.c_str(), *m_device);
+        auto shaderModule = Tools::LoadShaderModule(outputFile.c_str(), *m_device);
         if (shaderModule == VK_NULL_HANDLE) {
-            VK_ERROR("Shader::Load() : failed to load shader module! \n\tPath: " + file);
+            VK_ERROR("Shader::Load() : failed to load shader module! \n\tPath: " + inputFile);
             return false;
         }
         else {
@@ -249,5 +237,8 @@ void EvoVulkan::Complexes::Shader::Free() {
 }
 
 void EvoVulkan::Complexes::Shader::Bind(VkCommandBuffer const &cmd) const {
+    if (!m_pipeline) {
+        return;
+    }
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }

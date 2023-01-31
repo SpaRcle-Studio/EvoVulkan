@@ -13,12 +13,10 @@
 
 namespace EvoVulkan::Complexes {
     struct DLL_EVK_EXPORT SourceShader {
-        std::string m_name;
         std::string m_path;
         VkShaderStageFlagBits m_type;
 
-        SourceShader(const std::string& name, const std::string& path, VkShaderStageFlagBits type) {
-            m_name = name;
+        SourceShader(const std::string& path, VkShaderStageFlagBits type) {
             m_path = path;
             m_type = type;
         }
