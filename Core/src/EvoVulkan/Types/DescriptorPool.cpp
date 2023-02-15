@@ -13,11 +13,17 @@ namespace EvoVulkan::Types {
         }
     }
 
-    bool DescriptorPool::Contains(const std::set<VkDescriptorType> &types, const VkDescriptorType &type) {
-        std::set<VkDescriptorType>::iterator it;
-        for (it = types.begin(); it != types.end(); ++it)
-            if (type == *it)
+    bool DescriptorPool::Contains(const RequestTypes &types, const VkDescriptorType &type) {
+        for (auto&& available : types) {
+            if (available == static_cast<uint64_t>(type)) {
                 return true;
+            }
+        }
+
+        //RequestTypes::iterator it;
+        //for (it = types.begin(); it != types.end(); ++it)
+        //    if (type == *it)
+        //        return true;
 
         return false;
     }
@@ -84,7 +90,7 @@ namespace EvoVulkan::Types {
         return true;
     }
 
-    bool DescriptorPool::Equal(const std::set<VkDescriptorType> &requestTypes) {
+    bool DescriptorPool::Equal(const RequestTypes &requestTypes) {
         return requestTypes.size() == m_requestTypes.size() && std::equal(requestTypes.begin(), requestTypes.end(), m_requestTypes.begin());
     }
 

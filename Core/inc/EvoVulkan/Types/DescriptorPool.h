@@ -29,8 +29,9 @@ namespace EvoVulkan::Types {
     };
 
     class DLL_EVK_EXPORT DescriptorPool : public Tools::NonCopyable {
-        using RequestTypes = std::set<VkDescriptorType>;
     public:
+        using RequestTypes = std::vector<uint64_t>;
+
         explicit DescriptorPool(uint32_t maxSets)
             : m_maxSets(maxSets)
         { }
@@ -42,13 +43,13 @@ namespace EvoVulkan::Types {
     public:
         static DescriptorPool* Create(VkDevice device, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& sizes);
         static DescriptorPool* Create(VkDevice device, uint32_t maxSets, VkDescriptorSetLayout layout, const RequestTypes& requestTypes);
-        static bool Contains(const std::set<VkDescriptorType>& types, const VkDescriptorType& type);
+        static bool Contains(const RequestTypes& types, const VkDescriptorType& type);
 
     public:
         std::pair<VkResult, DescriptorSet> Allocate();
         VkResult Free(VkDescriptorSet set);
 
-        bool Equal(const std::set<VkDescriptorType>& requestTypes);
+        bool Equal(const RequestTypes& requestTypes);
 
         EVK_NODISCARD bool IsOutOfMemory() const;
         EVK_NODISCARD uint32_t GetUsageCount() const { return m_used; }
@@ -58,7 +59,7 @@ namespace EvoVulkan::Types {
         bool Initialize(const std::vector<VkDescriptorPoolSize>& sizes);
 
     private:
-        std::set<VkDescriptorType> m_requestTypes   = std::set<VkDescriptorType>();
+        RequestTypes               m_requestTypes   = RequestTypes();
         PoolSizes                  m_poolSizes      = PoolSizes();
 
         /// for check equal alloc request (reference)

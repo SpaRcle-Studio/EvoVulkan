@@ -205,6 +205,8 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     //!=================================================================================================================
 
+    /// TODO: custom sampler address mode
+
     texture->m_sampler = Tools::CreateSampler(
             texture->m_device,
             texture->m_mipLevels,
@@ -466,7 +468,7 @@ EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDe
     }
 
     if (m_descriptorSet == VK_NULL_HANDLE) {
-        static const std::set<VkDescriptorType> type = {
+        static const DescriptorPool::RequestTypes type = {
                 VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
         };
 

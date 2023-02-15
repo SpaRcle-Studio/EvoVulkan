@@ -14,7 +14,7 @@ namespace EvoVulkan::Types {
 
 namespace EvoVulkan::Core {
     class DLL_EVK_EXPORT DescriptorManager : public Tools::NonCopyable {
-        using RequestTypes = std::set<VkDescriptorType>;
+        using RequestTypes = std::vector<uint64_t>;
     private:
         DescriptorManager()  = default;
         ~DescriptorManager() override = default;
