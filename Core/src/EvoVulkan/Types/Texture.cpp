@@ -463,7 +463,7 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
 
 EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDescriptorSetLayout layout) {
     if (!m_descriptorManager) {
-        VK_ERROR("Texture::GetDescriptorSet() : texture have not descriptor manager!");
+        VK_ASSERT("Texture::GetDescriptorSet() : texture have not descriptor manager!");
         return Types::DescriptorSet();
     }
 
