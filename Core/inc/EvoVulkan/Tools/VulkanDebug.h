@@ -47,6 +47,10 @@ namespace EvoVulkan::Tools {
         std::function<bool(const std::string& path)> IsExists;
         std::function<bool(const std::string& path)> Delete;
 
+        std::function<uint64_t(const std::string& path)> GetFileHash;
+        std::function<uint64_t(const std::string& path)> ReadHash;
+        std::function<bool(const std::string& path, uint64_t hash)> WriteHash;
+
         std::function<void(const std::string &msg)> ErrorCallback;
         std::function<void(const std::string &msg)> LogCallback;
         std::function<void(const std::string &msg)> GraphCallback;

@@ -9,12 +9,16 @@ namespace EvoVulkan::Tools {
     bool VkFunctionsHolder::Ready() const {
         const bool debugFunctions = LogCallback && WarnCallback && ErrorCallback && GraphCallback && AssertCallback;
         const bool fileSysFunctions = Delete && IsExists && Copy && CreateFolder;
+        const bool hashFunctions = GetFileHash && ReadHash && WriteHash;
 
-        if (debugFunctions && fileSysFunctions) {
+        if (debugFunctions && fileSysFunctions && hashFunctions) {
             return true;
         }
 
-        std::cerr << "Evo vulkan functions holder isn't initialized!\n";
+        std::cerr << "Evo vulkan functions holder isn't initialized!\n"
+            << "\tDebug functions: " << (debugFunctions ? "OK" : "FAIL") << "\n"
+            << "\tFile-system functions: " << (fileSysFunctions ? "OK" : "FAIL") << "\n"
+            << "\tHash functions: " << (hashFunctions ? "OK" : "FAIL") << "\n";
 
         return false;
     }

@@ -20,6 +20,7 @@ namespace EvoVulkan::Types {
 
     bool FamilyQueues::IsComplete() const {
         return
+            m_presentQueueFamilyIndex >= 0 &&
             m_graphicsQueueFamilyIndex >= 0 &&
             m_computeQueueFamilyIndex >= 0 &&
             m_transferQueueFamilyIndex >= 0;
@@ -28,6 +29,7 @@ namespace EvoVulkan::Types {
     bool FamilyQueues::IsReady() const {
         return
             IsComplete() &&
+            m_presentQueue != VK_NULL_HANDLE &&
             m_graphicsQueue != VK_NULL_HANDLE &&
             m_transferQueue != VK_NULL_HANDLE &&
             m_computeQueue  != VK_NULL_HANDLE;
@@ -73,6 +75,7 @@ namespace EvoVulkan::Types {
         vkGetDeviceQueue(m_logicalDevice, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
         vkGetDeviceQueue(m_logicalDevice, m_computeQueueFamilyIndex, 0, &m_computeQueue);
         vkGetDeviceQueue(m_logicalDevice, m_transferQueueFamilyIndex, 0, &m_transferQueue);
+        vkGetDeviceQueue(m_logicalDevice, m_presentQueueFamilyIndex, 0, &m_presentQueue);
 
         return true;
     }
@@ -89,6 +92,13 @@ namespace EvoVulkan::Types {
         for (size_t i = 0; i < 3; ++i) {
             const VkQueueFlagBits flag = askingFlags[i];
             uint32_t& queueIdx = queuesIndices[i];
+
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, *m_surface, &presentSupport);
+
+            if (presentSupport) {
+                m_presentQueueFamilyIndex = i;
+            }
 
             if (flag == VK_QUEUE_COMPUTE_BIT) {
                 for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {

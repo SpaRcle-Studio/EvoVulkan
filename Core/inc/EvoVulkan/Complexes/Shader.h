@@ -44,7 +44,7 @@ namespace EvoVulkan::Complexes {
     class DLL_EVK_EXPORT Shader : public Tools::NonCopyable {
     public:
         Shader(const Types::Device* device, Types::RenderPass renderPass, const VkPipelineCache& cache);
-        ~Shader() override = default;
+        ~Shader() override;
 
         operator VkPipeline() const { return m_pipeline; }
 
@@ -79,9 +79,6 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE VkPipelineLayout GetPipelineLayout() const noexcept { return m_pipelineLayout; }
 
         void Bind(const VkCommandBuffer& cmd) const;
-
-        void Destroy();
-        void Free();
 
         bool ReCreatePipeLine(Types::RenderPass renderPass);
 

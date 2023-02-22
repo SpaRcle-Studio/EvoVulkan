@@ -38,20 +38,27 @@ bool EvoVulkan::Complexes::Shader::Load(
     m_layoutBindings = descriptorLayoutBindings;
 
     for (const auto& [path, stage] : modules) {
-        std::string inputFile = std::string(cache + "/").append(path);
-        std::string outputFile = inputFile + ".spv";
+        const std::string inputFile = std::string(cache + "/").append(path);
+        const std::string hashFile = inputFile + ".spv.hash";
+        const std::string outputFile = inputFile + ".spv";
 
-        if (EVK_IS_EXISTS(outputFile)) {
-            EVK_DELETE_FILE(outputFile);
+        const uint64_t hash = Tools::VkFunctionsHolder::Instance().GetFileHash(inputFile);
+
+        if (hash != Tools::VkFunctionsHolder::Instance().ReadHash(hashFile)) {
+            Tools::VkFunctionsHolder::Instance().WriteHash(hashFile, hash);
+
+            if (EVK_IS_EXISTS(outputFile)) {
+                EVK_DELETE_FILE(outputFile);
+            }
+
+        #ifdef EVK_WIN32
+            const auto&& command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
+            /// VK_LOG("Shader::Load() : execute command: " + command);
+            system(command.c_str());
+        #else
+            VK_ERROR("Shader::Load() : the platform does not suppet shader compilation!");
+        #endif
         }
-
-    #ifdef EVK_WIN32
-        const auto&& command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
-        /// VK_LOG("Shader::Load() : execute command: " + command);
-        system(command.c_str());
-    #else
-        VK_ERROR("Shader::Load() : the platform does not suppet shader compilation!");
-    #endif
 
         auto shaderModule = Tools::LoadShaderModule(outputFile.c_str(), *m_device);
         if (shaderModule == VK_NULL_HANDLE) {
@@ -208,7 +215,7 @@ bool EvoVulkan::Complexes::Shader::BuildLayouts() {
     return true;
 }
 
-void EvoVulkan::Complexes::Shader::Destroy() {
+EvoVulkan::Complexes::Shader::~Shader() {
     if (m_descriptorSetLayout != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayout, nullptr);
         m_descriptorSetLayout = VK_NULL_HANDLE;
@@ -230,10 +237,6 @@ void EvoVulkan::Complexes::Shader::Destroy() {
     }
 
     m_cache = VK_NULL_HANDLE;
-}
-
-void EvoVulkan::Complexes::Shader::Free() {
-    delete this;
 }
 
 void EvoVulkan::Complexes::Shader::Bind(VkCommandBuffer const &cmd) const {
