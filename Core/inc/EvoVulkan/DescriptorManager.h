@@ -16,7 +16,7 @@ namespace EvoVulkan::Core {
     class DLL_EVK_EXPORT DescriptorManager : public Tools::NonCopyable {
         using RequestTypes = std::vector<uint64_t>;
     private:
-        DescriptorManager()  = default;
+        DescriptorManager() = default;
         ~DescriptorManager() override = default;
 
     public:
@@ -33,7 +33,7 @@ namespace EvoVulkan::Core {
         Types::DescriptorPool* AllocateDescriptorPool(VkDescriptorSetLayout layout, const RequestTypes& requestTypes);
 
     private:
-        const EvoVulkan::Types::Device*  m_device = nullptr;
+        const EvoVulkan::Types::Device* m_device = nullptr;
         std::set<Types::DescriptorPool*> m_pools  = std::set<Types::DescriptorPool*>();
 
     };
