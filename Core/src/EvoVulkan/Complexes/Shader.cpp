@@ -44,7 +44,7 @@ bool EvoVulkan::Complexes::Shader::Load(
 
         const uint64_t hash = Tools::VkFunctionsHolder::Instance().GetFileHash(inputFile);
 
-        if (hash != Tools::VkFunctionsHolder::Instance().ReadHash(hashFile)) {
+        if (hash != Tools::VkFunctionsHolder::Instance().ReadHash(hashFile) || !Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
             Tools::VkFunctionsHolder::Instance().WriteHash(hashFile, hash);
 
             if (EVK_IS_EXISTS(outputFile)) {
@@ -52,9 +52,14 @@ bool EvoVulkan::Complexes::Shader::Load(
             }
 
         #ifdef EVK_WIN32
-            const auto&& command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
+            std::string command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
             /// VK_LOG("Shader::Load() : execute command: " + command);
             system(command.c_str());
+
+            if (!Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
+                VK_ERROR("Shader::Load() : failed to compile shader!\n\tPath: " + inputFile + "\n\tGLSL Command: " + command);
+                return false;
+            }
         #else
             VK_ERROR("Shader::Load() : the platform does not suppet shader compilation!");
         #endif
