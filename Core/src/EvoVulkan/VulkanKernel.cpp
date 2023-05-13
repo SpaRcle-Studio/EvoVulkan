@@ -645,3 +645,11 @@ EvoVulkan::Core::DescriptorManager *EvoVulkan::Core::VulkanKernel::GetDescriptor
     }
     return m_descriptorManager;
 }
+
+EvoVulkan::Types::CmdBuffer *EvoVulkan::Core::VulkanKernel::CreateCmd() const {
+    return Types::CmdBuffer::Create(m_device, m_cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+}
+
+EvoVulkan::Types::CmdBuffer* EvoVulkan::Core::VulkanKernel::CreateSingleTimeCmd() const {
+    return EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_cmdPool);
+}

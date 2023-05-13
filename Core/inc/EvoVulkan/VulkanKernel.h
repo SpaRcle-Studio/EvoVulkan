@@ -71,6 +71,8 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
         EVK_NODISCARD EVK_INLINE bool MultisamplingEnabled() const noexcept { return m_sampleCount > 1; }
 
+        EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateSingleTimeCmd() const;
+        EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateCmd() const;
         EVK_NODISCARD Core::DescriptorManager* GetDescriptorManager() const;
         EVK_NODISCARD uint32_t GetCountBuildIterations() const;
         EVK_NODISCARD bool IsValidationLayersEnabled() const { return m_validationEnabled; }

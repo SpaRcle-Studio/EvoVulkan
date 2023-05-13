@@ -105,9 +105,9 @@ namespace EvoVulkan::Complexes {
 
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE VkRect2D GetRenderPassArea() const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
-        EVK_NODISCARD EVK_INLINE VkCommandBuffer GetCmd() const noexcept { return m_cmdBuff; }
+        EVK_NODISCARD EVK_INLINE VkCommandBuffer GetCmd() const noexcept { return *m_cmdBuff; }
         EVK_NODISCARD EVK_INLINE VkSemaphore GetSemaphore() const noexcept { return m_semaphore; }
-        EVK_NODISCARD EVK_INLINE VkCommandBuffer* GetCmdRef() noexcept { return &m_cmdBuff; }
+        EVK_NODISCARD EVK_INLINE VkCommandBuffer* GetCmdRef() const noexcept { return m_cmdBuff->GetCmdRef(); }
         EVK_NODISCARD EVK_INLINE VkSemaphore* GetSemaphoreRef() noexcept { return &m_semaphore; }
         EVK_NODISCARD EVK_INLINE uint32_t GetCountClearValues() const { return m_countClearValues; }
         EVK_NODISCARD const VkClearValue* GetClearValues() const { return m_clearValues.data(); }
@@ -128,7 +128,7 @@ namespace EvoVulkan::Complexes {
 
         VkSemaphore               m_semaphore          = VK_NULL_HANDLE;
 
-        VkCommandBuffer           m_cmdBuff            = VK_NULL_HANDLE;
+        Types::CmdBuffer*         m_cmdBuff            = nullptr;
 
     private:
         uint32_t                  m_width              = 0;

@@ -121,21 +121,6 @@ namespace EvoVulkan::Types {
         return true;
     }
 
-    VkCommandBuffer CmdBuffer::CreateSimple(
-        const Device* device,
-        const CmdPool* cmdPool,
-        const VkCommandBufferLevel& level
-    ) {
-        VkCommandBufferAllocateInfo cmdBufAllocateInfo = Tools::Initializers::CommandBufferAllocateInfo(*cmdPool, level, 1);
-        VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
-        if (vkAllocateCommandBuffers(*device, &cmdBufAllocateInfo, &cmdBuffer) != VK_SUCCESS) {
-            VK_ERROR("CmdBuffer::CreateSimple() : failed to allocate vulkan command buffer!");
-            return VK_NULL_HANDLE;
-        }
-        else
-            return cmdBuffer;
-    }
-
     bool CmdBuffer::Begin(const VkCommandBufferUsageFlagBits &usage) {
         if (!IsReady()) {
             VK_ERROR("CmdBuffer::Begin() : command buffer isn't ready!");

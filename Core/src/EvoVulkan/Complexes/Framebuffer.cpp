@@ -83,9 +83,9 @@ namespace EvoVulkan::Complexes {
             m_semaphore = VK_NULL_HANDLE;
         }
 
-        if (m_cmdBuff != VK_NULL_HANDLE) {
-            vkFreeCommandBuffers(*m_device, *m_cmdPool, 1, &m_cmdBuff);
-            m_cmdBuff = VK_NULL_HANDLE;
+        if (m_cmdBuff) {
+            delete m_cmdBuff;
+            m_cmdBuff = nullptr;
         }
 
         if (m_renderPass.IsReady()) {
@@ -150,7 +150,7 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        fbo->m_cmdBuff    = Types::CmdBuffer::CreateSimple(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        fbo->m_cmdBuff    = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         fbo->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
 
         if (!fbo->CreateRenderPass()) {
@@ -437,17 +437,17 @@ namespace EvoVulkan::Complexes {
     }
 
     void EvoVulkan::Complexes::FrameBuffer::BeginCmd() {
-        vkBeginCommandBuffer(m_cmdBuff, &m_cmdBufInfo);
+        vkBeginCommandBuffer(*m_cmdBuff, &m_cmdBufInfo);
     }
 
     void EvoVulkan::Complexes::FrameBuffer::End() const {
-        vkCmdEndRenderPass(m_cmdBuff);
-        vkEndCommandBuffer(m_cmdBuff);
+        vkCmdEndRenderPass(*m_cmdBuff);
+        vkEndCommandBuffer(*m_cmdBuff);
     }
 
     void EvoVulkan::Complexes::FrameBuffer::SetViewportAndScissor() const {
-        vkCmdSetViewport(m_cmdBuff, 0, 1, &m_viewport);
-        vkCmdSetScissor(m_cmdBuff, 0, 1, &m_scissor);
+        vkCmdSetViewport(*m_cmdBuff, 0, 1, &m_viewport);
+        vkCmdSetScissor(*m_cmdBuff, 0, 1, &m_scissor);
     }
 
     VkRenderPassBeginInfo EvoVulkan::Complexes::FrameBuffer::BeginRenderPass(VkClearValue *clearValues, uint32_t countCls) const {

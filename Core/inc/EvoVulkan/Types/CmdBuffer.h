@@ -22,7 +22,6 @@ namespace EvoVulkan::Types {
         operator VkCommandBuffer() const { return m_buffer; }
 
     public:
-        static VkCommandBuffer CreateSimple(const Device* device, const CmdPool* cmdPool, const VkCommandBufferLevel& level);
         static bool ExecuteSingleTime(const Device* device, const CmdPool* cmdPool, const std::function<bool(CmdBuffer*)>& fun);
         static CmdBuffer* BeginSingleTime(const Device* device, const CmdPool* cmdPool);
         static CmdBuffer* Create(const Device* device, const CmdPool* cmdPool, VkCommandBufferLevel level);
@@ -38,6 +37,8 @@ namespace EvoVulkan::Types {
 
         EVK_NODISCARD bool IsComplete() const override;
         EVK_NODISCARD bool IsReady() const override;
+
+        EVK_NODISCARD VkCommandBuffer* GetCmdRef() { return &m_buffer; }
 
     private:
         bool                        m_isBegin       = false;

@@ -84,10 +84,9 @@ namespace EvoVulkan::Types {
         const VkQueueFlagBits askingFlags[3] = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT };
         uint32_t queuesIndices[3] = { ~0u, ~0u, ~0u };
 
-        uint32_t queueFamilyPropertyCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyPropertyCount, nullptr);
-        std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &m_queueFamilyPropertyCount, nullptr);
+        std::vector<VkQueueFamilyProperties> queueFamilyProperties(m_queueFamilyPropertyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &m_queueFamilyPropertyCount, queueFamilyProperties.data());
 
         for (size_t i = 0; i < 3; ++i) {
             const VkQueueFlagBits flag = askingFlags[i];
@@ -101,7 +100,7 @@ namespace EvoVulkan::Types {
             }
 
             if (flag == VK_QUEUE_COMPUTE_BIT) {
-                for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
                     if ((queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
                         !(queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
                         queueIdx = j;
@@ -110,7 +109,7 @@ namespace EvoVulkan::Types {
                 }
             }
             else if (flag == VK_QUEUE_TRANSFER_BIT) {
-                for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
                     if ((queueFamilyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
                         !(queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
                         !(queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
@@ -121,7 +120,7 @@ namespace EvoVulkan::Types {
             }
 
             if (queueIdx == ~0u) {
-                for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j) {
+                for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
                     if (queueFamilyProperties[j].queueFlags & flag) {
                         queueIdx = j;
                         break;

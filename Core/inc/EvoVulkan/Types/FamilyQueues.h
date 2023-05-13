@@ -38,6 +38,8 @@ namespace EvoVulkan::Types {
         bool FindIndices();
 
     private:
+        uint32_t m_queueFamilyPropertyCount = 0;
+
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
         VkDevice m_logicalDevice = VK_NULL_HANDLE;
 
