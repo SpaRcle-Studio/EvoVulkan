@@ -25,7 +25,7 @@ namespace EvoVulkan::Core {
     };
 
     enum class RenderResult : uint8_t {
-        Success = 0, Fatal = 1, Error = 2
+        None, Success, Fatal, Error
     };
 
     class DLL_EVK_EXPORT VulkanKernel : public Tools::NonCopyable {
@@ -34,24 +34,24 @@ namespace EvoVulkan::Core {
         ~VulkanKernel() override = default;
 
     public:
-        bool PreInit(
+        virtual bool PreInit(
                 const std::string& appName,
                 const std::string& engineName,
                 const std::string& glslc,
                 const std::vector<const char*>& instExtensions,
                 const std::vector<const char*>& validationLayers);
 
-        bool Init(
+        virtual bool Init(
                 const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
                 void* windowHandle,
                 const std::vector<const char*>& deviceExtensions, const bool& enableSampleShading,
                 bool vsync);
 
-        bool PostInit();
+        virtual bool PostInit();
 
-        FrameResult PrepareFrame();
-        RenderResult NextFrame();
-        FrameResult SubmitFrame();
+        virtual FrameResult PrepareFrame();
+        virtual RenderResult NextFrame();
+        virtual FrameResult SubmitFrame();
 
     public:
         EVK_NODISCARD EVK_INLINE VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
