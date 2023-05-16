@@ -69,7 +69,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
         void* windowHandle,
         const std::vector<const char*>& deviceExtensions,
-        const bool& enableSampleShading,
+        bool enableSampleShading,
         bool vsync)
 {
     VK_GRAPH("VulkanKernel::Init() : initializing Evo Vulkan kernel...");
@@ -103,16 +103,16 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         return false;
     }
 
-    /// так как при создании устройства мы передаем ему желаемое значение,
-    /// то нам стоит переспросить у устройства реальное значение, которое оно поддерживает
-    m_sampleCount = m_device->GetMSAASamples();
-
     if (!m_device->IsReady()) {
         VK_ERROR("VulkanKernel::Init() : something went wrong! Device isn't ready...");
         return false;
     }
 
-    VK_LOG("VulkanKernel::Init() : supported and used count MSAA samples is " + std::to_string(m_sampleCount));
+    /// так как при создании устройства мы передаем ему желаемое значение,
+    /// то нам стоит переспросить у устройства реальное значение, которое оно поддерживает
+    m_sampleCount = EVK_MIN(m_device->GetMSAASamples(), m_sampleCount);
+
+    VK_LOG("VulkanKernel::Init() : supported and used count MSAA samples is " + std::to_string(m_device->GetMSAASamples()));
 
     //!=============================================[Create allocator]==================================================
 
@@ -166,7 +166,6 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         return false;
     }
 
-    m_swapchain->SetSampleCount(m_sampleCount);
     if (!m_swapchain->IsReady()) {
         VK_ERROR("VulkanKernel::Init() : swapchain isn't ready!");
         return false;
@@ -228,7 +227,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
             m_swapchain->GetSurfaceWidth(),
             m_swapchain->GetSurfaceHeight(),
             { m_swapchain->GetColorFormat() },
-            m_swapchain->GetSampleCount(),
+            GetSampleCount(),
             true /** depth buffer */
     );
 
@@ -244,7 +243,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
             m_device,
             m_swapchain,
             { } /** color attachment */,
-            m_swapchain->GetSampleCount(),
+            GetSampleCount(),
             true /** depth buffer */
     );
 
@@ -285,6 +284,8 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     }
 
     VK_INFO("VulkanKernel::PostInit() : Evo Vulkan successfully post-initialized!");
+
+    m_dirty = false;
 
     return true;
 }
@@ -347,18 +348,28 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
         return false;
     }
 
+    m_multisample->SetSampleCount(GetSampleCount());
     m_multisample->ReCreate(m_swapchain->GetSurfaceWidth(), m_swapchain->GetSurfaceHeight());
 
-    for (auto&& frameBuffer : m_frameBuffers) {
-        vkDestroyFramebuffer(*m_device, frameBuffer, nullptr);
-    }
-    m_frameBuffers.clear();
+    DestroyFrameBuffers();
+
+    Types::DestroyRenderPass(m_device, &m_renderPass);
+
+    m_renderPass = Types::CreateRenderPass(
+        m_device,
+        m_swapchain,
+        { } /** color attachment */,
+        GetSampleCount(),
+        true /** depth buffer */
+    );
+
+    /// -----------------------------------------------------------------
 
     std::vector<VkImageView> attachments = {};
     attachments.resize(m_renderPass.m_countAttachments);
 
     /// Depth/Stencil attachment is the same for all frame buffers
-    if (m_swapchain->IsMultisamplingEnabled()) {
+    if (IsMultisamplingEnabled()) {
         attachments[0] = m_multisample->GetResolve(0);
         attachments[2] = m_multisample->GetDepth();
     }
@@ -381,7 +392,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     for (uint32_t i = 0; i < m_countDCB; ++i) {
         //!attachments[0] = m_swapchain->GetBuffers()[i].m_view;
 
-        attachments[m_swapchain->IsMultisamplingEnabled() ? 1 : 0] = m_swapchain->GetBuffers()[i].m_view;
+        attachments[IsMultisamplingEnabled() ? 1 : 0] = m_swapchain->GetBuffers()[i].m_view;
 
         auto result = vkCreateFramebuffer(*m_device, &frameBufferCreateInfo, nullptr, &m_frameBuffers[i]);
 
@@ -446,6 +457,7 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
         }
     }
 
+    /// TODO: здесь может зависнуть, нужно придумать способ перехвата
     result = vkQueueWaitIdle(m_device->GetQueues()->GetGraphicsQueue());
 
     if (result != VK_SUCCESS) {
@@ -461,43 +473,49 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
     return FrameResult::Success;
 }
 
-bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
+bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
     VK_LOG("VulkanKernel::ResizeWindow() : waiting for a change in the size of the client window...");
 
-    /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
-    while(true) {
+    if (reason == FrameResult::OutOfDate) {
+        /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
+        while (true) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+
+            if (!IsWindowValid()) {
+                VK_LOG("VulkanKernel::ResizeWindow() : window was closed.");
+                break;
+            }
+
+            if (m_newWidth != -1 && m_newHeight != -1) {
+                break;
+            }
+        }
+
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        if (!IsWindowValid()) {
-            VK_LOG("VulkanKernel::ResizeWindow() : window was closed.");
-            break;
+        VK_LOG("VulkanKernel::ResizeWindow() : set new sizes: width = " +
+               std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
+
+        if (!m_isPostInitialized) {
+            VK_ERROR("VulkanKernel::ResizeWindow() : kernel is not complete!");
+            return false;
         }
 
-        if (m_newWidth != -1 && m_newHeight != -1) {
-            break;
-        }
+        vkDeviceWaitIdle(*m_device);
+
+        m_width = m_newWidth;
+        m_height = m_newHeight;
+
+        m_newWidth = -1;
+        m_newHeight = -1;
+    }
+    else {
+        vkDeviceWaitIdle(*m_device);
     }
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    VK_LOG("VulkanKernel::ResizeWindow() : set new sizes: width = " +
-        std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
-
-    if (!m_isPostInitialized) {
-        VK_ERROR("VulkanKernel::ResizeWindow() : kernel is not complete!");
-        return false;
-    }
-
-    vkDeviceWaitIdle(*m_device);
-
-    m_width  = m_newWidth;
-    m_height = m_newHeight;
-
-    m_newWidth = -1;
-    m_newHeight = -1;
-
-    if (!m_swapchain->SurfaceIsAvailable())
+    if (!m_swapchain->SurfaceIsAvailable()) {
         return true;
+    }
 
     if (!m_swapchain->ReSetup(m_width, m_height, m_swapchainImages)) {
         VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-setup swapchain!");
@@ -526,12 +544,28 @@ bool EvoVulkan::Core::VulkanKernel::ResizeWindow() {
         return false;
     }
 
+    m_dirty = false;
+
     return true;
 }
 
 void EvoVulkan::Core::VulkanKernel::SetMultisampling(uint32_t sampleCount) {
+    if (m_sampleCount == sampleCount) {
+        return;
+    }
+
     m_sampleCount = sampleCount;
-    VK_ASSERT2(!m_device, "The device is already initialized!");
+
+    if (m_device) {
+        if (m_sampleCount == 0) {
+            m_sampleCount = m_device->GetMSAASamplesCount();
+        }
+        else {
+            m_sampleCount = EVK_MIN(m_sampleCount, m_device->GetMSAASamplesCount());
+        }
+    }
+
+    m_dirty = true;
 }
 
 void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
@@ -652,4 +686,8 @@ EvoVulkan::Types::CmdBuffer *EvoVulkan::Core::VulkanKernel::CreateCmd() const {
 
 EvoVulkan::Types::CmdBuffer* EvoVulkan::Core::VulkanKernel::CreateSingleTimeCmd() const {
     return EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_cmdPool);
+}
+
+uint8_t EvoVulkan::Core::VulkanKernel::GetSampleCount() const {
+    return m_sampleCount;
 }

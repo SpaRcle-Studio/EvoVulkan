@@ -21,7 +21,7 @@
 
 namespace EvoVulkan::Core {
     enum class FrameResult : uint8_t {
-        Error = 0, Success = 1, OutOfDate = 2, DeviceLost = 3
+        Error = 0, Success = 1, OutOfDate = 2, DeviceLost = 3, Dirty = 4
     };
 
     enum class RenderResult : uint8_t {
@@ -44,7 +44,8 @@ namespace EvoVulkan::Core {
         virtual bool Init(
                 const std::function<VkSurfaceKHR(const VkInstance&)>& platformCreate,
                 void* windowHandle,
-                const std::vector<const char*>& deviceExtensions, const bool& enableSampleShading,
+                const std::vector<const char*>& deviceExtensions,
+                bool enableSampleShading,
                 bool vsync);
 
         virtual bool PostInit();
@@ -64,13 +65,15 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE Types::Surface* GetSurface() const { return m_surface; }
         EVK_NODISCARD EVK_INLINE VkInstance GetInstance() const { return *m_instance; }
         EVK_NODISCARD EVK_INLINE bool HasErrors() const noexcept { return m_hasErrors; }
+        EVK_NODISCARD EVK_INLINE bool IsDirty() const noexcept { return m_dirty; }
         EVK_NODISCARD EVK_INLINE VkViewport GetViewport()   const noexcept { return Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f); }
         EVK_NODISCARD EVK_INLINE VkRect2D   GetScissor()    const noexcept { return Tools::Initializers::Rect2D(m_width, m_height, 0, 0);                       }
         EVK_NODISCARD EVK_INLINE VkRect2D   GetRenderArea() const noexcept { return { VkOffset2D(), { m_width, m_height } };                                    }
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
-        EVK_NODISCARD EVK_INLINE bool MultisamplingEnabled() const noexcept { return m_sampleCount > 1; }
+        EVK_NODISCARD EVK_INLINE bool IsMultisamplingEnabled() const noexcept { return m_sampleCount > 1; }
 
+        EVK_NODISCARD uint8_t GetSampleCount() const;
         EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateSingleTimeCmd() const;
         EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateCmd() const;
         EVK_NODISCARD Core::DescriptorManager* GetDescriptorManager() const;
@@ -89,7 +92,7 @@ namespace EvoVulkan::Core {
 
         bool SetValidationLayersEnabled(bool value);
         void SetSize(uint32_t width, uint32_t height);
-        bool ResizeWindow();
+        bool ReCreate(FrameResult reason);
 
     public:
         virtual bool BuildCmdBuffers() = 0;
@@ -115,6 +118,7 @@ namespace EvoVulkan::Core {
 
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
+        bool                       m_dirty                = false;
 
         int32_t                    m_newWidth             = -1;
         int32_t                    m_newHeight            = -1;

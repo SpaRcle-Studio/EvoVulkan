@@ -20,31 +20,34 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
         sampleCount = device->GetMSAASamplesCount();
     }
 
-    auto&& multisample = new MultisampleTarget();
-    multisample->m_device        = device;
-    multisample->m_allocator     = allocator;
-    multisample->m_swapchain     = swapchain;
-    multisample->m_cmdPool       = cmdPool;
-    multisample->m_countResolves = formats.size();
-    multisample->m_formats       = formats;
-    multisample->m_sampleCount   = sampleCount;
-    multisample->m_depthEnabled  = depth;
+    auto&& pMultiSample = new MultisampleTarget();
+    pMultiSample->m_device        = device;
+    pMultiSample->m_allocator     = allocator;
+    pMultiSample->m_swapchain     = swapchain;
+    pMultiSample->m_cmdPool       = cmdPool;
+    pMultiSample->m_countResolves = formats.size();
+    pMultiSample->m_formats       = formats;
+    pMultiSample->m_sampleCount   = sampleCount;
+    pMultiSample->m_depthEnabled  = depth;
 
-    if (!multisample->ReCreate(w, h)) {
+    if (!pMultiSample->ReCreate(w, h)) {
         VK_ERROR("MultisampleTarget::Create() : failed to re-create multisample!");
         return nullptr;
     }
 
-    return multisample;
+    return pMultiSample;
 }
 
 bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
     Destroy();
 
+    m_width = w;
+    m_height = h;
+
     auto&& imageCI = Types::ImageCreateInfo(
-            m_device, m_allocator, w, h,
-            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            m_sampleCount
+        m_device, m_allocator, m_width, m_height,
+        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        m_sampleCount
     );
 
     //! ----------------------------------- Color target -----------------------------------
@@ -143,4 +146,8 @@ VkImageView EvoVulkan::Types::MultisampleTarget::GetResolve(const uint32_t &id) 
     }
 
     return m_resolves[id].m_view;
+}
+
+void EvoVulkan::Types::MultisampleTarget::SetSampleCount(uint8_t sampleCount) {
+    m_sampleCount = sampleCount;
 }

@@ -249,6 +249,8 @@ namespace EvoVulkan::Types {
 
         /// device->m_maxCountMSAASamples = calculate...
         if (m_multisampling) {
+            VK_LOG("Device::Initialize() : multisampling required...");
+
             if (sampleCount <= 0) {
                 m_maxCountMSAASamples = Tools::GetMaxUsableSampleCount(m_physicalDevice);
             }

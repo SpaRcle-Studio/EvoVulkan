@@ -31,7 +31,7 @@ namespace EvoVulkan::Types {
                 Swapchain* swapchain,
                 uint32_t w, uint32_t h,
                 const std::vector<VkFormat>& formats,
-                uint8_t m_sampleCount,
+                uint8_t sampleCount,
                 bool depth);
 
     public:
@@ -39,6 +39,7 @@ namespace EvoVulkan::Types {
         void Free() { delete this; }
 
         bool ReCreate(uint32_t w, uint32_t h);
+        void SetSampleCount(uint8_t sampleCount);
 
         EVK_NODISCARD VkImageView GetResolve(const uint32_t& id) const noexcept;
         EVK_NODISCARD Types::Image& GetDepthImage() noexcept { return m_depth.m_image; }
@@ -50,6 +51,9 @@ namespace EvoVulkan::Types {
         Memory::Allocator* m_allocator = nullptr;
         Swapchain*         m_swapchain = nullptr;
         Types::CmdPool*    m_cmdPool   = nullptr;
+
+        uint32_t m_width = 0;
+        uint32_t m_height = 0;
 
         uint8_t m_sampleCount = 0;
         bool m_depthEnabled = true;
