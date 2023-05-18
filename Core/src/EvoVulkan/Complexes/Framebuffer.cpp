@@ -144,7 +144,7 @@ namespace EvoVulkan::Complexes {
 
         fbo->SetSampleCount(sampleCount);
 
-        auto semaphoreCI  = Tools::Initializers::SemaphoreCreateInfo();
+        auto semaphoreCI = Tools::Initializers::SemaphoreCreateInfo();
         if (vkCreateSemaphore(*device, &semaphoreCI, nullptr, &fbo->m_semaphore) != VK_SUCCESS) {
             VK_ERROR("Framebuffer::Create() : failed to create vulkan semaphore!");
             return nullptr;
@@ -152,11 +152,6 @@ namespace EvoVulkan::Complexes {
 
         fbo->m_cmdBuff    = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         fbo->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
-
-        if (!fbo->CreateRenderPass()) {
-            VK_ERROR("Framebuffer::Create() : failed to create render pass!");
-            return nullptr;
-        }
 
         if (!fbo->ReCreate(width, height)) {
             VK_ERROR("Framebuffer::Create() : failed to re-create framebuffer!");
@@ -168,6 +163,11 @@ namespace EvoVulkan::Complexes {
 
     bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height)  {
         DeInitialize();
+
+        if (!CreateRenderPass()) {
+            VK_ERROR("Framebuffer::ReCreate() : failed to create render pass!");
+            return false;
+        }
 
         m_multisampleTarget = Types::MultisampleTarget::Create(
                 m_device,
@@ -253,6 +253,14 @@ namespace EvoVulkan::Complexes {
         /// VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {};
         /// framebufferAttachmentsCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO;
 
+        if (m_renderPass.m_countAttachments != attachments.size()) {
+            VK_ERROR("Framebuffer::CreateFramebuffer() : incompatible attachments!"
+                     "\n\tRender pass: " + std::to_string(m_renderPass.m_countAttachments) +
+                     "\n\tFramebuffer: " + std::to_string(attachments.size())
+            );
+            return false;
+        }
+
         VkFramebufferCreateInfo FBO_CI = {};
         FBO_CI.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         /// FBO_CI.pNext               = &framebufferAttachmentsCreateInfo;
@@ -273,6 +281,19 @@ namespace EvoVulkan::Complexes {
     }
 
     bool EvoVulkan::Complexes::FrameBuffer::CreateRenderPass()  {
+        const bool dirtySamples = m_currentSampleCount != m_sampleCount;
+
+        m_currentSampleCount = m_sampleCount;
+
+        if (m_renderPass.IsReady()) {
+            if (dirtySamples) {
+                Types::DestroyRenderPass(m_device, &m_renderPass);
+            }
+            else {
+                return true;
+            }
+        }
+
         std::vector<VkAttachmentDescription> attachmentDescs = {};
         VkAttachmentDescription attachmentDesc = {};
 
@@ -464,11 +485,11 @@ namespace EvoVulkan::Complexes {
     }
 
     bool EvoVulkan::Complexes::FrameBuffer::IsMultisampleEnabled() const {
-        return m_device->MultisampleEnabled() && m_sampleCount > 1;
+        return m_device->MultisampleEnabled() && m_currentSampleCount > 1;
     }
 
     VkSampleCountFlagBits EvoVulkan::Complexes::FrameBuffer::GetSampleCount() const noexcept {
-        return IsMultisampleEnabled() ? Tools::Convert::IntToSampleCount(m_sampleCount) : VK_SAMPLE_COUNT_1_BIT;
+        return IsMultisampleEnabled() ? Tools::Convert::IntToSampleCount(m_currentSampleCount) : VK_SAMPLE_COUNT_1_BIT;
     }
 
     void EvoVulkan::Complexes::FrameBuffer::SetSampleCount(uint8_t sampleCount) {

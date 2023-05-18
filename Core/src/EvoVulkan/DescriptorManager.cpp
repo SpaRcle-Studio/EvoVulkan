@@ -51,8 +51,8 @@ namespace EvoVulkan::Core {
     void EvoVulkan::Core::DescriptorManager::Reset() {
         VK_INFO("DescriptorManager::Reset() : reset all descriptor pools!");
 
-        for (auto&& pool : m_pools) {
-            delete pool;
+        for (auto&& pPool : m_pools) {
+            delete pPool;
         }
 
         m_pools.clear();
@@ -79,7 +79,7 @@ namespace EvoVulkan::Core {
         descriptorSet->Reset();
 
         if (pool->GetUsageCount() == 0) {
-            VK_LOG("DescriptorPool::Create() : free empty descriptor pool. Total: " + std::to_string(m_pools.size() - 1));
+            VK_LOG("DescriptorPool::FreeDescriptorSet() : free empty descriptor pool. Total: " + std::to_string(m_pools.size() - 1));
             delete pool;
             m_pools.erase(pool);
         }

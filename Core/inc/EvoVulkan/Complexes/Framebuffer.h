@@ -165,6 +165,7 @@ namespace EvoVulkan::Complexes {
 
         bool                      m_depthEnabled       = true;
         uint8_t                   m_sampleCount        = 0;
+        uint8_t                   m_currentSampleCount = 0;
 
     };
 }
