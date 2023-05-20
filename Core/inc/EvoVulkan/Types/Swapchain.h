@@ -69,28 +69,7 @@ namespace EvoVulkan::Types {
         *
         * @return VkResult of the queue presentation
         */
-        EVK_INLINE VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore) const {
-            VkPresentInfoKHR presentInfo = {};
-            presentInfo.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-            presentInfo.pNext            = NULL;
-            presentInfo.swapchainCount   = 1;
-            presentInfo.pSwapchains      = &m_swapchain;
-            presentInfo.pImageIndices    = &imageIndex;
-
-            /// Check if a wait semaphore has been specified to wait for before presenting the image
-            if (waitSemaphore != VK_NULL_HANDLE) {
-                presentInfo.pWaitSemaphores    = &waitSemaphore;
-                presentInfo.waitSemaphoreCount = 1;
-            }
-
-            try {
-                return vkQueuePresentKHR(queue, &presentInfo);
-            }
-            catch (const std::exception& ex) {
-                VK_ERROR("Swapchain::QueuePresent() : an exception has been occurred! \n\tMessage: " + std::string(ex.what()));
-                return VK_ERROR_UNKNOWN;
-            }
-        }
+        EVK_INLINE VkResult QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore) const;
 
     private:
         bool InitFormats();

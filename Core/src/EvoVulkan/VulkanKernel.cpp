@@ -641,35 +641,16 @@ bool EvoVulkan::Core::VulkanKernel::SetValidationLayersEnabled(bool value) {
     return true;
 }
 
-void EvoVulkan::Core::VulkanKernel::SetFramebuffersQueue(const std::vector<Complexes::FrameBuffer *> &queue) {
-    auto newQueue = std::vector<VkSubmitInfo>();
+void EvoVulkan::Core::VulkanKernel::ClearSubmitQueue() {
+    m_submitInfo.waitSemaphoreCount = 1;
+    m_submitInfo.pWaitSemaphores = &m_syncs.m_presentComplete;
+    m_submitQueue.clear();
+}
 
-    VkSubmitInfo submitInfo = Tools::Initializers::SubmitInfo();
-    submitInfo.commandBufferCount   = 1;
-    submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
-
-    for (uint32_t i = 0; i < queue.size(); ++i) {
-        submitInfo.pCommandBuffers   = queue[i]->GetCmdRef();
-        submitInfo.pSignalSemaphores = queue[i]->GetSemaphoreRef();
-
-        if (i == 0) {
-            submitInfo.pWaitSemaphores = &m_syncs.m_presentComplete;
-        }
-        else
-            submitInfo.pWaitSemaphores = queue[i - 1]->GetSemaphoreRef();
-
-        newQueue.push_back(submitInfo);
-    }
-
-    if (!queue.empty()) {
-        m_waitSemaphore = queue[queue.size() - 1]->GetSemaphore();
-    }
-    else
-        m_waitSemaphore = VK_NULL_HANDLE;
-
-    m_framebuffersQueue = newQueue;
+void EvoVulkan::Core::VulkanKernel::AddSubmitQueue(VkSubmitInfo submitInfo) {
+    m_submitInfo.waitSemaphoreCount = submitInfo.signalSemaphoreCount;
+    m_submitInfo.pWaitSemaphores = submitInfo.pSignalSemaphores;
+    m_submitQueue.emplace_back(submitInfo);
 }
 
 EvoVulkan::Core::DescriptorManager *EvoVulkan::Core::VulkanKernel::GetDescriptorManager() const {

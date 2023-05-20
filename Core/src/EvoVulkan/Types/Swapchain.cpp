@@ -342,14 +342,37 @@ bool EvoVulkan::Types::Swapchain::CreateBuffers() {
 }
 
 VkResult EvoVulkan::Types::Swapchain::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex) const {
-    // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
-    // With that we don't have to handle VK_NOT_READY
+    /// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
+    /// With that we don't have to handle VK_NOT_READY
     return vkAcquireNextImageKHR(*m_device, m_swapchain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
 }
 
 bool EvoVulkan::Types::Swapchain::SurfaceIsAvailable() {
     VkSurfaceCapabilitiesKHR surfCaps = {};
     return !(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS);
+}
+
+VkResult EvoVulkan::Types::Swapchain::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore) const {
+    VkPresentInfoKHR presentInfo = { };
+    presentInfo.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pNext            = NULL;
+    presentInfo.swapchainCount   = 1;
+    presentInfo.pSwapchains      = &m_swapchain;
+    presentInfo.pImageIndices    = &imageIndex;
+
+    /// Check if a wait semaphore has been specified to wait for before presenting the image
+    if (waitSemaphore != VK_NULL_HANDLE) {
+        presentInfo.pWaitSemaphores    = &waitSemaphore;
+        presentInfo.waitSemaphoreCount = 1;
+    }
+
+    try {
+        return vkQueuePresentKHR(queue, &presentInfo);
+    }
+    catch (const std::exception& ex) {
+        VK_ERROR("Swapchain::QueuePresent() : an exception has been occurred! \n\tMessage: " + std::string(ex.what()));
+        return VK_ERROR_UNKNOWN;
+    }
 }
 
 
