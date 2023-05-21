@@ -423,9 +423,13 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     /// Acquire the next image from the swap chain
     VkResult result = m_swapchain->AcquireNextImage(m_syncs.m_presentComplete, &m_currentBuffer);
     /// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-    if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         VK_LOG("VulkanKernel::PrepareFrame() : window has been resized!");
         return FrameResult::OutOfDate;
+    }
+    else if (result == VK_SUBOPTIMAL_KHR) {
+        VK_LOG("VulkanKernel::PrepareFrame() : window has been suboptimal!");
+        return FrameResult::Suboptimal;
     }
     else if (result != VK_SUCCESS) {
         VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " +
@@ -474,15 +478,19 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
-    VK_LOG("VulkanKernel::ResizeWindow() : waiting for a change in the size of the client window...");
+    VK_LOG("VulkanKernel::ReCreate() : re-create vulkan kernel...");
 
-    if (reason == FrameResult::OutOfDate) {
+    if (reason == FrameResult::OutOfDate || reason == FrameResult::Suboptimal) {
+        VK_LOG("VulkanKernel::ReCreate() : waiting for a change in the size of the client window...");
+
         /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
         while (true) {
-            std::lock_guard<std::mutex> lock(m_mutex);
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+            PollWindowEvents();
 
             if (!IsWindowValid()) {
-                VK_LOG("VulkanKernel::ResizeWindow() : window was closed.");
+                VK_LOG("VulkanKernel::ReCreate() : window was closed.");
                 break;
             }
 
@@ -491,13 +499,13 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
             }
         }
 
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-        VK_LOG("VulkanKernel::ResizeWindow() : set new sizes: width = " +
+        VK_LOG("VulkanKernel::ReCreate() : set new sizes: width = " +
                std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
 
         if (!m_isPostInitialized) {
-            VK_ERROR("VulkanKernel::ResizeWindow() : kernel is not complete!");
+            VK_ERROR("VulkanKernel::ReCreate() : kernel is not complete!");
             return false;
         }
 
@@ -518,29 +526,29 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
     }
 
     if (!m_swapchain->ReSetup(m_width, m_height, m_swapchainImages)) {
-        VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-setup swapchain!");
+        VK_ERROR("VulkanKernel::ReCreate() : failed to re-setup swapchain!");
         return false;
     }
 
     if (!ReCreateFrameBuffers()) {
-        VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create frame buffers!");
+        VK_ERROR("VulkanKernel::ReCreate() : failed to re-create frame buffers!");
         return false;
     }
 
-    VK_LOG("VulkanKernel::ResizeWindow() : call custom on-resize function...");
+    VK_LOG("VulkanKernel::ReCreate() : call custom on-resize function...");
     if (!OnResize()) {
-        VK_ERROR("VulkanKernel::ResizeWindow() : failed to resize inherited class!");
+        VK_ERROR("VulkanKernel::ReCreate() : failed to resize inherited class!");
         return false;
     }
 
-    VK_GRAPH("VulkanKernel::ResizeWindow() : re-create synchronizations...");
+    VK_GRAPH("VulkanKernel::ReCreate() : re-create synchronizations...");
     if (!ReCreateSynchronizations()) {
-        VK_ERROR("VulkanKernel::ResizeWindow() : failed to re-create synchronizations!");
+        VK_ERROR("VulkanKernel::ReCreate() : failed to re-create synchronizations!");
         return false;
     }
 
     if (!BuildCmdBuffers()) {
-        VK_ERROR("VulkanKernel::ResizeWindow() : failed to build command buffer!");
+        VK_ERROR("VulkanKernel::ReCreate() : failed to build command buffer!");
         return false;
     }
 
@@ -569,7 +577,7 @@ void EvoVulkan::Core::VulkanKernel::SetMultisampling(uint32_t sampleCount) {
 }
 
 void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
     VK_LOG("VulkanKernel::SetSize() : set new surface sizes: " + std::to_string(width) + "x" + std::to_string(height));
 
@@ -621,11 +629,8 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations() {
     /// Semaphores will stay the same during application lifetime
     /// Command buffer submission info is set by each example
     m_submitInfo = Tools::Initializers::SubmitInfo();
-    m_submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
-    m_submitInfo.waitSemaphoreCount   = 1;
-    m_submitInfo.pWaitSemaphores      = &m_syncs.m_presentComplete;
-    m_submitInfo.signalSemaphoreCount = 1;
-    m_submitInfo.pSignalSemaphores    = &m_syncs.m_renderComplete;
+
+    ClearSubmitQueue();
 
     return true;
 }
@@ -642,8 +647,11 @@ bool EvoVulkan::Core::VulkanKernel::SetValidationLayersEnabled(bool value) {
 }
 
 void EvoVulkan::Core::VulkanKernel::ClearSubmitQueue() {
-    m_submitInfo.waitSemaphoreCount = 1;
-    m_submitInfo.pWaitSemaphores = &m_syncs.m_presentComplete;
+    m_submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
+    m_submitInfo.waitSemaphoreCount   = 1;
+    m_submitInfo.pWaitSemaphores      = &m_syncs.m_presentComplete;
+    m_submitInfo.signalSemaphoreCount = 1;
+    m_submitInfo.pSignalSemaphores    = &m_syncs.m_renderComplete;
     m_submitQueue.clear();
 }
 

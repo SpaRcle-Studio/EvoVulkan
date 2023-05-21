@@ -96,6 +96,11 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
     m_surfaceWidth  = surfCaps.currentExtent.width;
     m_surfaceHeight = surfCaps.currentExtent.height;
 
+    if (m_surfaceWidth == 0 || m_surfaceHeight == 0) {
+        VK_ERROR("Swapchain::ReSetup() : surface size contains zero!");
+        return false;
+    }
+
     VK_GRAPH("Swapchain::ReSetup() : get present mode...");
     m_presentMode = Tools::GetPresentMode(*m_device, *m_surface, m_vsync);
 
@@ -349,7 +354,12 @@ VkResult EvoVulkan::Types::Swapchain::AcquireNextImage(VkSemaphore presentComple
 
 bool EvoVulkan::Types::Swapchain::SurfaceIsAvailable() {
     VkSurfaceCapabilitiesKHR surfCaps = {};
-    return !(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS);
+
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS) {
+        return false;
+    }
+
+    return surfCaps.currentExtent.height != 0 && surfCaps.currentExtent.width;
 }
 
 VkResult EvoVulkan::Types::Swapchain::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore) const {

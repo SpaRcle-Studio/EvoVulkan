@@ -21,7 +21,12 @@
 
 namespace EvoVulkan::Core {
     enum class FrameResult : uint8_t {
-        Error = 0, Success = 1, OutOfDate = 2, DeviceLost = 3, Dirty = 4
+        Error,
+        Success,
+        OutOfDate,
+        DeviceLost,
+        Dirty,
+        Suboptimal
     };
 
     enum class RenderResult : uint8_t {
@@ -87,6 +92,8 @@ namespace EvoVulkan::Core {
 
         EVK_NODISCARD virtual bool IsWindowValid() const { return true; }
 
+        virtual void PollWindowEvents() { }
+
         void ClearSubmitQueue();
         void AddSubmitQueue(VkSubmitInfo submitInfo);
 
@@ -120,7 +127,7 @@ namespace EvoVulkan::Core {
         std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
 
     protected:
-        std::mutex                 m_mutex                = std::mutex();
+        std::recursive_mutex       m_mutex                = std::recursive_mutex();
 
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
