@@ -361,7 +361,7 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
             m_mipLevels,
             m_filter /** min filter */,
             m_filter /** mag filter */,
-            VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
             VK_COMPARE_OP_NEVER
     );
 
