@@ -39,6 +39,10 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
 }
 
 bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
+    VK_LOG("MultisampleTarget::ReCreate() : re-create multisample..."
+           "\n\tWidth: " + std::to_string(w) + "\n\tHeight: " + std::to_string(h)
+    );
+
     Destroy();
 
     m_width = w;

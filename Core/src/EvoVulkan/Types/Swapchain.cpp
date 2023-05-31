@@ -72,7 +72,9 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
 }
 
 bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint32_t countImages) {
-    VK_GRAPH("Swapchain::ReSetup() : re-setup vulkan swapchain...");
+    VK_GRAPH("Swapchain::ReSetup() : re-setup vulkan swapchain..."
+         "\n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height)
+     );
 
     VkSwapchainKHR oldSwapchain = m_swapchain;
 

@@ -348,8 +348,11 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
         return false;
     }
 
+    const uint32_t width = m_swapchain->GetSurfaceWidth();
+    const uint32_t height = m_swapchain->GetSurfaceHeight();
+
     m_multisample->SetSampleCount(GetSampleCount());
-    m_multisample->ReCreate(m_swapchain->GetSurfaceWidth(), m_swapchain->GetSurfaceHeight());
+    m_multisample->ReCreate(width, height);
 
     DestroyFrameBuffers();
 
@@ -383,8 +386,8 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     frameBufferCreateInfo.renderPass              = m_renderPass.m_self;
     frameBufferCreateInfo.attachmentCount         = m_renderPass.m_countAttachments;
     frameBufferCreateInfo.pAttachments            = attachments.data();
-    frameBufferCreateInfo.width                   = m_swapchain->GetSurfaceWidth();
-    frameBufferCreateInfo.height                  = m_swapchain->GetSurfaceHeight();
+    frameBufferCreateInfo.width                   = width;
+    frameBufferCreateInfo.height                  = height;
     frameBufferCreateInfo.layers                  = 1;
 
     /// Create frame buffers for every swap chain image
