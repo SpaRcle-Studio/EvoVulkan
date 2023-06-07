@@ -500,13 +500,13 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static VkSampler CreateSampler(
-            const Types::Device* device,
-            uint32_t mipLevels,
-            VkFilter minFilter,
-            VkFilter magFilter,
-            VkSamplerAddressMode addressMode,
-            VkCompareOp compareOp)
-    {
+        const Types::Device* pDevice,
+        uint32_t mipLevels,
+        VkFilter minFilter,
+        VkFilter magFilter,
+        VkSamplerAddressMode addressMode,
+        VkCompareOp compareOp
+    ) {
         VkSamplerCreateInfo samplerIC = Tools::Initializers::SamplerCreateInfo();
 
         samplerIC.magFilter    = magFilter;
@@ -518,23 +518,27 @@ namespace EvoVulkan::Tools {
         samplerIC.mipLodBias   = 0.0f;
         samplerIC.compareOp    = compareOp;
         samplerIC.minLod       = 0.0f;
-        // Set max level-of-detail to mip level count of the texture
+
+        /// Set max level-of-detail to mip level count of the texture
         samplerIC.maxLod = mipLevels;
-        // Enable anisotropic filtering
-        // This feature is optional, so we must check if it's supported on the device
-        if (device->SamplerAnisotropyEnabled()) {
-            // Use max. level of anisotropy for this example
-            samplerIC.maxAnisotropy    = device->GetMaxSamplerAnisotropy();
+
+        /// Enable anisotropic filtering
+        /// This feature is optional, so we must check if it's supported on the device
+        if (pDevice->SamplerAnisotropyEnabled()) {
+            /// Use max. level of anisotropy for this example
+            samplerIC.maxAnisotropy    = pDevice->GetMaxSamplerAnisotropy();
             samplerIC.anisotropyEnable = VK_TRUE;
-        } else {
-            // The device does not support anisotropic filtering
+        }
+        else {
+            /// The device does not support anisotropic filtering
             samplerIC.maxAnisotropy = 1.0;
             samplerIC.anisotropyEnable = VK_FALSE;
         }
+
         samplerIC.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
         VkSampler sampler = VK_NULL_HANDLE;
-        if (vkCreateSampler(*device, &samplerIC, nullptr, &sampler) != VK_SUCCESS) {
+        if (vkCreateSampler(*pDevice, &samplerIC, nullptr, &sampler) != VK_SUCCESS) {
             VK_ERROR("Tools::CreateSampler() : failed to create vulkan sampler!");
             return VK_NULL_HANDLE;
         }
@@ -555,24 +559,26 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static VkImageView CreateImageView(
-            const VkDevice& device,
-            VkImage image,
-            VkFormat format,
-            uint32_t mipLevels,
-            VkImageAspectFlags imageAspectFlags,
-            bool cubeMap = false) {
+        const VkDevice& device,
+        VkImage image,
+        VkFormat format,
+        uint32_t mipLevels,
+        VkImageAspectFlags imageAspectFlags,
+        uint32_t layerCount,
+        VkImageViewType viewType
+    ) {
         VkImageView view = VK_NULL_HANDLE;
 
         VkImageViewCreateInfo viewCI           = Tools::Initializers::ImageViewCreateInfo();
         viewCI.image                           = image;
-        viewCI.viewType                        = cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
+        viewCI.viewType                        = viewType; // cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
         viewCI.format                          = format;
         viewCI.components                      = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
         //viewCI.components                      = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
         viewCI.subresourceRange.aspectMask     = imageAspectFlags; //VK_IMAGE_ASPECT_COLOR_BIT;
         viewCI.subresourceRange.baseMipLevel   = 0;
         viewCI.subresourceRange.baseArrayLayer = 0;
-        viewCI.subresourceRange.layerCount     = cubeMap ? 6 : 1;
+        viewCI.subresourceRange.layerCount     = layerCount; // cubeMap ? 6 : 1;
         viewCI.subresourceRange.levelCount     = mipLevels;
 
         if (vkCreateImageView(device, &viewCI, nullptr, &view) != VK_SUCCESS) {
@@ -668,13 +674,13 @@ namespace EvoVulkan::Tools {
             VkImageLayout newLayout,
             uint32_t mipLevels,
             VkImageAspectFlags aspectMask,
-            uint32_t layerCount = 1,
+            uint32_t layerCount,
             bool needEnd = true
     ) {
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-        VkImageMemoryBarrier barrier = {};
+        VkImageMemoryBarrier barrier = { };
         barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout            = oldLayout;
         barrier.newLayout            = newLayout;
@@ -769,7 +775,7 @@ namespace EvoVulkan::Tools {
             VkImageLayout oldLayout,
             VkImageLayout newLayout,
             uint32_t mipLevels,
-            uint32_t layerCount = 1,
+            uint32_t layerCount,
             bool needEnd = true
     ) {
         return TransitionImageLayoutEx(copyCmd, image, oldLayout, newLayout, mipLevels, VK_IMAGE_ASPECT_COLOR_BIT, layerCount, needEnd);

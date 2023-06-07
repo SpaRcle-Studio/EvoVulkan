@@ -8,13 +8,15 @@
 
 namespace EvoVulkan::Complexes {
     static FrameBufferAttachment CreateAttachment(
-            EvoVulkan::Types::Device* device,
-            EvoVulkan::Memory::Allocator* allocator,
-            EvoVulkan::Types::CmdPool* pool,
-            VkFormat format,
-            VkImageUsageFlags usage,
-            VkExtent2D imageSize)
-    {
+        EvoVulkan::Types::Device* device,
+        EvoVulkan::Memory::Allocator* allocator,
+        EvoVulkan::Types::CmdPool* pool,
+        VkFormat format,
+        VkImageUsageFlags usage,
+        VkExtent2D imageSize,
+        uint32_t samplesCount,
+        uint32_t layersCount
+    ) {
         VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM;
 
         if (usage & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
@@ -34,38 +36,44 @@ namespace EvoVulkan::Complexes {
         EvoVulkan::Complexes::FrameBufferAttachment FBOAttachment = {};
 
         auto&& imageCI = EvoVulkan::Types::ImageCreateInfo(
-                device,
-                allocator,
-                imageSize.width,
-                imageSize.height,
-                format,
-                usage,
-                1 /** sample count */
+            device,
+            allocator,
+            imageSize.width,
+            imageSize.height,
+            format,
+            usage,
+            samplesCount,
+            false /** cpu usage */,
+            1 /** mip levels */,
+            layersCount
         );
 
         FBOAttachment.m_image = EvoVulkan::Types::Image::Create(imageCI);
 
         /// ставим барьер памяти, чтобы можно было использовать в шейдерах
         {
-            auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(device, pool);
+            auto&& pCopyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(device, pool);
 
             EvoVulkan::Tools::TransitionImageLayout(
-                copyCmd,
+                pCopyCmd,
                 FBOAttachment.m_image,
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                1 /** mip levels */
+                1 /** mip levels */,
+                layersCount
             );
 
-            delete copyCmd;
+            delete pCopyCmd;
         }
 
         FBOAttachment.m_view = EvoVulkan::Tools::CreateImageView(
-                *device,
-                FBOAttachment.m_image,
-                format,
-                1,
-                aspectMask
+            *device,
+            FBOAttachment.m_image,
+            format,
+            1 /** mip levels */,
+            aspectMask,
+            layersCount,
+            VK_IMAGE_VIEW_TYPE_2D
         );
 
         FBOAttachment.m_format = format;
@@ -102,34 +110,41 @@ namespace EvoVulkan::Complexes {
 
         for (uint32_t i = 0; i < m_countColorAttach; ++i) {
             descriptors.push_back(Tools::Initializers::DescriptorImageInfo(
-                    m_colorSampler,
-                    m_attachments[i].m_view,
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+                m_colorSampler,
+                m_attachments[i].m_view,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+            );
         }
 
         return descriptors;
     }
 
     FrameBuffer* FrameBuffer::Create(
-            EvoVulkan::Types::Device *device,
-            Memory::Allocator* allocator,
-            Core::DescriptorManager* manager,
-            EvoVulkan::Types::Swapchain *swapchain,
-            EvoVulkan::Types::CmdPool *pool,
-            const std::vector<VkFormat> &colorAttachments,
-            uint32_t width,
-            uint32_t height,
-            float scale,
-            uint8_t sampleCount,
-            bool depth)
-    {
+        Types::Device* device,
+        EvoVulkan::Memory::Allocator* allocator,
+        Core::DescriptorManager* manager,
+        Types::Swapchain* swapchain,
+        Types::CmdPool* pool,
+        const std::vector<VkFormat>& colorAttachments,
+        uint32_t width, uint32_t height,
+        uint32_t arrayLayers,
+        float_t scale,
+        uint8_t samplesCount,
+        bool depth
+    ) {
         if (scale <= 0.f) {
             VK_ERROR("Framebuffer::Create() : scale <= zero!");
             return nullptr;
         }
 
+        if (arrayLayers <= 0 || arrayLayers > 256) {
+            VK_ERROR("Framebuffer::Create() : invalid array layers!");
+            return nullptr;
+        }
+
         auto fbo = new FrameBuffer();
         {
+            fbo->m_arrayLayers        = arrayLayers;
             fbo->m_scale              = scale;
             fbo->m_cmdPool            = pool;
             fbo->m_device             = device;
@@ -142,9 +157,9 @@ namespace EvoVulkan::Complexes {
             fbo->m_depthEnabled       = depth;
         }
 
-        fbo->SetSampleCount(sampleCount);
+        fbo->SetSampleCount(samplesCount);
 
-        auto semaphoreCI = Tools::Initializers::SemaphoreCreateInfo();
+        auto&& semaphoreCI = Tools::Initializers::SemaphoreCreateInfo();
         if (vkCreateSemaphore(*device, &semaphoreCI, nullptr, &fbo->m_semaphore) != VK_SUCCESS) {
             VK_ERROR("Framebuffer::Create() : failed to create vulkan semaphore!");
             return nullptr;
@@ -164,32 +179,38 @@ namespace EvoVulkan::Complexes {
     bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height)  {
         DeInitialize();
 
+        m_baseWidth  = width;
+        m_baseHeight = height;
+
+        m_width  = m_baseWidth  * m_scale;
+        m_height = m_baseHeight * m_scale;
+
+        if (m_width <= 0 || m_height <= 0) {
+            VK_ERROR("Framebuffer::ReCreate() : invalid sizes!");
+            return false;
+        }
+
         if (!CreateRenderPass()) {
             VK_ERROR("Framebuffer::ReCreate() : failed to create render pass!");
             return false;
         }
 
         m_multisampleTarget = Types::MultisampleTarget::Create(
-                m_device,
-                m_allocator,
-                m_cmdPool,
-                m_swapchain,
-                width, height,
-                m_attachFormats,
-                GetSampleCount(),
-                m_depthEnabled
+            m_device,
+            m_allocator,
+            m_cmdPool,
+            m_swapchain,
+            width, height,
+            m_attachFormats,
+            GetSampleCount(),
+            m_arrayLayers,
+            m_depthEnabled
         );
 
         if (!m_multisampleTarget) {
             VK_ERROR("Framebuffer::ReCreate() : failed to create multisample target!");
             return false;
         }
-
-        m_baseWidth  = width;
-        m_baseHeight = height;
-
-        m_width  = m_baseWidth  * m_scale;
-        m_height = m_baseHeight * m_scale;
 
         m_viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
         m_scissor  = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
@@ -357,19 +378,21 @@ namespace EvoVulkan::Complexes {
             VK_ERROR("Framebuffer::CreateAttachments() : failed to allocate memory!");
             return false;
         }
-        else {
-            for (uint32_t i = 0; i < m_countColorAttach; ++i)
-                m_attachments[i].Init();
+
+        for (uint32_t i = 0; i < m_countColorAttach; ++i) {
+            m_attachments[i].Init();
         }
 
         for (uint32_t i = 0; i < m_countColorAttach; ++i) {
             m_attachments[i] = CreateAttachment(
-                    m_device,
-                    m_allocator,
-                    m_cmdPool,
-                    m_attachFormats[i],
-                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                    { m_width, m_height }
+                m_device,
+                m_allocator,
+                m_cmdPool,
+                m_attachFormats[i],
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                VkExtent2D { m_width, m_height },
+                1 /** samples count */,
+                m_arrayLayers
             );
 
             if (!m_attachments[i].Ready()) {
@@ -524,6 +547,10 @@ namespace EvoVulkan::Complexes {
             vkDestroySampler(*m_device, m_colorSampler, nullptr);
             m_colorSampler = VK_NULL_HANDLE;
         }
+    }
+
+    void FrameBuffer::SetLayersCount(uint32_t layersCount) {
+        m_arrayLayers = layersCount;
     }
 
     bool EvoVulkan::Complexes::FrameBufferAttachment::Ready() const {

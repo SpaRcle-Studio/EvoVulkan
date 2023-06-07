@@ -220,15 +220,16 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     VK_GRAPH("VulkanKernel::PostInit() : create multisample target...");
 
     m_multisample = Types::MultisampleTarget::Create(
-            m_device,
-            m_allocator,
-            m_cmdPool,
-            m_swapchain,
-            m_swapchain->GetSurfaceWidth(),
-            m_swapchain->GetSurfaceHeight(),
-            { m_swapchain->GetColorFormat() },
-            GetSampleCount(),
-            true /** depth buffer */
+        m_device,
+        m_allocator,
+        m_cmdPool,
+        m_swapchain,
+        m_swapchain->GetSurfaceWidth(),
+        m_swapchain->GetSurfaceHeight(),
+        { m_swapchain->GetColorFormat() },
+        GetSampleCount(),
+        1 /** layers count */,
+        true /** depth buffer */
     );
 
     if (!m_multisample) {

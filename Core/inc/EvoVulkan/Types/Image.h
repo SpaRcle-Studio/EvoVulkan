@@ -15,38 +15,30 @@ namespace EvoVulkan::Types {
     struct DLL_EVK_EXPORT ImageCreateInfo {
         ImageCreateInfo() = default;
 
-        ImageCreateInfo(Types::Device* _device,
-                        Memory::Allocator* _allocator,
-                        uint32_t _width, uint32_t _height,
-                        VkImageUsageFlags _usage,
-                        uint8_t _sampleCount = 0)
-            : ImageCreateInfo(_device, _allocator, _width, _height, VK_FORMAT_UNDEFINED, _usage, _sampleCount)
-        { }
+        ImageCreateInfo(
+            Types::Device* pDevice,
+            Memory::Allocator* pAllocator,
+            uint32_t _width,
+            uint32_t _height,
+            VkImageUsageFlags _usage,
+            uint8_t _sampleCount
+        );
 
-        ImageCreateInfo(Types::Device* _device,
-                        Memory::Allocator* _allocator,
-                        uint32_t _width, uint32_t _height,
-                        VkFormat _format,
-                        VkImageUsageFlags _usage,
-                        uint8_t _sampleCount = 0,
-                        bool _cpuUsage = false,
-                        uint32_t _mipLevels = 1,
-                        uint32_t _arrayLayers = 1,
-                        VkImageCreateFlagBits _flags = VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM
-        ) : device(_device)
-            , allocator(_allocator)
-            , width(_width)
-            , height(_height)
-            , mipLevels(_mipLevels)
-            , format(_format)
-            , tiling(_cpuUsage ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL)
-            , usage(_usage)
-            , sampleCount(_sampleCount)
-            , createFlagBits(_flags)
-            , arrayLayers(_arrayLayers)
-            , CPUUsage(_cpuUsage)
-        { }
+        ImageCreateInfo(
+            Types::Device* pDevice,
+            Memory::Allocator* pAllocator,
+            uint32_t _width,
+            uint32_t _height,
+            VkFormat _format,
+            VkImageUsageFlags _usage,
+            uint8_t _sampleCount,
+            bool _cpuUsage,
+            uint32_t _mipLevels,
+            uint32_t _arrayLayers,
+            VkImageCreateFlagBits _flags = VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM
+        );
 
+    public:
         Types::Device* device = nullptr;
         Memory::Allocator* allocator = nullptr;
         uint32_t width = 0;

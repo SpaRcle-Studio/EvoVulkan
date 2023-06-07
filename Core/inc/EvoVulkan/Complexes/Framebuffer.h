@@ -74,9 +74,10 @@ namespace EvoVulkan::Complexes {
                 Types::CmdPool* pool,
                 const std::vector<VkFormat>& colorAttachments,
                 uint32_t width, uint32_t height,
-                float scale = 1.f,
-                uint8_t multisample = 0,
-                bool depth = true);
+                uint32_t arrayLayers,
+                float_t scale,
+                uint8_t samplesCount,
+                bool depth);
 
         operator VkFramebuffer() const { return m_framebuffer; }
 
@@ -87,6 +88,7 @@ namespace EvoVulkan::Complexes {
         void End() const;
         void SetViewportAndScissor() const;
         void SetSampleCount(uint8_t sampleCount);
+        void SetLayersCount(uint32_t layersCount);
 
     public:
         /// \Warn Slow access! But it's safe.
@@ -139,6 +141,7 @@ namespace EvoVulkan::Complexes {
 
         float_t                   m_scale              = 1.f;
 
+        uint32_t                  m_arrayLayers        = 0;
         uint32_t                  m_countColorAttach   = 0;
 
         VkSampler                 m_colorSampler       = VK_NULL_HANDLE;

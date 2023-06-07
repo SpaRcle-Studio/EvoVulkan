@@ -7,20 +7,22 @@
 #include <EvoVulkan/Tools/VulkanTools.h>
 
 EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create(
-        EvoVulkan::Types::Device *device,
-        Memory::Allocator* allocator,
-        Types::CmdPool* cmdPool,
-        Swapchain* swapchain,
-        uint32_t w, uint32_t h,
-        const std::vector<VkFormat>& formats,
-        uint8_t sampleCount,
-        bool depth)
-{
+    EvoVulkan::Types::Device *device,
+    Memory::Allocator* allocator,
+    Types::CmdPool* cmdPool,
+    Swapchain* swapchain,
+    uint32_t w, uint32_t h,
+    const std::vector<VkFormat>& formats,
+    uint8_t sampleCount,
+    uint32_t arrayLayers,
+    bool depth
+) {
     if (sampleCount == 0) {
         sampleCount = device->GetMSAASamplesCount();
     }
 
     auto&& pMultiSample = new MultisampleTarget();
+
     pMultiSample->m_device        = device;
     pMultiSample->m_allocator     = allocator;
     pMultiSample->m_swapchain     = swapchain;
@@ -29,6 +31,7 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
     pMultiSample->m_formats       = formats;
     pMultiSample->m_sampleCount   = sampleCount;
     pMultiSample->m_depthEnabled  = depth;
+    pMultiSample->m_arrayLayers   = arrayLayers;
 
     if (!pMultiSample->ReCreate(w, h)) {
         VK_ERROR("MultisampleTarget::Create() : failed to re-create multisample!");
@@ -38,20 +41,25 @@ EvoVulkan::Types::MultisampleTarget *EvoVulkan::Types::MultisampleTarget::Create
     return pMultiSample;
 }
 
-bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
+bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t height) {
     VK_LOG("MultisampleTarget::ReCreate() : re-create multisample..."
-           "\n\tWidth: " + std::to_string(w) + "\n\tHeight: " + std::to_string(h)
+           "\n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height)
     );
 
     Destroy();
 
-    m_width = w;
-    m_height = h;
+    m_width = width;
+    m_height = height;
 
     auto&& imageCI = Types::ImageCreateInfo(
         m_device, m_allocator, m_width, m_height,
-        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        m_sampleCount
+        VK_FORMAT_UNDEFINED /** format */,
+        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT /** usage */,
+        m_sampleCount,
+        false /** cpu usage */,
+        1 /** mip levels */,
+        m_arrayLayers,
+        VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM
     );
 
     //! ----------------------------------- Color target -----------------------------------
@@ -75,7 +83,15 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
                 return false;
             }
 
-            m_resolves[i].m_view = Tools::CreateImageView(*m_device, m_resolves[i].m_image, m_formats[i], 1, VK_IMAGE_ASPECT_COLOR_BIT);
+            m_resolves[i].m_view = Tools::CreateImageView(
+                *m_device,
+                m_resolves[i].m_image,
+                m_formats[i],
+                1 /** mip levels */,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                m_arrayLayers,
+                VK_IMAGE_VIEW_TYPE_2D
+            );
 
             if (m_resolves[i].m_view == VK_NULL_HANDLE) {
                 VK_ERROR("MultisampleTarget::ReCreate() : failed to create resolve image view!");
@@ -112,7 +128,16 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t w, uint32_t h) {
         ///    delete copyCmd;
         ///}
 
-        m_depth.m_view = Tools::CreateImageView(*m_device, m_depth.m_image, m_swapchain->GetDepthFormat(), 1, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+        m_depth.m_view = Tools::CreateImageView(
+            *m_device,
+            m_depth.m_image,
+            m_swapchain->GetDepthFormat(),
+            1 /** mip levels */,
+            VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+            m_arrayLayers,
+            VK_IMAGE_VIEW_TYPE_2D
+        );
+
         if (m_depth.m_view == VK_NULL_HANDLE) {
             VK_ERROR("MultisampleTarget::ReCreate() : failed to create depth image view!");
             return false;
@@ -134,7 +159,7 @@ void EvoVulkan::Types::MultisampleTarget::Destroy() {
         }
         free(m_resolves);
         m_resolves = nullptr;
-        /// m_countResolves = dont touch
+        /// m_countResolves = don't touch
     }
 
     if (m_depth.m_image && m_depth.m_view && m_depth.m_image.Valid()) {

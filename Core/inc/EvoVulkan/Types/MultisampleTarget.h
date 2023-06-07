@@ -32,6 +32,7 @@ namespace EvoVulkan::Types {
                 uint32_t w, uint32_t h,
                 const std::vector<VkFormat>& formats,
                 uint8_t sampleCount,
+                uint32_t arrayLayers,
                 bool depth);
 
     public:
@@ -55,6 +56,7 @@ namespace EvoVulkan::Types {
         uint32_t m_width = 0;
         uint32_t m_height = 0;
 
+        uint32_t m_arrayLayers = 0;
         uint8_t m_sampleCount = 0;
         bool m_depthEnabled = true;
 

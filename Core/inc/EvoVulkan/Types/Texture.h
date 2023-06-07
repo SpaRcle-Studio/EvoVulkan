@@ -122,11 +122,9 @@ namespace EvoVulkan::Types {
         uint32_t           m_width                   = 0;
         uint32_t           m_height                  = 0;
         uint32_t           m_mipLevels               = 0;
-        ///uint32_t           m_seed                    = 0;
 
         bool               m_canBeDestroyed          = false;
         bool               m_cubeMap                 = false;
-        bool               m_isDestroyed             = false;
         bool               m_cpuUsage                = false;
 
         Types::Device*     m_device                  = nullptr;
