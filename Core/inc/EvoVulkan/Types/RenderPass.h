@@ -35,8 +35,7 @@ namespace EvoVulkan::Types {
         }
     }
 
-    static RenderPass CreateRenderPass(const EvoVulkan::Types::Device *device, const Types::Swapchain *swapchain,
-                                       std::vector<VkAttachmentDescription> attachments = {}, uint8_t sampleCount = 1, bool depth = true) {
+    static RenderPass CreateRenderPass(const EvoVulkan::Types::Device *device, const Types::Swapchain *swapchain, std::vector<VkAttachmentDescription> attachments, uint8_t sampleCount, VkImageAspectFlags depthAspect) {
         VK_GRAPH("Types::CreateRenderPass() : create vulkan render pass...");
 
         VkSubpassDescription subpassDescription = {};
@@ -46,9 +45,27 @@ namespace EvoVulkan::Types {
         /// Resolve attachment reference for the color attachment
 
         const bool multisampling = sampleCount > 1;
+        const bool depth = depthAspect != VK_IMAGE_ASPECT_NONE;
+
+        VkImageLayout depthLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        if ((depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {
+            depthLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        }
+        else if (depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
+            depthLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        }
+        else if (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT) {
+            depthLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+        }
+
+        if (depthLayout == VK_IMAGE_LAYOUT_UNDEFINED && depth) {
+            VK_ERROR("RenderPass::CreateRenderPass() : invalid depth layout!");
+            return RenderPass();
+        }
 
         if (attachments.empty()) {
-            attachments.resize(multisampling ? 3 : 2);
+            attachments.resize(multisampling ? (depth ? 3 : 2) : (depth ? 2 : 1));
 
             /// Color attachment
             attachments[0].format = swapchain->GetColorFormat();
@@ -73,18 +90,20 @@ namespace EvoVulkan::Types {
                 attachments[1].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
                 /// Multisampled depth attachment we render to
-                attachments[2].format = swapchain->GetDepthFormat();
-                attachments[2].samples =  Tools::Convert::IntToSampleCount(sampleCount);
-                attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachments[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                if (depth) {
+                    attachments[2].format = swapchain->GetDepthFormat();
+                    attachments[2].samples = Tools::Convert::IntToSampleCount(sampleCount);
+                    attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                    attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                    attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                    attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                    attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    attachments[2].finalLayout = depthLayout;
+                }
 
                 resolveReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
             }
-            else {
+            else if (depth) {
                 /// Depth attachment
                 attachments[1].format = swapchain->GetDepthFormat();
                 attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -93,11 +112,11 @@ namespace EvoVulkan::Types {
                 attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                attachments[1].finalLayout = depthLayout;
             }
 
             colorReferences.push_back({0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
-            depthReference = { multisampling ? 2u : 1u, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+            depthReference = { multisampling ? 2u : 1u, depthLayout};
         }
         else {
             ///uint32_t bind = 0;
@@ -123,8 +142,7 @@ namespace EvoVulkan::Types {
             }
 
             if (depth) {
-                depthReference = {static_cast<uint32_t>(colorReferences.size() + resolveReferences.size()),
-                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+                depthReference = {static_cast<uint32_t>(colorReferences.size() + resolveReferences.size()), depthLayout};
             }
         }
 

@@ -73,7 +73,7 @@ namespace EvoVulkan::Complexes {
             1 /** mip levels */,
             aspectMask,
             layersCount,
-            VK_IMAGE_VIEW_TYPE_2D
+            layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D
         );
 
         FBOAttachment.m_format = format;
@@ -130,7 +130,7 @@ namespace EvoVulkan::Complexes {
         uint32_t arrayLayers,
         float_t scale,
         uint8_t samplesCount,
-        bool depth
+        VkImageAspectFlags depth
     ) {
         if (scale <= 0.f) {
             VK_ERROR("Framebuffer::Create() : scale <= zero!");
@@ -154,7 +154,7 @@ namespace EvoVulkan::Complexes {
             fbo->m_countColorAttach   = colorAttachments.size();
             fbo->m_attachFormats      = colorAttachments;
             fbo->m_depthFormat        = Tools::GetDepthFormat(*device);
-            fbo->m_depthEnabled       = depth;
+            fbo->m_depthAspect        = depth;
         }
 
         fbo->SetSampleCount(samplesCount);
@@ -204,7 +204,7 @@ namespace EvoVulkan::Complexes {
             m_attachFormats,
             GetSampleCount(),
             m_arrayLayers,
-            m_depthEnabled
+            m_depthAspect
         );
 
         if (!m_multisampleTarget) {
@@ -267,7 +267,7 @@ namespace EvoVulkan::Complexes {
             attachments.push_back(m_attachments[i].m_view);
         }
 
-        if (m_depthEnabled) {
+        if (IsDepthEnabled()) {
             attachments.push_back(m_multisampleTarget->GetDepth());
         }
 
@@ -319,7 +319,7 @@ namespace EvoVulkan::Complexes {
         VkAttachmentDescription attachmentDesc = {};
 
         /// Init attachment properties
-        for (uint32_t i = 0; i < m_countColorAttach + (m_depthEnabled ? 1 : 0); ++i) {
+        for (uint32_t i = 0; i < m_countColorAttach + (IsDepthEnabled() ? 1 : 0); ++i) {
             attachmentDesc.samples = GetSampleCount();
             attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -345,7 +345,7 @@ namespace EvoVulkan::Complexes {
             m_swapchain,
             attachmentDescs,
             Tools::Convert::SampleCountToInt(GetSampleCount()),
-            m_depthEnabled
+            m_depthAspect
         );
 
         if (!m_renderPass.IsReady()) {
@@ -361,7 +361,7 @@ namespace EvoVulkan::Complexes {
                 m_clearValues.emplace_back(VkClearValue{.color = {{0.0, 0.0, 0.0, 1.0}}});
             }
 
-            if (m_depthEnabled) {
+            if (IsDepthEnabled()) {
                 m_clearValues.emplace_back(VkClearValue{.depthStencil = {1.0, 0}});
             }
 
@@ -405,7 +405,7 @@ namespace EvoVulkan::Complexes {
     }
 
     EvoVulkan::Types::Texture *EvoVulkan::Complexes::FrameBuffer::AllocateDepthTextureReference() {
-        if (!m_depthEnabled) {
+        if (!IsDepthEnabled()) {
             return nullptr;
         }
 
@@ -416,7 +416,7 @@ namespace EvoVulkan::Complexes {
         texture->m_format            = m_depthFormat; /// TODO: why used VK_FORMAT_B8G8R8A8_UNORM?
         texture->m_descriptorManager = m_descriptorManager;
         texture->m_sampler           = m_colorSampler;
-        texture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        texture->m_imageLayout       = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL; //VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         texture->m_device            = m_device;
         texture->m_pool              = m_cmdPool;
         texture->m_allocator         = m_allocator;
@@ -551,6 +551,10 @@ namespace EvoVulkan::Complexes {
 
     void FrameBuffer::SetLayersCount(uint32_t layersCount) {
         m_arrayLayers = layersCount;
+    }
+
+    void FrameBuffer::SetDepthAspect(VkImageAspectFlags depthAspect) {
+        m_depthAspect = depthAspect;
     }
 
     bool EvoVulkan::Complexes::FrameBufferAttachment::Ready() const {

@@ -33,7 +33,7 @@ namespace EvoVulkan::Types {
                 const std::vector<VkFormat>& formats,
                 uint8_t sampleCount,
                 uint32_t arrayLayers,
-                bool depth);
+                VkImageAspectFlags depth);
 
     public:
         void Destroy();
@@ -56,9 +56,9 @@ namespace EvoVulkan::Types {
         uint32_t m_width = 0;
         uint32_t m_height = 0;
 
-        uint32_t m_arrayLayers = 0;
+        uint32_t m_layersCount = 0;
         uint8_t m_sampleCount = 0;
-        bool m_depthEnabled = true;
+        VkImageAspectFlags m_depthAspect = 0;
 
         uint32_t m_countResolves = 0;
         std::vector<VkFormat> m_formats = {};

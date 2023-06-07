@@ -77,7 +77,7 @@ namespace EvoVulkan::Complexes {
                 uint32_t arrayLayers,
                 float_t scale,
                 uint8_t samplesCount,
-                bool depth);
+                VkImageAspectFlags depth);
 
         operator VkFramebuffer() const { return m_framebuffer; }
 
@@ -87,8 +87,10 @@ namespace EvoVulkan::Complexes {
         void BeginCmd();
         void End() const;
         void SetViewportAndScissor() const;
+
         void SetSampleCount(uint8_t sampleCount);
         void SetLayersCount(uint32_t layersCount);
+        void SetDepthAspect(VkImageAspectFlags depthAspect);
 
     public:
         /// \Warn Slow access! But it's safe.
@@ -99,7 +101,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
 
         EVK_NODISCARD bool IsMultisampleEnabled() const;
-        EVK_NODISCARD bool IsDepthEnabled() const { return m_depthEnabled; }
+        EVK_NODISCARD bool IsDepthEnabled() const { return m_depthAspect != VK_IMAGE_ASPECT_NONE; }
         EVK_NODISCARD VkSampleCountFlagBits GetSampleCount() const noexcept;
 
         EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const { return m_viewport; }
@@ -166,7 +168,7 @@ namespace EvoVulkan::Complexes {
         std::vector<VkClearValue> m_clearValues        = {};
         uint32_t                  m_countClearValues   = 0;
 
-        bool                      m_depthEnabled       = true;
+        VkImageAspectFlags        m_depthAspect        = VK_IMAGE_ASPECT_NONE;
         uint8_t                   m_sampleCount        = 0;
         uint8_t                   m_currentSampleCount = 0;
 

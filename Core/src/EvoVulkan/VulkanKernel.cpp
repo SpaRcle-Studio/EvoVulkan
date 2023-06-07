@@ -229,7 +229,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
         { m_swapchain->GetColorFormat() },
         GetSampleCount(),
         1 /** layers count */,
-        true /** depth buffer */
+        VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT
     );
 
     if (!m_multisample) {
@@ -245,7 +245,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
             m_swapchain,
             { } /** color attachment */,
             GetSampleCount(),
-            true /** depth buffer */
+            VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT
     );
 
     if (!m_renderPass.IsReady()) {
@@ -364,7 +364,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
         m_swapchain,
         { } /** color attachment */,
         GetSampleCount(),
-        true /** depth buffer */
+        VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT
     );
 
     /// -----------------------------------------------------------------
