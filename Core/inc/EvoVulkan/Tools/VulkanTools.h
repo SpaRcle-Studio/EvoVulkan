@@ -431,8 +431,16 @@ namespace EvoVulkan::Tools {
 
         //!=============================================================================================================
 
+        VkPhysicalDeviceVulkan12Features deviceVulkan12Features = { };
+        deviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        deviceVulkan12Features.pNext = nullptr;
+        /// deviceVulkan12Features.separateDepthStencilLayouts = VK_TRUE;
+
+        //!=============================================================================================================
+
         VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
         deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        deviceFeatures2.pNext = (void*)&deviceVulkan12Features;
         /// deviceFeatures2.pNext = (void*)&floatFeatures;
         /// deviceFeatures2.pNext = (void*)&lineRasterizationFeaturesExt;
         deviceFeatures2.features = deviceFeatures;
@@ -737,6 +745,13 @@ namespace EvoVulkan::Tools {
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         }
         else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = 0;

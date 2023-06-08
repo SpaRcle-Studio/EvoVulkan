@@ -47,21 +47,18 @@ namespace EvoVulkan::Types {
         const bool multisampling = sampleCount > 1;
         const bool depth = depthAspect != VK_IMAGE_ASPECT_NONE;
 
-        VkImageLayout depthLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageLayout depthLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        if ((depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {
-            depthLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        }
-        else if (depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
-            depthLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-        }
-        else if (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT) {
-            depthLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-        }
-
-        if (depthLayout == VK_IMAGE_LAYOUT_UNDEFINED && depth) {
-            VK_ERROR("RenderPass::CreateRenderPass() : invalid depth layout!");
-            return RenderPass();
+        if (device->IsSeparateDepthStencilLayoutsSupported()) {
+            if ((depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {
+                /// уже задали
+            }
+            else if (depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
+                depthLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            }
+            else if (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT) {
+                depthLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+            }
         }
 
         if (attachments.empty()) {

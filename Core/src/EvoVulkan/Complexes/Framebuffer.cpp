@@ -329,7 +329,23 @@ namespace EvoVulkan::Complexes {
             if (i == m_countColorAttach) {
                 attachmentDesc.format = m_depthFormat;
                 attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+                if (m_device->IsSeparateDepthStencilLayoutsSupported()) {
+                    if ((m_depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (m_depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {
+                        /// уже задали
+                    }
+                    else if (m_depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
+                        attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                    }
+                    else if (m_depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT) {
+                        attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                    }
+                    else {
+                        VK_ERROR("FrameBuffer::CreateRenderPass() : invalid depth aspect!");
+                        return false;
+                    }
+                }
             }
             else {
                 attachmentDesc.format = m_attachFormats[i];
@@ -416,7 +432,7 @@ namespace EvoVulkan::Complexes {
         texture->m_format            = m_depthFormat; /// TODO: why used VK_FORMAT_B8G8R8A8_UNORM?
         texture->m_descriptorManager = m_descriptorManager;
         texture->m_sampler           = m_colorSampler;
-        texture->m_imageLayout       = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL; //VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        texture->m_imageLayout       = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL; //VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         texture->m_device            = m_device;
         texture->m_pool              = m_cmdPool;
         texture->m_allocator         = m_allocator;

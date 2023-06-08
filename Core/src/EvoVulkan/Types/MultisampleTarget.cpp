@@ -106,6 +106,7 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
         imageCI.format = m_swapchain->GetDepthFormat();
         //imageCI.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         /// imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
         if (!(m_depth.m_image = Types::Image::Create(imageCI)).Valid()) {
@@ -117,13 +118,15 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
         {
             auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_cmdPool);
 
+            //auto&& aspect = m_device->IsSeparateDepthStencilLayoutsSupported() ? m_depthAspect : (VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT);
+
             EvoVulkan::Tools::TransitionImageLayoutEx(
                 copyCmd,
                 m_depth.m_image,
                 VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
                 1, /** mip levels */
-                m_depthAspect,
+                VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
                 m_layersCount
             );
 
