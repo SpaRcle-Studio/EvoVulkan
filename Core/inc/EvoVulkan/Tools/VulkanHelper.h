@@ -197,34 +197,6 @@ namespace EvoVulkan::Tools {
         return swapchainPresentMode;
     }
 
-    EVK_MAYBE_UNUSED static VkFormat GetDepthFormat(const VkPhysicalDevice& physicalDevice) {
-        VkFormat depthFormat = VK_FORMAT_UNDEFINED;
-
-        //! Find supported depth format
-        //! We prefer 24 bits of depth and 8 bits of stencil, but that may not be supported by all implementations
-        //std::vector<VkFormat> depthFormats = { VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM };
-
-        std::vector<VkFormat> depthFormats = {
-                VK_FORMAT_D32_SFLOAT_S8_UINT,
-                VK_FORMAT_D32_SFLOAT,
-                VK_FORMAT_D24_UNORM_S8_UINT,
-                VK_FORMAT_D16_UNORM_S8_UINT,
-                VK_FORMAT_D16_UNORM
-        };
-
-        for (auto& format : depthFormats) {
-            VkFormatProperties formatProps;
-            vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
-            //! Format must support depth stencil attachment for optimal tiling
-            if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
-                depthFormat = format;
-                break;
-            }
-        }
-
-        return depthFormat;
-    }
-
     EVK_MAYBE_UNUSED static VkSampleCountFlagBits GetMaxUsableSampleCount(const VkPhysicalDevice& physicalDevice) {
         VkPhysicalDeviceProperties physicalDeviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);

@@ -77,7 +77,8 @@ namespace EvoVulkan::Complexes {
                 uint32_t arrayLayers,
                 float_t scale,
                 uint8_t samplesCount,
-                VkImageAspectFlags depth);
+                VkImageAspectFlags depthAspect,
+                VkFormat depthFormat);
 
         operator VkFramebuffer() const { return m_framebuffer; }
 
@@ -90,6 +91,7 @@ namespace EvoVulkan::Complexes {
 
         void SetSampleCount(uint8_t sampleCount);
         void SetLayersCount(uint32_t layersCount);
+        void SetDepthFormat(VkFormat depthFormat);
         void SetDepthAspect(VkImageAspectFlags depthAspect);
 
     public:
@@ -98,10 +100,9 @@ namespace EvoVulkan::Complexes {
 
         EVK_NODISCARD std::vector<Types::Texture*> AllocateColorTextureReferences();
         EVK_NODISCARD Types::Texture* AllocateDepthTextureReference();
-        EVK_NODISCARD std::vector<VkDescriptorImageInfo> GetImageDescriptors() const;
 
         EVK_NODISCARD bool IsMultisampleEnabled() const;
-        EVK_NODISCARD bool IsDepthEnabled() const { return m_depthAspect != VK_IMAGE_ASPECT_NONE; }
+        EVK_NODISCARD bool IsDepthEnabled() const;
         EVK_NODISCARD VkSampleCountFlagBits GetSampleCount() const noexcept;
 
         EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const { return m_viewport; }
@@ -121,7 +122,7 @@ namespace EvoVulkan::Complexes {
     private:
         void DeInitialize();
 
-        bool CreateAttachments();
+        bool CreateColorAttachments();
         bool CreateRenderPass();
         bool CreateFramebuffer();
         bool CreateSampler();

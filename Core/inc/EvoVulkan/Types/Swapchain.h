@@ -41,7 +41,6 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD SwapChainBuffer* GetBuffers()   const { return m_buffers;         }
         EVK_NODISCARD uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;    }
         EVK_NODISCARD uint32_t GetSurfaceHeight()     const { return m_surfaceHeight;   }
-        EVK_NODISCARD VkFormat GetDepthFormat()       const { return m_depthFormat;     }
         EVK_NODISCARD VkFormat GetColorFormat()       const { return m_colorFormat;     }
         EVK_NODISCARD uint32_t GetCountImages()       const { return m_countImages;     }
         EVK_NODISCARD VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;      }
@@ -87,7 +86,6 @@ namespace EvoVulkan::Types {
 
         VkPresentModeKHR m_presentMode     = VK_PRESENT_MODE_MAX_ENUM_KHR;
 
-        VkFormat         m_depthFormat     = { };
         VkFormat         m_colorFormat     = VK_FORMAT_UNDEFINED;
         VkColorSpaceKHR  m_colorSpace      = VkColorSpaceKHR::VK_COLOR_SPACE_MAX_ENUM_KHR;
 

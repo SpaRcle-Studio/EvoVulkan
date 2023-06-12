@@ -35,10 +35,17 @@ namespace EvoVulkan::Types {
         }
     }
 
-    static RenderPass CreateRenderPass(const EvoVulkan::Types::Device *device, const Types::Swapchain *swapchain, std::vector<VkAttachmentDescription> attachments, uint8_t sampleCount, VkImageAspectFlags depthAspect) {
+    static RenderPass CreateRenderPass(
+            const EvoVulkan::Types::Device* device,
+            const Types::Swapchain *swapchain,
+            std::vector<VkAttachmentDescription> attachments,
+            std::vector<VkAttachmentReference> inputAttachments,
+            uint8_t sampleCount,
+            VkImageAspectFlags depthAspect,
+            VkFormat depthFormat
+    ) {
         VK_GRAPH("Types::CreateRenderPass() : create vulkan render pass...");
 
-        VkSubpassDescription subpassDescription = {};
         std::vector<VkAttachmentReference> colorReferences = {};
         std::vector<VkAttachmentReference> resolveReferences = {};
         VkAttachmentReference depthReference = {};
@@ -47,19 +54,18 @@ namespace EvoVulkan::Types {
         const bool multisampling = sampleCount > 1;
         const bool depth = depthAspect != VK_IMAGE_ASPECT_NONE;
 
+        /// if (device->IsSeparateDepthStencilLayoutsSupported()) {
+        ///     if ((depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {
+        ///         /// уже задали
+        ///     }
+        ///     else if (depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
+        ///         depthLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        ///     }
+        ///     else if (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT) {
+        ///         depthLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+        ///     }
+        /// }
         VkImageLayout depthLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        if (device->IsSeparateDepthStencilLayoutsSupported()) {
-            if ((depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {
-                /// уже задали
-            }
-            else if (depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
-                depthLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-            }
-            else if (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT) {
-                depthLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-            }
-        }
 
         if (attachments.empty()) {
             attachments.resize(multisampling ? (depth ? 3 : 2) : (depth ? 2 : 1));
@@ -88,7 +94,7 @@ namespace EvoVulkan::Types {
 
                 /// Multisampled depth attachment we render to
                 if (depth) {
-                    attachments[2].format = swapchain->GetDepthFormat();
+                    attachments[2].format = depthFormat;
                     attachments[2].samples = Tools::Convert::IntToSampleCount(sampleCount);
                     attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                     attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -102,7 +108,7 @@ namespace EvoVulkan::Types {
             }
             else if (depth) {
                 /// Depth attachment
-                attachments[1].format = swapchain->GetDepthFormat();
+                attachments[1].format = depthFormat;
                 attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
                 attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -134,22 +140,26 @@ namespace EvoVulkan::Types {
 
                     attachments.insert(attachments.begin() + i + 1, attachmentDescription);
                     i++;
-                    resolveReferences.push_back({ i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                    resolveReferences.push_back(VkAttachmentReference{ i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
                 }
             }
 
             if (depth) {
-                depthReference = {static_cast<uint32_t>(colorReferences.size() + resolveReferences.size()), depthLayout};
+                depthReference = VkAttachmentReference{
+                    static_cast<uint32_t>(colorReferences.size() + resolveReferences.size()),
+                    depthLayout
+                };
             }
         }
 
+        VkSubpassDescription subpassDescription = { };
         {
             subpassDescription.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpassDescription.colorAttachmentCount    = static_cast<uint32_t>(colorReferences.size());
             subpassDescription.pColorAttachments       = colorReferences.data();
             subpassDescription.pDepthStencilAttachment = depth ? &depthReference : nullptr;
-            subpassDescription.inputAttachmentCount    = 0;
-            subpassDescription.pInputAttachments       = nullptr;
+            subpassDescription.inputAttachmentCount    = inputAttachments.size();
+            subpassDescription.pInputAttachments       = inputAttachments.data();
             subpassDescription.preserveAttachmentCount = 0;
             subpassDescription.pPreserveAttachments    = nullptr;
             subpassDescription.pResolveAttachments     = multisampling ? resolveReferences.data() : nullptr;
@@ -158,6 +168,7 @@ namespace EvoVulkan::Types {
         /// Subpass dependencies for layout transitions
         std::vector<VkSubpassDependency> dependencies;
 
+        /// цвет с мультисемплингом
         if (multisampling) {
             dependencies.resize(2);
 
@@ -166,20 +177,19 @@ namespace EvoVulkan::Types {
             dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
             dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            dependencies[0].dstAccessMask =
-                    VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // TODO: remove read?
+            dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
             dependencies[1].srcSubpass = 0;
             dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-            dependencies[1].srcAccessMask =
-                    VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // TODO: remove read?
+            dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
             dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
         }
-        else {
+        /// просто цвет без мультисемплинга
+        else if (attachments.size() > 1) {
             dependencies.resize(1);
 
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -188,6 +198,26 @@ namespace EvoVulkan::Types {
             dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             dependencies[0].srcAccessMask = 0;
             dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        }
+        /// только буфер глубины без мультисемплинга
+        else {
+            dependencies.resize(2);
+
+            dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+            dependencies[0].dstSubpass = 0;
+            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            dependencies[0].dstStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            dependencies[0].srcAccessMask = 0;
+            dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+            dependencies[1].srcSubpass = 0;
+            dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+            dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
         }
 
         VkRenderPassCreateInfo renderPassInfo = {};
@@ -204,7 +234,7 @@ namespace EvoVulkan::Types {
         if (result != VK_SUCCESS) {
             VK_ERROR("Types::CreateRenderPass() : failed to create vulkan render pass! Reason: " +
                      Tools::Convert::result_to_description(result));
-            return {};
+            return RenderPass();
         }
 
         return { renderPass, (uint32_t)attachments.size(), (uint32_t)colorReferences.size() };

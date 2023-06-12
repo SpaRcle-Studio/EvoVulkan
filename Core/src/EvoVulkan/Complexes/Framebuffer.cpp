@@ -105,20 +105,6 @@ namespace EvoVulkan::Complexes {
         m_cmdPool   = nullptr;
     }
 
-    std::vector<VkDescriptorImageInfo> EvoVulkan::Complexes::FrameBuffer::GetImageDescriptors() const  {
-        auto descriptors = std::vector<VkDescriptorImageInfo>();
-
-        for (uint32_t i = 0; i < m_countColorAttach; ++i) {
-            descriptors.push_back(Tools::Initializers::DescriptorImageInfo(
-                m_colorSampler,
-                m_attachments[i].m_view,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-            );
-        }
-
-        return descriptors;
-    }
-
     FrameBuffer* FrameBuffer::Create(
         Types::Device* device,
         EvoVulkan::Memory::Allocator* allocator,
@@ -130,7 +116,8 @@ namespace EvoVulkan::Complexes {
         uint32_t arrayLayers,
         float_t scale,
         uint8_t samplesCount,
-        VkImageAspectFlags depth
+        VkImageAspectFlags depthAspect,
+        VkFormat depthFormat
     ) {
         if (scale <= 0.f) {
             VK_ERROR("Framebuffer::Create() : scale <= zero!");
@@ -142,38 +129,38 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        auto fbo = new FrameBuffer();
+        auto&& pFBO = new FrameBuffer();
         {
-            fbo->m_arrayLayers        = arrayLayers;
-            fbo->m_scale              = scale;
-            fbo->m_cmdPool            = pool;
-            fbo->m_device             = device;
-            fbo->m_allocator          = allocator;
-            fbo->m_descriptorManager  = manager;
-            fbo->m_swapchain          = swapchain;
-            fbo->m_countColorAttach   = colorAttachments.size();
-            fbo->m_attachFormats      = colorAttachments;
-            fbo->m_depthFormat        = Tools::GetDepthFormat(*device);
-            fbo->m_depthAspect        = depth;
+            pFBO->m_arrayLayers        = arrayLayers;
+            pFBO->m_scale              = scale;
+            pFBO->m_cmdPool            = pool;
+            pFBO->m_device             = device;
+            pFBO->m_allocator          = allocator;
+            pFBO->m_descriptorManager  = manager;
+            pFBO->m_swapchain          = swapchain;
+            pFBO->m_countColorAttach   = colorAttachments.size();
+            pFBO->m_attachFormats      = colorAttachments;
+            pFBO->m_depthFormat        = depthFormat;
+            pFBO->m_depthAspect        = depthAspect;
         }
 
-        fbo->SetSampleCount(samplesCount);
+        pFBO->SetSampleCount(samplesCount);
 
         auto&& semaphoreCI = Tools::Initializers::SemaphoreCreateInfo();
-        if (vkCreateSemaphore(*device, &semaphoreCI, nullptr, &fbo->m_semaphore) != VK_SUCCESS) {
+        if (vkCreateSemaphore(*device, &semaphoreCI, nullptr, &pFBO->m_semaphore) != VK_SUCCESS) {
             VK_ERROR("Framebuffer::Create() : failed to create vulkan semaphore!");
             return nullptr;
         }
 
-        fbo->m_cmdBuff    = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        fbo->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
+        pFBO->m_cmdBuff = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        pFBO->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
 
-        if (!fbo->ReCreate(width, height)) {
+        if (!pFBO->ReCreate(width, height)) {
             VK_ERROR("Framebuffer::Create() : failed to re-create framebuffer!");
             return nullptr;
         }
 
-        return fbo;
+        return pFBO;
     }
 
     bool EvoVulkan::Complexes::FrameBuffer::ReCreate(uint32_t width, uint32_t height)  {
@@ -204,7 +191,8 @@ namespace EvoVulkan::Complexes {
             m_attachFormats,
             GetSampleCount(),
             m_arrayLayers,
-            m_depthAspect
+            m_depthAspect,
+            m_depthFormat
         );
 
         if (!m_multisampleTarget) {
@@ -215,7 +203,7 @@ namespace EvoVulkan::Complexes {
         m_viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
         m_scissor  = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
 
-        if (!CreateAttachments() || !CreateFramebuffer() || !CreateSampler()) {
+        if (!CreateColorAttachments() || !CreateFramebuffer() || !CreateSampler()) {
             VK_ERROR("Framebuffer::ReCreate() : failed to re-create frame buffer!");
             return false;
         }
@@ -325,43 +313,46 @@ namespace EvoVulkan::Complexes {
             attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
             if (i == m_countColorAttach) {
                 attachmentDesc.format = m_depthFormat;
-                attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
-                if (m_device->IsSeparateDepthStencilLayoutsSupported()) {
-                    if ((m_depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (m_depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {
-                        /// уже задали
-                    }
-                    else if (m_depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
-                        attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-                    }
-                    else if (m_depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT) {
-                        attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-                    }
-                    else {
-                        VK_ERROR("FrameBuffer::CreateRenderPass() : invalid depth aspect!");
-                        return false;
-                    }
-                }
+                // if (m_device->IsSeparateDepthStencilLayoutsSupported()) {
+                //     if ((m_depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (m_depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {
+                //         /// уже задали
+                //     }
+                //     else if (m_depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) {
+                //         attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                //     }
+                //     else if (m_depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT) {
+                //         attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                //     }
+                //     else {
+                //         VK_ERROR("FrameBuffer::CreateRenderPass() : invalid depth aspect!");
+                //         return false;
+                //     }
+                // }
             }
             else {
                 attachmentDesc.format = m_attachFormats[i];
-                attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             }
 
             attachmentDescs.push_back(attachmentDesc);
         }
 
+        std::vector<VkAttachmentReference> inputAttachments;
+
         m_renderPass = Types::CreateRenderPass(
             m_device,
             m_swapchain,
             attachmentDescs,
+            inputAttachments,
             Tools::Convert::SampleCountToInt(GetSampleCount()),
-            m_depthAspect
+            m_depthAspect,
+            m_depthFormat
         );
 
         if (!m_renderPass.IsReady()) {
@@ -387,7 +378,12 @@ namespace EvoVulkan::Complexes {
         return true;
     }
 
-    bool EvoVulkan::Complexes::FrameBuffer::CreateAttachments()  {
+    bool EvoVulkan::Complexes::FrameBuffer::CreateColorAttachments()  {
+        if (m_countColorAttach == 0) {
+            /// только буфер глубины, цвет не нужен
+            return true;
+        }
+
         m_attachments = (FrameBufferAttachment*)malloc(sizeof(FrameBufferAttachment) * m_countColorAttach);
 
         if (!m_attachments) {
@@ -400,12 +396,14 @@ namespace EvoVulkan::Complexes {
         }
 
         for (uint32_t i = 0; i < m_countColorAttach; ++i) {
+            VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
             m_attachments[i] = CreateAttachment(
                 m_device,
                 m_allocator,
                 m_cmdPool,
                 m_attachFormats[i],
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                usageFlags,
                 VkExtent2D { m_width, m_height },
                 1 /** samples count */,
                 m_arrayLayers
@@ -571,6 +569,14 @@ namespace EvoVulkan::Complexes {
 
     void FrameBuffer::SetDepthAspect(VkImageAspectFlags depthAspect) {
         m_depthAspect = depthAspect;
+    }
+
+    void FrameBuffer::SetDepthFormat(VkFormat depthFormat) {
+        m_depthFormat = depthFormat;
+    }
+
+    bool FrameBuffer::IsDepthEnabled() const {
+        return m_depthAspect != VK_IMAGE_ASPECT_NONE && m_depthFormat != VK_FORMAT_UNDEFINED;
     }
 
     bool EvoVulkan::Complexes::FrameBufferAttachment::Ready() const {

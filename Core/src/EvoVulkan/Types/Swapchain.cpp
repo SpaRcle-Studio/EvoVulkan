@@ -216,15 +216,13 @@ bool EvoVulkan::Types::Swapchain::IsReady() const {
 
            m_presentMode != VK_PRESENT_MODE_MAX_ENUM_KHR &&
            m_colorFormat != VK_FORMAT_UNDEFINED          &&
-           m_colorSpace  != VK_COLOR_SPACE_MAX_ENUM_KHR  &&
-           m_depthFormat != VK_FORMAT_UNDEFINED;
+           m_colorSpace  != VK_COLOR_SPACE_MAX_ENUM_KHR;
 }
 
 bool EvoVulkan::Types::Swapchain::InitFormats() {
     // Gather physical device memory properties
 
-    m_depthFormat = Tools::GetDepthFormat(*m_device);
-    if (m_depthFormat == VK_FORMAT_UNDEFINED) {
+    if (m_device->GetDepthFormat() == VK_FORMAT_UNDEFINED) {
         VK_ERROR("Swapchain::InitFormats() : could not find a supported depth format!");
         return false;
     }

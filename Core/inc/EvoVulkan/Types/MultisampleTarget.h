@@ -33,7 +33,8 @@ namespace EvoVulkan::Types {
                 const std::vector<VkFormat>& formats,
                 uint8_t sampleCount,
                 uint32_t arrayLayers,
-                VkImageAspectFlags depth);
+                VkImageAspectFlags depthAspect,
+                VkFormat depthFormat);
 
     public:
         void Destroy();
@@ -52,6 +53,8 @@ namespace EvoVulkan::Types {
         Memory::Allocator* m_allocator = nullptr;
         Swapchain*         m_swapchain = nullptr;
         Types::CmdPool*    m_cmdPool   = nullptr;
+
+        VkFormat m_depthFormat = VK_FORMAT_UNDEFINED;
 
         uint32_t m_width = 0;
         uint32_t m_height = 0;

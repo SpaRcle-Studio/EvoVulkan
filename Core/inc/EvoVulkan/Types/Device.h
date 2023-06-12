@@ -54,6 +54,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD EVK_INLINE VkSampleCountFlagBits GetMSAASamples() const { return (VkSampleCountFlagBits)m_maxCountMSAASamples; }
         EVK_NODISCARD EVK_INLINE VkPhysicalDeviceMemoryProperties GetMemoryProperties() const { return m_memoryProperties; }
 
+        EVK_NODISCARD VkFormat GetDepthFormat() const;
         EVK_NODISCARD uint8_t GetMSAASamplesCount() const;
         EVK_NODISCARD FamilyQueues* GetQueues() const;
         EVK_NODISCARD bool IsRayTracingSupported() const noexcept { return m_rayTracingSupported; }

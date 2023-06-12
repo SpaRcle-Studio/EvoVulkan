@@ -171,8 +171,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         return false;
     }
 
-    VK_LOG("VulkanKernel::Init() : depth format is "
-                        + Tools::Convert::format_to_string(m_swapchain->GetDepthFormat()));
+    VK_LOG("VulkanKernel::Init() : depth format is " + Tools::Convert::format_to_string(m_device->GetDepthFormat()));
 
     //!=================================================================================================================
 
@@ -229,7 +228,8 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
         { m_swapchain->GetColorFormat() },
         GetSampleCount(),
         1 /** layers count */,
-        VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT
+        VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
+        m_device->GetDepthFormat()
     );
 
     if (!m_multisample) {
@@ -243,9 +243,11 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     m_renderPass = Types::CreateRenderPass(
             m_device,
             m_swapchain,
-            { } /** color attachment */,
+            { } /** color attachments */,
+            { } /** input attachments */,
             GetSampleCount(),
-            VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT
+            VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
+            m_device->GetDepthFormat()
     );
 
     if (!m_renderPass.IsReady()) {
@@ -362,9 +364,11 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
     m_renderPass = Types::CreateRenderPass(
         m_device,
         m_swapchain,
-        { } /** color attachment */,
+        { } /** color attachments */,
+        { } /** input attachments */,
         GetSampleCount(),
-        VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT
+        VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
+        m_device->GetDepthFormat()
     );
 
     /// -----------------------------------------------------------------
