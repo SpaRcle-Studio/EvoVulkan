@@ -49,7 +49,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD EVK_INLINE std::string GetName() const noexcept { return m_deviceName; }
         EVK_NODISCARD EVK_INLINE bool SamplerAnisotropyEnabled() const noexcept { return m_enableSamplerAnisotropy; }
         EVK_NODISCARD EVK_INLINE float GetMaxSamplerAnisotropy() const noexcept { return m_maxSamplerAnisotropy;    }
-        EVK_NODISCARD EVK_INLINE bool MultisampleEnabled() const noexcept { return m_maxCountMSAASamples != VK_SAMPLE_COUNT_1_BIT;  }
+        EVK_NODISCARD EVK_INLINE bool IsMultiSamplingEnabled() const noexcept { return m_maxCountMSAASamples != VK_SAMPLE_COUNT_1_BIT;  }
         EVK_NODISCARD EVK_INLINE Instance* GetInstance() const { return m_instance; }
         EVK_NODISCARD EVK_INLINE VkSampleCountFlagBits GetMSAASamples() const { return (VkSampleCountFlagBits)m_maxCountMSAASamples; }
         EVK_NODISCARD EVK_INLINE VkPhysicalDeviceMemoryProperties GetMemoryProperties() const { return m_memoryProperties; }

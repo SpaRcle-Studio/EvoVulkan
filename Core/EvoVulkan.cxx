@@ -32,3 +32,5 @@
 #include "src/EvoVulkan/Complexes/Framebuffer.cpp"
 #include "src/EvoVulkan/Complexes/Shader.cpp"
 #include "src/EvoVulkan/Complexes/Mesh.cpp"
+#include "src/EvoVulkan/Complexes/FrameBufferAttachment.cpp"
+#include "src/EvoVulkan/Complexes/FrameBufferLayer.cpp"

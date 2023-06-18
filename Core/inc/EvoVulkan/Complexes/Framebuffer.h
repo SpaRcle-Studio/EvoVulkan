@@ -13,52 +13,14 @@
 #include <EvoVulkan/Types/Image.h>
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 #include <EvoVulkan/Tools/VulkanTools.h>
+#include <EvoVulkan/Complexes/FrameBufferLayer.h>
 
 #include <EvoVulkan/DescriptorManager.h>
-#include <EvoVulkan/Types/MultisampleTarget.h>
 
 namespace EvoVulkan::Complexes {
-    class DLL_EVK_EXPORT FrameBufferAttachment : public Tools::NonCopyable {
-    public:
-        FrameBufferAttachment() = default;
-        ~FrameBufferAttachment() override = default;
-
-        FrameBufferAttachment(FrameBufferAttachment&& attachment) noexcept {
-            m_image = std::exchange(attachment.m_image, {});
-            m_view = std::exchange(attachment.m_view, {});
-            m_format = std::exchange(attachment.m_format, {});
-            m_device = std::exchange(attachment.m_device, {});
-            m_allocator = std::exchange(attachment.m_allocator, {});
-        }
-
-        FrameBufferAttachment& operator=(FrameBufferAttachment&& attachment) noexcept {
-            m_image = std::exchange(attachment.m_image, {});
-            m_view = std::exchange(attachment.m_view, {});
-            m_format = std::exchange(attachment.m_format, {});
-            m_device = std::exchange(attachment.m_device, {});
-            m_allocator = std::exchange(attachment.m_allocator, {});
-
-            return *this;
-        }
-
-    public:
-        void Init();
-        void Destroy();
-
-        EVK_NODISCARD bool Ready() const;
-
-    public:
-        Types::Image m_image = Types::Image();
-        VkImageView m_view = VK_NULL_HANDLE;
-        VkFormat m_format = VK_FORMAT_UNDEFINED;
-        Types::Device* m_device = nullptr;
-        EvoVulkan::Memory::Allocator* m_allocator = nullptr;
-
-    };
-
-    //!=================================================================================================================
-
     class DLL_EVK_EXPORT FrameBuffer : private Tools::NonCopyable {
+        using FrameBufferLayers = std::vector<std::unique_ptr<FrameBufferLayer>>;
+        using Attachment = std::unique_ptr<FrameBufferAttachment>;
     protected:
         FrameBuffer() = default;
 
@@ -80,8 +42,6 @@ namespace EvoVulkan::Complexes {
                 VkImageAspectFlags depthAspect,
                 VkFormat depthFormat);
 
-        operator VkFramebuffer() const { return m_framebuffer; }
-
     public:
         bool ReCreate(uint32_t width, uint32_t height);
 
@@ -95,8 +55,7 @@ namespace EvoVulkan::Complexes {
         void SetDepthAspect(VkImageAspectFlags depthAspect);
 
     public:
-        /// \Warn Slow access! But it's safe.
-        EVK_NODISCARD VkImageView GetAttachment(uint32_t id) const;
+        EVK_NODISCARD VkImageView GetAttachment(uint32_t layer, uint32_t id) const;
 
         EVK_NODISCARD std::vector<Types::Texture*> AllocateColorTextureReferences();
         EVK_NODISCARD Types::Texture* AllocateDepthTextureReference();
@@ -108,34 +67,44 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const { return m_viewport; }
         EVK_NODISCARD EVK_INLINE VkRect2D GetScissor() const { return m_scissor; }
 
+        EVK_NODISCARD EVK_INLINE const std::vector<VkFormat>& GetColorFormats() const noexcept { return m_attachFormats; }
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
+        EVK_NODISCARD EVK_INLINE const FrameBufferLayers& GetLayers() const noexcept { return m_layers; }
         EVK_NODISCARD EVK_INLINE VkRect2D GetRenderPassArea() const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
         EVK_NODISCARD EVK_INLINE VkCommandBuffer GetCmd() const noexcept { return *m_cmdBuff; }
         EVK_NODISCARD EVK_INLINE VkCommandBuffer* GetCmdRef() const noexcept { return m_cmdBuff->GetCmdRef(); }
+        EVK_NODISCARD EVK_INLINE Types::Device* GetDevice() const noexcept { return m_device; }
         EVK_NODISCARD EVK_INLINE VkSemaphore GetSemaphore() const noexcept { return m_semaphore; }
         EVK_NODISCARD EVK_INLINE VkSemaphore* GetSemaphoreRef() noexcept { return &m_semaphore; }
+        EVK_NODISCARD EVK_INLINE Memory::Allocator* GetAllocator() noexcept { return m_allocator; }
+        EVK_NODISCARD EVK_INLINE Types::CmdPool* GetCmdPool() noexcept { return m_cmdPool; }
+        EVK_NODISCARD EVK_INLINE VkExtent2D GetExtent2D() noexcept { return VkExtent2D { m_width, m_height }; }
         EVK_NODISCARD EVK_INLINE uint32_t GetCountClearValues() const { return m_countClearValues; }
+        EVK_NODISCARD EVK_INLINE VkImageAspectFlags GetDepthAspect() const { return m_depthAspect; }
+        EVK_NODISCARD EVK_INLINE VkFormat GetDepthFormat() const { return m_depthFormat; }
         EVK_NODISCARD const VkClearValue* GetClearValues() const { return m_clearValues.data(); }
 
-        EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls) const;
+        EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls, uint32_t layer) const;
 
     private:
         void DeInitialize();
 
-        bool CreateColorAttachments();
+        bool CreateAttachments();
         bool CreateRenderPass();
         bool CreateFramebuffer();
         bool CreateSampler();
 
-    public:
-        /// \Warn Unsafe access! But it's fast.
-        FrameBufferAttachment*    m_attachments        = nullptr;
+    private:
+        Attachment                m_depthAttachment;
+        VkImageAspectFlags        m_depthAspect        = VK_IMAGE_ASPECT_NONE;
+        VkFormat                  m_depthFormat        = VK_FORMAT_UNDEFINED;
+
+        FrameBufferLayers         m_layers             = { };
+        uint32_t                  m_layersCount        = 0;
+        std::vector<VkFormat>     m_attachFormats      = { };
 
         VkSemaphore               m_semaphore          = VK_NULL_HANDLE;
 
-        Types::CmdBuffer*         m_cmdBuff            = nullptr;
-
-    private:
         uint32_t                  m_width              = 0;
         uint32_t                  m_height             = 0;
 
@@ -144,22 +113,15 @@ namespace EvoVulkan::Complexes {
 
         float_t                   m_scale              = 1.f;
 
-        uint32_t                  m_arrayLayers        = 0;
-        uint32_t                  m_countColorAttach   = 0;
-
         VkSampler                 m_colorSampler       = VK_NULL_HANDLE;
-        VkFramebuffer             m_framebuffer        = VK_NULL_HANDLE;
-        Types::RenderPass         m_renderPass         = {};
+        Types::RenderPass         m_renderPass         = { };
 
-        std::vector<VkFormat>     m_attachFormats      = {};
-        VkFormat                  m_depthFormat        = VK_FORMAT_UNDEFINED;
-
-        Types::MultisampleTarget* m_multisampleTarget  = nullptr;
         Types::Device*            m_device             = nullptr;
         Memory::Allocator*        m_allocator          = nullptr;
         Types::Swapchain*         m_swapchain          = nullptr;
         Types::CmdPool*           m_cmdPool            = nullptr;
         Core::DescriptorManager*  m_descriptorManager  = nullptr;
+        Types::CmdBuffer*         m_cmdBuff            = nullptr;
 
         VkRect2D                  m_scissor            = {};
         VkViewport                m_viewport           = {};
@@ -169,7 +131,6 @@ namespace EvoVulkan::Complexes {
         std::vector<VkClearValue> m_clearValues        = {};
         uint32_t                  m_countClearValues   = 0;
 
-        VkImageAspectFlags        m_depthAspect        = VK_IMAGE_ASPECT_NONE;
         uint8_t                   m_sampleCount        = 0;
         uint8_t                   m_currentSampleCount = 0;
 

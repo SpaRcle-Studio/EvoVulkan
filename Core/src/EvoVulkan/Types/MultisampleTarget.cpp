@@ -64,13 +64,10 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
         VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM
     );
 
-    //! ----------------------------------- Color target -----------------------------------
+    //! ----------------------------------- Color resolve target -----------------------------------
 
     if (m_sampleCount > 1 && m_countResolves > 0) {
-        VkPhysicalDeviceProperties deviceProperties;
-        vkGetPhysicalDeviceProperties(*m_device, &deviceProperties);
-
-        if (!((deviceProperties.limits.framebufferColorSampleCounts >= m_device->GetMSAASamples()) && (deviceProperties.limits.framebufferDepthSampleCounts >= m_device->GetMSAASamples()))) {
+        if (!m_device->IsMultiSamplingEnabled()) {
             VK_ERROR("MultisampleTarget::ReCreate() : multisampling is unsupported!");
             return false;
         }
@@ -92,6 +89,7 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
                 1 /** mip levels */,
                 VK_IMAGE_ASPECT_COLOR_BIT,
                 m_layersCount,
+                0,
                 m_layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D
             );
 
@@ -104,37 +102,14 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
 
     //! ----------------------------------- Depth target -----------------------------------
 
-    if (m_depthAspect != VK_IMAGE_ASPECT_NONE && m_depthFormat != VK_IMAGE_LAYOUT_UNDEFINED) {
+    if (m_depthAspect != VK_IMAGE_ASPECT_NONE && m_depthFormat != VK_FORMAT_UNDEFINED) {
         imageCI.format = m_depthFormat;
-        //imageCI.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        /// imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-        //imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
         if (!(m_depth.m_image = Types::Image::Create(imageCI)).Valid()) {
             VK_ERROR("MultisampleTarget::ReCreate() : failed to create depth image!");
             return false;
         }
-
-        /// ставим барьер памяти, чтобы можно было использовать в шейдерах
-        /*{
-            auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_cmdPool);
-
-            //auto&& aspect = m_device->IsSeparateDepthStencilLayoutsSupported() ? m_depthAspect : (VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT);
-
-            EvoVulkan::Tools::TransitionImageLayoutEx(
-                copyCmd,
-                m_depth.m_image,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-                1, // mip levels
-                VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
-                m_layersCount
-            );
-
-            delete copyCmd;
-        }*/
 
         m_depth.m_view = Tools::CreateImageView(
             *m_device,
@@ -143,6 +118,7 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
             1 /** mip levels */,
             m_depthAspect,
             m_layersCount,
+            0,
             m_layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D
         );
 

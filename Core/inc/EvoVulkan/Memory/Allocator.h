@@ -64,6 +64,7 @@ namespace EvoVulkan::Memory {
         void FreeImage(Types::Image& image);
         bool FreeMemory(RawMemory* memory);
 
+        EVK_NODISCARD Types::Device* GetDevice() const { return m_device; }
         EVK_NODISCARD uint64_t GetGPUMemoryUsage() const;
         EVK_NODISCARD uint64_t GetCPUMemoryUsage() const;
         EVK_NODISCARD uint64_t GetAllocatedMemorySize() const { return m_deviceMemoryAllocSize; }

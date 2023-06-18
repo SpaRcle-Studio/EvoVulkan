@@ -194,6 +194,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
         texture->m_mipLevels,
         VK_IMAGE_ASPECT_COLOR_BIT,
         6 /** layer count */,
+        0 /** layer index */,
         VK_IMAGE_VIEW_TYPE_CUBE
     );
 
@@ -350,6 +351,7 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
         m_mipLevels,
         VK_IMAGE_ASPECT_COLOR_BIT,
         m_cubeMap ? 6 : 1,
+        0 /** layer index */,
         m_cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D
     );
 

@@ -24,7 +24,7 @@ namespace EvoVulkan::Types {
     static void DestroyRenderPass(EvoVulkan::Types::Device *device, RenderPass *renderPass) {
         VK_LOG("Tools::DestroyRenderPass() : destroy vulkan render pass...");
 
-        if (renderPass->IsReady()) {
+        if (renderPass && renderPass->IsReady()) {
             vkDestroyRenderPass(*device, renderPass->m_self, nullptr);
             renderPass->m_self = VK_NULL_HANDLE;
             renderPass->m_countAttachments = 0;

@@ -573,6 +573,7 @@ namespace EvoVulkan::Tools {
         uint32_t mipLevels,
         VkImageAspectFlags imageAspectFlags,
         uint32_t layerCount,
+        uint32_t layer,
         VkImageViewType viewType
     ) {
         VkImageView view = VK_NULL_HANDLE;
@@ -581,11 +582,15 @@ namespace EvoVulkan::Tools {
         viewCI.image                           = image;
         viewCI.viewType                        = viewType; // cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
         viewCI.format                          = format;
-        viewCI.components                      = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+
+        if (imageAspectFlags != VK_IMAGE_ASPECT_COLOR_BIT) {
+            viewCI.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+        }
+
         //viewCI.components                      = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
         viewCI.subresourceRange.aspectMask     = imageAspectFlags; //VK_IMAGE_ASPECT_COLOR_BIT;
         viewCI.subresourceRange.baseMipLevel   = 0;
-        viewCI.subresourceRange.baseArrayLayer = 0;
+        viewCI.subresourceRange.baseArrayLayer = layer;
         viewCI.subresourceRange.layerCount     = layerCount; // cubeMap ? 6 : 1;
         viewCI.subresourceRange.levelCount     = mipLevels;
 
