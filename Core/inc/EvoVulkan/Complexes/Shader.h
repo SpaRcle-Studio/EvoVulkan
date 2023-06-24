@@ -78,6 +78,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE VkDescriptorSetLayout GetDescriptorSetLayout() const noexcept { return m_descriptorSetLayout; }
         EVK_NODISCARD EVK_INLINE VkPipeline GetPipeline() const noexcept { return m_pipeline; }
         EVK_NODISCARD EVK_INLINE VkPipelineLayout GetPipelineLayout() const noexcept { return m_pipelineLayout; }
+        EVK_NODISCARD EVK_INLINE const std::vector<VkPushConstantRange>& GetPushConstants() const noexcept { return m_pushConstants; }
 
         void Bind(const VkCommandBuffer& cmd) const;
 
