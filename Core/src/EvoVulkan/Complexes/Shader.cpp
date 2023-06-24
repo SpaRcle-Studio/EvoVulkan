@@ -8,18 +8,19 @@
 #include <EvoVulkan/Tools/VulkanTools.h>
 #include <EvoVulkan/Tools/FileSystem.h>
 
-EvoVulkan::Complexes::Shader::Shader(const EvoVulkan::Types::Device* device, Types::RenderPass renderPass, const VkPipelineCache& cache) {
-    m_device     = device;
-    m_renderPass = renderPass;
-    m_cache      = cache;
-}
+EvoVulkan::Complexes::Shader::Shader(const EvoVulkan::Types::Device* pDevice, Types::RenderPass renderPass, const VkPipelineCache& cache)
+    : Super()
+    , m_device(pDevice)
+    , m_renderPass(renderPass)
+    , m_cache(cache)
+{ }
 
 bool EvoVulkan::Complexes::Shader::Load(
-        const std::string& cache,
-        const std::vector<SourceShader> &modules,
-        const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
-        const std::vector<VkDeviceSize>& uniformSizes)
-{
+    const std::string& cache,
+    const std::vector<SourceShader> &modules,
+    const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
+    const std::vector<VkPushConstantRange>& pushConstants
+) {
     if (modules.empty()) {
         VK_ERROR("Shader::Load() : empty modules list!");
         return false;
@@ -34,8 +35,8 @@ bool EvoVulkan::Complexes::Shader::Load(
         VK_LOG("Shader::Load() : load new shader! Modules:" + modulePatches);
     }
 
-    m_uniformSizes = uniformSizes;
     m_layoutBindings = descriptorLayoutBindings;
+    m_pushConstants = pushConstants;
 
     for (const auto& [path, stage] : modules) {
         const std::string inputFile = std::string(cache + "/").append(path);
@@ -80,16 +81,17 @@ bool EvoVulkan::Complexes::Shader::Load(
 }
 
 bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
-        const std::vector<VkVertexInputBindingDescription> &binding,
-        const std::vector<VkVertexInputAttributeDescription> &attribute)
-{
-    for (uint32_t i = 0; i < binding.size(); i++)
+    const std::vector<VkVertexInputBindingDescription> &binding,
+    const std::vector<VkVertexInputAttributeDescription> &attribute
+) {
+    for (uint32_t i = 0; i < binding.size(); ++i) {
         if (binding[i].binding != i || binding[i].stride <= 0) {
             VK_ERROR("Shader::SetVertexDescriptions() : incorrect vertex binding!");
             return false;
         }
+    }
 
-    m_vertices.m_bindingDescriptions   = binding;
+    m_vertices.m_bindingDescriptions = binding;
     m_vertices.m_attributeDescriptions = attribute;
 
     m_vertices.m_inputState = Tools::Initializers::PipelineVertexInputStateCreateInfo();
@@ -115,19 +117,18 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
 
     for (uint32_t i = 0; i < m_renderPass.m_countColorAttach; ++i) {
         auto writeMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        auto attch = Tools::Initializers::PipelineColorBlendAttachmentState(writeMask, m_blendEnable);
+        auto attachment = Tools::Initializers::PipelineColorBlendAttachmentState(writeMask, m_blendEnable);
 
-        attch.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        attch.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-        attch.colorBlendOp        = VK_BLEND_OP_ADD;
+        attachment.colorBlendOp        = VK_BLEND_OP_ADD;
+        attachment.alphaBlendOp        = VK_BLEND_OP_ADD;
 
-        attch.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        attch.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-        attch.alphaBlendOp        = VK_BLEND_OP_ADD;
-
-        blendAttachmentStates.push_back(attch);
+        blendAttachmentStates.push_back(attachment);
     }
 
     std::vector<VkDynamicState> dynamicStateEnables = {
@@ -135,13 +136,13 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
             VK_DYNAMIC_STATE_SCISSOR
     };
 
-    auto&& dynamicState       = Tools::Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
-    auto&& colorBlendState    = Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
+    auto&& dynamicState    = Tools::Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables.data(), static_cast<uint32_t>(dynamicStateEnables.size()), 0);
+    auto&& colorBlendState = Tools::Initializers::PipelineColorBlendStateCreateInfo(m_renderPass.m_countColorAttach, blendAttachmentStates.data());
 
     auto&& pipelineCreateInfo = Tools::Initializers::PipelineCreateInfo(
-            m_pipelineLayout,
-            m_renderPass.m_self,
-            0
+        m_pipelineLayout,
+        m_renderPass.m_self,
+        0
     );
 
     pipelineCreateInfo.pVertexInputState   = &m_vertices.m_inputState;
@@ -164,15 +165,15 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
 }
 
 bool EvoVulkan::Complexes::Shader::Compile(
-        VkPolygonMode polygonMode,
-        VkCullModeFlags cullMode,
-        VkCompareOp depthCompare,
-        VkBool32 blendEnable,
-        VkBool32 depthWrite,
-        VkBool32 depthTest,
-        VkPrimitiveTopology topology,
-        VkSampleCountFlagBits rasterizationSamples)
-{
+    VkPolygonMode polygonMode,
+    VkCullModeFlags cullMode,
+    VkCompareOp depthCompare,
+    VkBool32 blendEnable,
+    VkBool32 depthWrite,
+    VkBool32 depthTest,
+    VkPrimitiveTopology topology,
+    VkSampleCountFlagBits rasterizationSamples
+) {
     if (!BuildLayouts()) {
         VK_ERROR("Shader::Compile() : failed to build layouts!");
         return false;
@@ -211,7 +212,7 @@ bool EvoVulkan::Complexes::Shader::BuildLayouts() {
         return false;
     }
 
-    m_pipelineLayout = Tools::CreatePipelineLayout(*m_device, m_descriptorSetLayout);
+    m_pipelineLayout = Tools::CreatePipelineLayout(*m_device, m_descriptorSetLayout, m_pushConstants);
     if (m_pipelineLayout == VK_NULL_HANDLE) {
         VK_ERROR("Shader::BuildLayouts() : failed to create pipeline layout!");
         return false;

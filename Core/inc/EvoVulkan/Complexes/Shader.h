@@ -42,6 +42,7 @@ namespace EvoVulkan::Complexes {
     };
 
     class DLL_EVK_EXPORT Shader : public Tools::NonCopyable {
+        using Super = Tools::NonCopyable;
     public:
         Shader(const Types::Device* device, Types::RenderPass renderPass, const VkPipelineCache& cache);
         ~Shader() override;
@@ -50,10 +51,11 @@ namespace EvoVulkan::Complexes {
 
     public:
         bool Load(
-                const std::string& cache,
-                const std::vector<SourceShader>& modules,
-                const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
-                const std::vector<VkDeviceSize>& uniformSizes);
+            const std::string& cache,
+            const std::vector<SourceShader>& modules,
+            const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
+            const std::vector<VkPushConstantRange>& pushConstants
+        );
 
         bool SetVertexDescriptions(
                 const std::vector<VkVertexInputBindingDescription>& binding,
@@ -74,7 +76,6 @@ namespace EvoVulkan::Complexes {
          * @note Use for building descriptors
          */
         EVK_NODISCARD EVK_INLINE VkDescriptorSetLayout GetDescriptorSetLayout() const noexcept { return m_descriptorSetLayout; }
-        EVK_NODISCARD EVK_INLINE std::vector<VkDeviceSize> GetUniformSizes() const { return m_uniformSizes; }
         EVK_NODISCARD EVK_INLINE VkPipeline GetPipeline() const noexcept { return m_pipeline; }
         EVK_NODISCARD EVK_INLINE VkPipelineLayout GetPipelineLayout() const noexcept { return m_pipelineLayout; }
 
@@ -96,7 +97,7 @@ namespace EvoVulkan::Complexes {
         Types::RenderPass                             m_renderPass          = { };
 
         VkDescriptorSetLayout                         m_descriptorSetLayout = VK_NULL_HANDLE;
-        std::vector<VkDescriptorSetLayoutBinding>     m_layoutBindings      = {};
+        std::vector<VkDescriptorSetLayoutBinding>     m_layoutBindings      = { };
 
         bool                                          m_hasVertices         = false;
 
@@ -107,17 +108,17 @@ namespace EvoVulkan::Complexes {
 
         VkBool32                                      m_blendEnable         = VK_FALSE;
 
-        std::vector<VkPipelineShaderStageCreateInfo>  m_shaderStages        = {};
-        std::vector<VkShaderModule>                   m_shaderModules       = {};
+        std::vector<VkPipelineShaderStageCreateInfo>  m_shaderStages        = { };
+        std::vector<VkShaderModule>                   m_shaderModules       = { };
 
-        std::vector<VkDeviceSize>                     m_uniformSizes        = {};
+        std::vector<VkPushConstantRange>              m_pushConstants       = { };
 
-        VkPipelineInputAssemblyStateCreateInfo        m_inputAssemblyState  = {};
-        VkPipelineRasterizationStateCreateInfo        m_rasterizationState  = {};
-        VkPipelineDepthStencilStateCreateInfo         m_depthStencilState   = {};
-        VkPipelineViewportStateCreateInfo             m_viewportState       = {};
-        VkPipelineMultisampleStateCreateInfo          m_multisampleState    = {};
-        VkPipelineRasterizationLineStateCreateInfoEXT m_lineState           = {};
+        VkPipelineInputAssemblyStateCreateInfo        m_inputAssemblyState  = { };
+        VkPipelineRasterizationStateCreateInfo        m_rasterizationState  = { };
+        VkPipelineDepthStencilStateCreateInfo         m_depthStencilState   = { };
+        VkPipelineViewportStateCreateInfo             m_viewportState       = { };
+        VkPipelineMultisampleStateCreateInfo          m_multisampleState    = { };
+        VkPipelineRasterizationLineStateCreateInfoEXT m_lineState           = { };
 
     };
 }

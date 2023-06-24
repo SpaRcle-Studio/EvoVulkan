@@ -248,13 +248,16 @@ namespace EvoVulkan::Tools::Initializers {
     }
 
     EVK_MAYBE_UNUSED static VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo(
-            const VkDescriptorSetLayout* pSetLayouts,
-            uint32_t setLayoutCount = 1)
-    {
+        const VkDescriptorSetLayout* pSetLayouts,
+        uint32_t setLayoutCount,
+        const std::vector<VkPushConstantRange>& pushConstants
+    ) {
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-        pipelineLayoutCreateInfo.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutCreateInfo.setLayoutCount             = setLayoutCount;
-        pipelineLayoutCreateInfo.pSetLayouts                = pSetLayouts;
+        pipelineLayoutCreateInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutCreateInfo.setLayoutCount         = setLayoutCount;
+        pipelineLayoutCreateInfo.pSetLayouts            = pSetLayouts;
+        pipelineLayoutCreateInfo.pPushConstantRanges    = pushConstants.data();
+        pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstants.size();
 
         return pipelineLayoutCreateInfo;
     }
