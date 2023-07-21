@@ -449,28 +449,9 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     return FrameResult::Success;
 }
 
-EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
-    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentBuffer, m_syncs.m_renderComplete);
-    if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            /// Swap chain is no longer compatible with the surface and needs to be recreated
-            VK_LOG("VulkanKernel::SubmitFrame() : window has been resized!");
-            return FrameResult::OutOfDate;
-        }
-        else {
-            VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue present! Reason: " +
-                     Tools::Convert::result_to_description(result));
-
-            if (result == VK_ERROR_DEVICE_LOST) {
-                return FrameResult::DeviceLost;
-            }
-
-            return FrameResult::Error;
-        }
-    }
-
+EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
     /// TODO: здесь может зависнуть, нужно придумать способ перехвата
-    result = vkQueueWaitIdle(m_device->GetQueues()->GetGraphicsQueue());
+    VkResult result = vkQueueWaitIdle(m_device->GetQueues()->GetGraphicsQueue());
 
     if (result != VK_SUCCESS) {
         VK_ERROR("VulkanKernel::SubmitFrame() : failed to queue wait idle! Reason: " +
@@ -482,7 +463,39 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
         return FrameResult::Error;
     }
 
-    return FrameResult::Success;
+    return EvoVulkan::Core::FrameResult::Success;
+}
+
+EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::WaitIdle() {
+    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentBuffer, m_syncs.m_renderComplete);
+
+    if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            /// Swap chain is no longer compatible with the surface and needs to be recreated
+            VK_LOG("VulkanKernel::WaitIdle() : window has been resized!");
+            return FrameResult::OutOfDate;
+        }
+        else {
+            VK_ERROR("VulkanKernel::WaitIdle() : failed to queue present! Reason: " +
+                     Tools::Convert::result_to_description(result));
+
+            if (result == VK_ERROR_DEVICE_LOST) {
+                return FrameResult::DeviceLost;
+            }
+
+            return FrameResult::Error;
+        }
+    }
+
+    return EvoVulkan::Core::FrameResult::Success;
+}
+
+EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
+    if (auto&& result = QueuePresent(); result != FrameResult::Success) {
+        return result;
+    }
+
+    return WaitIdle();
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
@@ -636,7 +649,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations() {
     /// Set up submit info structure
     /// Semaphores will stay the same during application lifetime
     /// Command buffer submission info is set by each example
-    m_submitInfo = Tools::Initializers::SubmitInfo();
+    m_submitInfo = SubmitInfo();
 
     ClearSubmitQueue();
 
@@ -655,18 +668,16 @@ bool EvoVulkan::Core::VulkanKernel::SetValidationLayersEnabled(bool value) {
 }
 
 void EvoVulkan::Core::VulkanKernel::ClearSubmitQueue() {
-    m_submitInfo.pWaitDstStageMask    = &m_submitPipelineStages;
-    m_submitInfo.waitSemaphoreCount   = 1;
-    m_submitInfo.pWaitSemaphores      = &m_syncs.m_presentComplete;
-    m_submitInfo.signalSemaphoreCount = 1;
-    m_submitInfo.pSignalSemaphores    = &m_syncs.m_renderComplete;
+    m_submitInfo = SubmitInfo();
+
+    m_submitInfo.SetWaitDstStageMask(m_submitPipelineStages);
+    m_submitInfo.signalSemaphores.emplace_back(m_syncs.m_renderComplete);
+
     m_submitQueue.clear();
 }
 
-void EvoVulkan::Core::VulkanKernel::AddSubmitQueue(VkSubmitInfo submitInfo) {
-    m_submitInfo.waitSemaphoreCount = submitInfo.signalSemaphoreCount;
-    m_submitInfo.pWaitSemaphores = submitInfo.pSignalSemaphores;
-    m_submitQueue.emplace_back(submitInfo);
+void EvoVulkan::Core::VulkanKernel::AddSubmitQueue(SubmitInfo submitInfo) {
+    m_submitQueue.emplace_back(std::move(submitInfo));
 }
 
 EvoVulkan::Core::DescriptorManager *EvoVulkan::Core::VulkanKernel::GetDescriptorManager() const {
@@ -687,4 +698,29 @@ EvoVulkan::Types::CmdBuffer* EvoVulkan::Core::VulkanKernel::CreateSingleTimeCmd(
 
 uint8_t EvoVulkan::Core::VulkanKernel::GetSampleCount() const {
     return m_sampleCount;
+}
+
+void EvoVulkan::Core::VulkanKernel::PrintSubmitQueue() {
+    if (m_submitQueue.empty()) {
+        return;
+    }
+
+    std::string log = "VulkanKernel::PrintSubmitQueue() : \n";
+
+    for (auto&& queue : m_submitQueue) {
+        log += "--------------------------------------------------\n";
+        for (auto&& wait : queue.waitSemaphores) {
+            log += "|\twait semaphore   [" + std::to_string((uint64_t)wait) + "]\n";
+        }
+        for (auto&& cmd : queue.commandBuffers) {
+            log += "|\tcommand buffer   [" + std::to_string((uint64_t)cmd) + "]\n";
+        }
+        for (auto&& signal : queue.signalSemaphores) {
+            log += "|\tsignal semaphore [" + std::to_string((uint64_t)signal) + "]\n";
+        }
+    }
+
+    log += "--------------------------------------------------";
+
+    VK_LOG(log);
 }

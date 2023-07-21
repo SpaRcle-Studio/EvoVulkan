@@ -54,6 +54,9 @@ namespace EvoVulkan::Complexes {
         void SetDepthFormat(VkFormat depthFormat);
         void SetDepthAspect(VkImageAspectFlags depthAspect);
 
+        void ClearWaitSemaphores() { m_waitSemaphores.clear(); }
+        void ClearSignalSemaphores();
+
     public:
         EVK_NODISCARD VkImageView GetAttachment(uint32_t layer, uint32_t id) const;
 
@@ -83,6 +86,8 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE VkImageAspectFlags GetDepthAspect() const { return m_depthAspect; }
         EVK_NODISCARD EVK_INLINE VkFormat GetDepthFormat() const { return m_depthFormat; }
         EVK_NODISCARD const VkClearValue* GetClearValues() const { return m_clearValues.data(); }
+        EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_waitSemaphores; }
+        EVK_NODISCARD std::vector<VkSemaphore>& GetSignalSemaphores() { return m_signalSemaphores; }
 
         EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls, uint32_t layer) const;
 
@@ -123,12 +128,15 @@ namespace EvoVulkan::Complexes {
         Core::DescriptorManager*  m_descriptorManager  = nullptr;
         Types::CmdBuffer*         m_cmdBuff            = nullptr;
 
-        VkRect2D                  m_scissor            = {};
-        VkViewport                m_viewport           = {};
+        VkRect2D                  m_scissor            = { };
+        VkViewport                m_viewport           = { };
 
-        VkCommandBufferBeginInfo  m_cmdBufInfo         = {};
+        VkCommandBufferBeginInfo  m_cmdBufInfo         = { };
 
-        std::vector<VkClearValue> m_clearValues        = {};
+        std::vector<VkSemaphore>  m_waitSemaphores     = { };
+        std::vector<VkSemaphore>  m_signalSemaphores   = { };
+
+        std::vector<VkClearValue> m_clearValues        = { };
         uint32_t                  m_countClearValues   = 0;
 
         uint8_t                   m_sampleCount        = 0;

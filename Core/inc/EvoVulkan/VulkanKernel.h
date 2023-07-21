@@ -9,12 +9,13 @@
 
 #include <EvoVulkan/Tools/VulkanTools.h>
 #include <EvoVulkan/Tools/VulkanInsert.h>
-#include <EvoVulkan/Types/Instance.h>
+#include <EvoVulkan/Tools/SubmitInfo.h>
 
+#include <EvoVulkan/Types/Instance.h>
 #include <EvoVulkan/Types/VulkanBuffer.h>
+#include <EvoVulkan/Types/RenderPass.h>
 
 #include <EvoVulkan/DescriptorManager.h>
-#include <EvoVulkan/Types/RenderPass.h>
 #include <EvoVulkan/Complexes/Framebuffer.h>
 
 #include <EvoVulkan/Types/MultisampleTarget.h>
@@ -58,6 +59,8 @@ namespace EvoVulkan::Core {
         virtual FrameResult PrepareFrame();
         virtual RenderResult NextFrame();
         virtual FrameResult SubmitFrame();
+        virtual FrameResult QueuePresent();
+        virtual FrameResult WaitIdle();
 
     public:
         EVK_NODISCARD EVK_INLINE VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
@@ -71,15 +74,16 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE VkInstance GetInstance() const { return *m_instance; }
         EVK_NODISCARD EVK_INLINE bool HasErrors() const noexcept { return m_hasErrors; }
         EVK_NODISCARD EVK_INLINE bool IsDirty() const noexcept { return m_dirty; }
-        EVK_NODISCARD EVK_INLINE VkViewport GetViewport()   const noexcept { return Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f); }
-        EVK_NODISCARD EVK_INLINE const VkSubmitInfo& GetSubmitInfo() const noexcept { return m_submitInfo; }
-        EVK_NODISCARD EVK_INLINE VkRect2D   GetScissor()    const noexcept { return Tools::Initializers::Rect2D(m_width, m_height, 0, 0);                       }
-        EVK_NODISCARD EVK_INLINE VkRect2D   GetRenderArea() const noexcept { return { VkOffset2D(), { m_width, m_height } };                                    }
+        EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const noexcept { return Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f); }
+        EVK_NODISCARD EVK_INLINE const SubmitInfo& GetSubmitInfo() const noexcept { return m_submitInfo; }
+        EVK_NODISCARD EVK_INLINE VkRect2D GetScissor()const noexcept { return Tools::Initializers::Rect2D(m_width, m_height, 0, 0); }
+        EVK_NODISCARD EVK_INLINE VkRect2D GetRenderArea() const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
         EVK_NODISCARD EVK_INLINE bool IsMultisamplingEnabled() const noexcept { return m_sampleCount > 1; }
-        EVK_NODISCARD EVK_INLINE const VkSemaphore* GetPresentCompleteSemaphore() const noexcept { return &m_syncs.m_presentComplete; }
-        EVK_NODISCARD EVK_INLINE const VkSemaphore* GetRenderCompleteSemaphore() const noexcept { return &m_syncs.m_renderComplete; }
+        EVK_NODISCARD EVK_INLINE VkSemaphore GetPresentCompleteSemaphore() const noexcept { return m_syncs.m_presentComplete; }
+        EVK_NODISCARD EVK_INLINE VkSemaphore GetRenderCompleteSemaphore() const noexcept { return m_syncs.m_renderComplete; }
+        EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_submitInfo.waitSemaphores; }
 
         EVK_NODISCARD uint8_t GetSampleCount() const;
         EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateSingleTimeCmd() const;
@@ -88,14 +92,18 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD uint32_t GetCountBuildIterations() const;
         EVK_NODISCARD bool IsValidationLayersEnabled() const { return m_validationEnabled; }
         EVK_NODISCARD bool IsSurfaceCollapsed() const { return m_paused; }
-        EVK_NODISCARD const VkPipelineStageFlags* GetSubmitPipelineStages() const { return &m_submitPipelineStages; }
+        EVK_NODISCARD VkPipelineStageFlags GetSubmitPipelineStages() const { return m_submitPipelineStages; }
 
         EVK_NODISCARD virtual bool IsWindowValid() const { return true; }
 
         virtual void PollWindowEvents() { }
 
         void ClearSubmitQueue();
-        void AddSubmitQueue(VkSubmitInfo submitInfo);
+        void PrintSubmitQueue();
+        void AddSubmitQueue(SubmitInfo submitInfo);
+        void SetSubmitQueue(std::vector<SubmitInfo>&& queue) { m_submitQueue = std::move(queue); }
+
+        EVK_NODISCARD const std::vector<SubmitInfo>& GetSubmitQueue() const { return m_submitQueue; };
 
         void SetMultisampling(uint32_t sampleCount);
         void SetSwapchainImagesCount(uint32_t count);
@@ -154,13 +162,13 @@ namespace EvoVulkan::Core {
 
         Core::DescriptorManager*   m_descriptorManager    = nullptr;
 
-        Types::Synchronization     m_syncs                = {};
-        VkSubmitInfo               m_submitInfo           = {};
+        Types::Synchronization     m_syncs                = { };
+        SubmitInfo                 m_submitInfo           = { };
 
         std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
         uint32_t                   m_currentBuffer        = 0;
 
-        std::vector<VkSubmitInfo>  m_submitQueue          = { };
+        std::vector<SubmitInfo>    m_submitQueue          = { };
 
         VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
