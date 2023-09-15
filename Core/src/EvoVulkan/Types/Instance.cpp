@@ -34,15 +34,6 @@ namespace EvoVulkan::Types {
 
         VK_GRAPH("Instance::Create() : create vulkan instance..." + log);
 
-        static bool exists = false;
-
-        if (exists) {
-            VK_ERROR("Instance::Create() : instance already exists!");
-            return nullptr;
-        }
-        else
-            exists = true;
-
         if (extensions.empty()) {
             VK_ERROR("Instance::Create() : extensions is empty!");
             return nullptr;
