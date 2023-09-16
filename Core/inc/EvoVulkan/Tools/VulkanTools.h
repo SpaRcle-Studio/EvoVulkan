@@ -523,6 +523,16 @@ namespace EvoVulkan::Tools {
     ) {
         VkSamplerCreateInfo samplerIC = Tools::Initializers::SamplerCreateInfo();
 
+        if (minFilter < VK_FILTER_NEAREST || minFilter >= VK_FILTER_MAX_ENUM) {
+            VK_HALT("Invalid min filter!");
+            return VK_NULL_HANDLE;
+        }
+
+        if (magFilter < VK_FILTER_NEAREST || magFilter >= VK_FILTER_MAX_ENUM) {
+            VK_HALT("Invalid mag filter!");
+            return VK_NULL_HANDLE;
+        }
+
         samplerIC.magFilter    = magFilter;
         samplerIC.minFilter    = minFilter;
         samplerIC.mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR;

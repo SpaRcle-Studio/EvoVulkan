@@ -151,6 +151,9 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     m_width  = m_newWidth;
     m_height = m_newHeight;
 
+    m_newWidth = -1;
+    m_newHeight = -1;
+
     m_swapchain = Types::Swapchain::Create(
         *m_instance,
         m_surface,
