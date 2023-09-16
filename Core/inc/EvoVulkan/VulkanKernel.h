@@ -37,6 +37,8 @@ namespace EvoVulkan::Core {
     class DLL_EVK_EXPORT VulkanKernel : public Tools::NonCopyable {
     protected:
         VulkanKernel() = default;
+
+    public:
         ~VulkanKernel() override = default;
 
     public:
