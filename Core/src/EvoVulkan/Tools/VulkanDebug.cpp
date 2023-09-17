@@ -56,6 +56,11 @@ namespace EvoVulkan::Tools {
     }
 
     void VkFunctionsHolder::PushLogLevel(EvoVulkan::Tools::LogLevel logLevel) {
+        if (m_logLevelStack.size() > 1024) {
+            VK_HALT("VkFunctionsHolder::PushLogLevel() : buffer overflow!");
+            return;
+        }
+
         m_logLevelStack.push(logLevel);
     }
 

@@ -92,6 +92,7 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateCmd() const;
         EVK_NODISCARD Core::DescriptorManager* GetDescriptorManager() const;
         EVK_NODISCARD uint32_t GetCountBuildIterations() const;
+        EVK_NODISCARD bool IsGUIEnabled() const { return m_GUIEnabled; }
         EVK_NODISCARD bool IsValidationLayersEnabled() const { return m_validationEnabled; }
         EVK_NODISCARD bool IsSurfaceCollapsed() const { return m_paused; }
         EVK_NODISCARD VkPipelineStageFlags GetSubmitPipelineStages() const { return m_submitPipelineStages; }
