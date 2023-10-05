@@ -431,6 +431,11 @@ EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
+    if (m_swapchain->IsDirty()) {
+        VK_LOG("VulkanKernel::PrepareFrame() : swapchain is dirty!");
+        return FrameResult::Dirty;
+    }
+
     /// Acquire the next image from the swap chain
     VkResult result = m_swapchain->AcquireNextImage(m_syncs.m_presentComplete, &m_currentBuffer);
     /// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)

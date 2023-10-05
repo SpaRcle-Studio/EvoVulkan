@@ -203,6 +203,8 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         return false;
     }
 
+    m_dirty = false;
+
     VK_GRAPH("Swapchain::ReSetup() : swapchain successfully re-configured!");
 
     return true;
@@ -383,6 +385,14 @@ VkResult EvoVulkan::Types::Swapchain::QueuePresent(VkQueue queue, uint32_t image
         VK_ERROR("Swapchain::QueuePresent() : an exception has been occurred! \n\tMessage: " + std::string(ex.what()));
         return VK_ERROR_UNKNOWN;
     }
+}
+
+void EvoVulkan::Types::Swapchain::SetVSync(bool vsync) {
+    if (m_vsync == vsync) {
+        return;
+    }
+    m_dirty = true;
+    m_vsync = vsync;
 }
 
 

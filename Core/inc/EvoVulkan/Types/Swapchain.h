@@ -38,12 +38,16 @@ namespace EvoVulkan::Types {
 
         bool ReSetup(uint32_t width, uint32_t height, uint32_t countImages);
 
-        EVK_NODISCARD SwapChainBuffer* GetBuffers()   const { return m_buffers;         }
-        EVK_NODISCARD uint32_t GetSurfaceWidth()      const { return m_surfaceWidth;    }
-        EVK_NODISCARD uint32_t GetSurfaceHeight()     const { return m_surfaceHeight;   }
-        EVK_NODISCARD VkFormat GetColorFormat()       const { return m_colorFormat;     }
-        EVK_NODISCARD uint32_t GetCountImages()       const { return m_countImages;     }
-        EVK_NODISCARD VkColorSpaceKHR GetColorSpace() const { return m_colorSpace;      }
+        void SetVSync(bool vsync);
+
+        EVK_NODISCARD SwapChainBuffer* GetBuffers() const { return m_buffers; }
+        EVK_NODISCARD uint32_t GetSurfaceWidth() const { return m_surfaceWidth; }
+        EVK_NODISCARD uint32_t GetSurfaceHeight() const { return m_surfaceHeight; }
+        EVK_NODISCARD VkFormat GetColorFormat() const { return m_colorFormat; }
+        EVK_NODISCARD uint32_t GetCountImages() const { return m_countImages; }
+        EVK_NODISCARD VkColorSpaceKHR GetColorSpace() const { return m_colorSpace; }
+        EVK_NODISCARD bool IsVSyncEnabled() const { return m_vsync; }
+        EVK_NODISCARD bool IsDirty() const { return m_dirty; }
         EVK_NODISCARD bool IsReady() const override;
 
     public:
@@ -79,26 +83,27 @@ namespace EvoVulkan::Types {
         bool CreateImages();
 
     private:
-        VkSwapchainKHR   m_swapchain       = VK_NULL_HANDLE;
-        Device*          m_device          = nullptr;
-        Surface*         m_surface         = nullptr;
-        VkInstance       m_instance        = VK_NULL_HANDLE;
+        VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
+        Device* m_device = nullptr;
+        Surface* m_surface = nullptr;
+        VkInstance m_instance = VK_NULL_HANDLE;
 
-        VkPresentModeKHR m_presentMode     = VK_PRESENT_MODE_MAX_ENUM_KHR;
+        VkPresentModeKHR m_presentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
 
-        VkFormat         m_colorFormat     = VK_FORMAT_UNDEFINED;
-        VkColorSpaceKHR  m_colorSpace      = VkColorSpaceKHR::VK_COLOR_SPACE_MAX_ENUM_KHR;
+        VkFormat m_colorFormat = VK_FORMAT_UNDEFINED;
+        VkColorSpaceKHR m_colorSpace = VkColorSpaceKHR::VK_COLOR_SPACE_MAX_ENUM_KHR;
 
         //! note: images will be automatic destroyed after destroying swapchain
-        VkImage*         m_swapchainImages = nullptr;
-        uint32_t         m_countImages     = 0;
+        VkImage* m_swapchainImages = nullptr;
+        uint32_t m_countImages = 0;
 
-        SwapChainBuffer* m_buffers         = nullptr;
+        SwapChainBuffer* m_buffers = nullptr;
 
-        uint32_t         m_surfaceWidth    = 0;
-        uint32_t         m_surfaceHeight   = 0;
+        uint32_t m_surfaceWidth = 0;
+        uint32_t m_surfaceHeight = 0;
 
-        bool             m_vsync           = false;
+        bool m_vsync = false;
+        bool m_dirty = false;
 
     };
 }
