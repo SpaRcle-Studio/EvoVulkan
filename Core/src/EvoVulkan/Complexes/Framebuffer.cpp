@@ -465,7 +465,7 @@ namespace EvoVulkan::Complexes {
     }
 
     bool FrameBuffer::IsDepthEnabled() const {
-        return m_depthAspect != VK_IMAGE_ASPECT_NONE && m_depthFormat != VK_FORMAT_UNDEFINED;
+        return m_depthAspect != EvoVulkan::Tools::Initializers::EVK_IMAGE_ASPECT_NONE && m_depthFormat != VK_FORMAT_UNDEFINED;
     }
 
     void FrameBuffer::ClearSignalSemaphores() {

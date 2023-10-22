@@ -62,6 +62,10 @@
 
 #include <vulkan/vulkan.h>
 
+#ifdef EVK_ANDROID
+    #include <vulkan/vulkan_android.h>
+#endif
+
 #ifndef EVK_ANDROID
     #include <direct.h>
 #endif

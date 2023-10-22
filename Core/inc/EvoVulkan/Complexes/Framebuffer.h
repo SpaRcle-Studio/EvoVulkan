@@ -101,7 +101,7 @@ namespace EvoVulkan::Complexes {
 
     private:
         Attachment                m_depthAttachment;
-        VkImageAspectFlags        m_depthAspect        = VK_IMAGE_ASPECT_NONE;
+        VkImageAspectFlags        m_depthAspect        = EvoVulkan::Tools::Initializers::EVK_IMAGE_ASPECT_NONE;
         VkFormat                  m_depthFormat        = VK_FORMAT_UNDEFINED;
 
         FrameBufferLayers         m_layers             = { };

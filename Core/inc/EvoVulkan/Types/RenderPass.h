@@ -52,7 +52,7 @@ namespace EvoVulkan::Types {
         /// Resolve attachment reference for the color attachment
 
         const bool multisampling = sampleCount > 1;
-        const bool depth = depthAspect != VK_IMAGE_ASPECT_NONE;
+        const bool depth = depthAspect != EvoVulkan::Tools::Initializers::EVK_IMAGE_ASPECT_NONE;
 
         /// if (device->IsSeparateDepthStencilLayoutsSupported()) {
         ///     if ((depthAspect & VK_IMAGE_ASPECT_DEPTH_BIT) && (depthAspect & VK_IMAGE_ASPECT_STENCIL_BIT)) {

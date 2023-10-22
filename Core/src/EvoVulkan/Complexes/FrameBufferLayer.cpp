@@ -74,7 +74,7 @@ namespace EvoVulkan::Complexes {
         auto&& depthAspect = m_frameBuffer->GetDepthAspect();
         auto&& depthFormat = m_frameBuffer->GetDepthFormat();
 
-        if (depthAspect != VK_IMAGE_ASPECT_NONE && depthFormat != VK_FORMAT_UNDEFINED) {
+        if (depthAspect != EvoVulkan::Tools::Initializers::EVK_IMAGE_ASPECT_NONE && depthFormat != VK_FORMAT_UNDEFINED) {
             m_depthAttachment = FrameBufferAttachment::CreateDepthAttachment(
                 m_frameBuffer->GetAllocator(),
                 m_frameBuffer->GetCmdPool(),

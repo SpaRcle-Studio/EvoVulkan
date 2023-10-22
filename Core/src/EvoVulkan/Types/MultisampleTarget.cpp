@@ -102,7 +102,7 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
 
     //! ----------------------------------- Depth target -----------------------------------
 
-    if (m_depthAspect != VK_IMAGE_ASPECT_NONE && m_depthFormat != VK_FORMAT_UNDEFINED) {
+    if (m_depthAspect != EvoVulkan::Tools::Initializers::EVK_IMAGE_ASPECT_NONE && m_depthFormat != VK_FORMAT_UNDEFINED) {
         imageCI.format = m_depthFormat;
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 

@@ -9,6 +9,12 @@
 #include <EvoVulkan/Tools/FileSystem.h>
 
 namespace EvoVulkan::Tools::Initializers {
+    #ifdef EVK_ANDROID
+        static constexpr VkImageAspectFlags EVK_IMAGE_ASPECT_NONE = VK_IMAGE_ASPECT_NONE_KHR;
+    #else
+        static constexpr VkImageAspectFlags EVK_IMAGE_ASPECT_NONE = VK_IMAGE_ASPECT_NONE;
+    #endif
+
     EVK_MAYBE_UNUSED static VkMappedMemoryRange MappedMemoryRange(){
         VkMappedMemoryRange mappedMemoryRange = {};
         mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
