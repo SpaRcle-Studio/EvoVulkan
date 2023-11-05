@@ -28,7 +28,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 #else
     #ifdef EVK_ANDROID
     #else
-	    m_instExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+	    //m_instExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
     #endif
 #endif
 

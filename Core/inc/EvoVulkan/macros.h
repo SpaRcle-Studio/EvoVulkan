@@ -66,8 +66,12 @@
     #include <vulkan/vulkan_android.h>
 #endif
 
-#ifndef EVK_ANDROID
+#ifdef EVK_WIN32
     #include <direct.h>
+#endif
+
+#ifdef EVK_LINUX
+    #include <cstdarg>
 #endif
 
 #include <variant>
@@ -87,5 +91,6 @@
 #include <cmath>
 #include <unordered_set>
 #include <unordered_map>
+#include <memory>
 
 #endif //EVOVULKAN_MACROS_H
