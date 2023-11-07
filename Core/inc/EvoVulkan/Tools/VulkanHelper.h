@@ -241,6 +241,11 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static bool IsExtensionSupported(const VkPhysicalDevice& device, const std::string& requiredExtension) {
+        if (!device) {
+            VK_ERROR("IsExtensionSupported() : device is nullptr!");
+            return false;
+        }
+
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 

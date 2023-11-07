@@ -14,9 +14,20 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 {
     VK_GRAPH("VulkanKernel::PreInit() : pre-initializing Evo Vulkan kernel...");
 
+    uint32_t instanceVersion = VK_API_VERSION_1_0;
+    auto&& FN_vkEnumerateInstanceVersion = PFN_vkEnumerateInstanceVersion(vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion"));
+    if (vkEnumerateInstanceVersion) {
+        vkEnumerateInstanceVersion(&instanceVersion );
+    }
+
+    uint32_t major = VK_VERSION_MAJOR(instanceVersion);
+    uint32_t minor = VK_VERSION_MINOR(instanceVersion);
+    uint32_t patch = VK_VERSION_PATCH(instanceVersion);
+
+    VK_LOG("VulkanKernel::PreInit() : vulkan version: " + std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch));
+
     m_appName          = appName;
     m_engineName       = engineName;
-    m_validationLayers = validationLayers;
     m_instExtensions   = instExtensions;
 
     Complexes::GLSLCompiler::Instance().Init(glslc);
@@ -40,6 +51,33 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
         supportedExtMsg.append("\n\t").append(extension);
     }
     VK_LOG(supportedExtMsg);
+
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    std::string supportedLayersMsg = "VulkanKernel::PreInit() : supported instance layers:";
+    for (auto&& layer : availableLayers) {
+        supportedLayersMsg.append("\n\t").append(layer.layerName);
+    }
+    VK_LOG(supportedLayersMsg);
+
+    for (auto&& layer : validationLayers) {
+        if (std::find_if(availableLayers.begin(), availableLayers.end(), [&layer](auto&& data) {
+            return layer == data.layerName;
+        }) != availableLayers.end()) {
+            m_validationLayers.emplace_back(layer);
+        }
+        else {
+            VK_WARN("VulkanKernel::PreInit() : layer " + std::string(layer) + " is not supported!");
+        }
+    }
+
+    if (m_validationLayers.empty() && m_validationEnabled) {
+        m_validationEnabled = false;
+        VK_WARN("VulkanKernel::PreInit() : validation is disabled!");
+    }
 
     m_instance = Types::Instance::Create(
             m_appName,

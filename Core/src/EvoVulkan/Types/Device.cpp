@@ -65,6 +65,11 @@ namespace EvoVulkan::Types {
             }
         }
 
+        if (!physicalDevice) {
+            VK_ERROR("Device::Create() : suitable device is not found!");
+            return nullptr;
+        }
+
         if (Tools::IsExtensionSupported(physicalDevice, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)) {
             info.extensions.emplace_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
             info.extensions.emplace_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
