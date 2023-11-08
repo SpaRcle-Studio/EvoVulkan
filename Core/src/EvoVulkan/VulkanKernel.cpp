@@ -16,8 +16,8 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 
     uint32_t instanceVersion = VK_API_VERSION_1_0;
     auto&& FN_vkEnumerateInstanceVersion = PFN_vkEnumerateInstanceVersion(vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion"));
-    if (vkEnumerateInstanceVersion) {
-        vkEnumerateInstanceVersion(&instanceVersion );
+    if (FN_vkEnumerateInstanceVersion) {
+        FN_vkEnumerateInstanceVersion(&instanceVersion);
     }
 
     uint32_t major = VK_VERSION_MAJOR(instanceVersion);
@@ -65,7 +65,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
 
     for (auto&& layer : validationLayers) {
         if (std::find_if(availableLayers.begin(), availableLayers.end(), [&layer](auto&& data) {
-            return layer == data.layerName;
+            return strcmp(layer, data.layerName) == 0;
         }) != availableLayers.end()) {
             m_validationLayers.emplace_back(layer);
         }
