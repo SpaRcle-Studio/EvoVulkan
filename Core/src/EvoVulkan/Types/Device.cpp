@@ -363,7 +363,7 @@ namespace EvoVulkan::Types {
 
         if (isRequested) {
             if (isRayTraceSupport) {
-                VK_LOG("Device::CheckRayTracing() : the ray-tracing was requested and supported!");
+                VK_LOG("Device::CheckRayTracing() : ray-tracing was requested and is supported!");
 
                 m_RTProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
                 m_RTProps.pNext = nullptr;
@@ -391,15 +391,15 @@ namespace EvoVulkan::Types {
                 m_rayTracingSupported = true;
             }
             else {
-                VK_LOG("Device::CheckRayTracing() : the ray-tracing was requested but not supported!");
+                VK_LOG("Device::CheckRayTracing() : ray-tracing was requested but is not supported!");
             }
         }
         else {
             if (isRayTraceSupport) {
-                VK_LOG("Device::CheckRayTracing() : the ray-tracing is supported!");
+                VK_LOG("Device::CheckRayTracing() : ray-tracing is supported!");
             }
             else {
-                VK_LOG("Device::CheckRayTracing() : the ray-tracing is not supported!");
+                VK_LOG("Device::CheckRayTracing() : ray-tracing is not supported!");
             }
         }
     }
