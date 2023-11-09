@@ -23,16 +23,18 @@ namespace EvoVulkan::Types {
 
         auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.m_capabilities);
         if (result != VK_SUCCESS) {
-            VK_ERROR("Types::QuerySwapChainSupport() : failed. Reason: "
-                + EvoVulkan::Tools::Convert::result_to_description(result));
+            VK_ERROR("Types::QuerySwapChainSupport() : failed. \n\tReason: " +
+                EvoVulkan::Tools::Convert::result_to_string(result) +
+                "\n\tDescription: " + EvoVulkan::Tools::Convert::result_to_description(result));
             return {};
         }
 
         uint32_t formatCount = 0;
         result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
         if (result != VK_SUCCESS) {
-            VK_ERROR("Types::QuerySwapChainSupport() : failed. Reason: "
-                                  + EvoVulkan::Tools::Convert::result_to_description(result));
+            VK_ERROR("Types::QuerySwapChainSupport() : failed. \n\tReason: " +
+                     EvoVulkan::Tools::Convert::result_to_string(result) +
+                     "\n\tDescription: " + EvoVulkan::Tools::Convert::result_to_description(result));
             return {};
         }
 
@@ -44,8 +46,9 @@ namespace EvoVulkan::Types {
         uint32_t presentModeCount;
         result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
         if (result != VK_SUCCESS) {
-            VK_ERROR("Types::QuerySwapChainSupport() : failed. Reason: "
-                                  + EvoVulkan::Tools::Convert::result_to_description(result));
+            VK_ERROR("Types::QuerySwapChainSupport() : failed. \n\tReason: " +
+                     EvoVulkan::Tools::Convert::result_to_string(result) +
+                     "\n\tDescription: " + EvoVulkan::Tools::Convert::result_to_description(result));
             return {};
         }
 

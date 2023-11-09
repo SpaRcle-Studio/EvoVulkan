@@ -29,7 +29,7 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
     if (!extensions.empty())
         if (!Tools::CheckDeviceExtensionSupport(physicalDevice, extensions)) {
             VK_WARN("Tools::IsDeviceSuitable() : device \"" +
-                                         Tools::GetDeviceName(physicalDevice) + "\" isn't support extensions!");
+                                         Tools::GetDeviceName(physicalDevice) + "\" doesn't support extensions!");
             return false;
         }
 
