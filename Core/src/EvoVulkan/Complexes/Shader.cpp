@@ -52,8 +52,12 @@ bool EvoVulkan::Complexes::Shader::Load(
                 EVK_DELETE_FILE(outputFile);
             }
 
+        #if defined(EVK_WIN32) || defined(EVK_LINUX)
         #ifdef EVK_WIN32
             std::string command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
+        #else
+            std::string command = std::string("\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\""));
+        #endif
             /// VK_LOG("Shader::Load() : execute command: " + command);
             system(command.c_str());
 
