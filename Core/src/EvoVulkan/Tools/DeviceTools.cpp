@@ -26,12 +26,13 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
         return false;
     }
 
-    if (!extensions.empty())
-        if (!Tools::CheckDeviceExtensionSupport(physicalDevice, extensions)) {
-            VK_WARN("Tools::IsDeviceSuitable() : device \"" +
-                                         Tools::GetDeviceName(physicalDevice) + "\" doesn't support extensions!");
-            return false;
+    for (auto&& extension : extensions) {
+        if (!Tools::CheckDeviceExtensionSupport(physicalDevice, extension)) {
+            VK_WARN("Tools::IsDeviceSuitable() : device \"" + Tools::GetDeviceName(physicalDevice) + "\" doesn't support extensions!"
+                "\n\tExtension: " + std::string(extension)
+            );
         }
+    }
 
     Types::SwapChainSupportDetails swapChainSupport = Types::QuerySwapChainSupport(physicalDevice, surface);
     if (!swapChainSupport.m_complete) {
@@ -59,6 +60,13 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
 }
 
 bool EvoVulkan::Tools::IsBetterThan(VkPhysicalDevice const& newDevice, VkPhysicalDevice const& oldDevice)  {
+    const bool newIsLLVMPipe = Tools::GetDeviceName(newDevice).find("llvmpipe") != std::string::npos;
+    const bool oldIsLLVMPipe = Tools::GetDeviceName(oldDevice).find("llvmpipe") != std::string::npos;
+
+    if (newIsLLVMPipe && !oldIsLLVMPipe) {
+        return false;
+    }
+
     auto newProp = Tools::GetDeviceProperties(newDevice);
     auto oldProp = Tools::GetDeviceProperties(oldDevice);
 

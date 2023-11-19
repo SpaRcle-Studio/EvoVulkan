@@ -361,8 +361,7 @@ namespace EvoVulkan::Tools {
             VkPhysicalDevice physicalDevice,
             Types::FamilyQueues *pQueues,
             const std::vector<const char *> &extensions,
-            const std::vector<const char *> &validLayers,
-            VkPhysicalDeviceFeatures deviceFeatures)
+            const std::vector<const char *> &validLayers)
     {
         VK_GRAPH("VulkanTools::CreateLogicalDevice() : create vulkan logical device...");
 
@@ -392,48 +391,48 @@ namespace EvoVulkan::Tools {
 
         //!=============================================================================================================
 
-        VkPhysicalDeviceImagelessFramebufferFeatures physicalDeviceImagelessFramebufferFeatures = {};
-        physicalDeviceImagelessFramebufferFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
-        physicalDeviceImagelessFramebufferFeatures.imagelessFramebuffer = true;
+        /// VkPhysicalDeviceImagelessFramebufferFeatures physicalDeviceImagelessFramebufferFeatures = {};
+        /// physicalDeviceImagelessFramebufferFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
+        /// physicalDeviceImagelessFramebufferFeatures.imagelessFramebuffer = true;
 
         //!=============================================================================================================
 
-        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT floatFeatures;
-        floatFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
-        floatFeatures.pNext = nullptr;
-        floatFeatures.shaderBufferFloat32AtomicAdd = VK_TRUE;
-        floatFeatures.shaderBufferFloat32Atomics = VK_TRUE;
-        floatFeatures.shaderBufferFloat64Atomics = VK_FALSE;
-        floatFeatures.shaderBufferFloat64AtomicAdd = VK_FALSE;
-        floatFeatures.shaderSharedFloat32Atomics = VK_FALSE;
-        floatFeatures.shaderSharedFloat32AtomicAdd = VK_FALSE;
-        floatFeatures.shaderSharedFloat64Atomics = VK_FALSE;
-        floatFeatures.shaderSharedFloat64AtomicAdd = VK_FALSE;
-        floatFeatures.shaderImageFloat32Atomics = VK_FALSE;
-        floatFeatures.shaderImageFloat32AtomicAdd = VK_FALSE;
-        floatFeatures.sparseImageFloat32Atomics = VK_FALSE;
-        floatFeatures.sparseImageFloat32AtomicAdd = VK_FALSE;
+        /// VkPhysicalDeviceShaderAtomicFloatFeaturesEXT floatFeatures;
+        /// floatFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
+        /// floatFeatures.pNext = nullptr;
+        /// floatFeatures.shaderBufferFloat32AtomicAdd = VK_TRUE;
+        /// floatFeatures.shaderBufferFloat32Atomics = VK_TRUE;
+        /// floatFeatures.shaderBufferFloat64Atomics = VK_FALSE;
+        /// floatFeatures.shaderBufferFloat64AtomicAdd = VK_FALSE;
+        /// floatFeatures.shaderSharedFloat32Atomics = VK_FALSE;
+        /// floatFeatures.shaderSharedFloat32AtomicAdd = VK_FALSE;
+        /// floatFeatures.shaderSharedFloat64Atomics = VK_FALSE;
+        /// floatFeatures.shaderSharedFloat64AtomicAdd = VK_FALSE;
+        /// floatFeatures.shaderImageFloat32Atomics = VK_FALSE;
+        /// floatFeatures.shaderImageFloat32AtomicAdd = VK_FALSE;
+        /// floatFeatures.sparseImageFloat32Atomics = VK_FALSE;
+        /// floatFeatures.sparseImageFloat32AtomicAdd = VK_FALSE;
 
         //!=============================================================================================================
 
-        VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeaturesKhr = {};
-        fragmentShadingRateFeaturesKhr.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
-        fragmentShadingRateFeaturesKhr.attachmentFragmentShadingRate = VK_TRUE;
-        fragmentShadingRateFeaturesKhr.primitiveFragmentShadingRate = VK_TRUE;
-        fragmentShadingRateFeaturesKhr.pipelineFragmentShadingRate = VK_TRUE;
-        fragmentShadingRateFeaturesKhr.pNext = nullptr;
+        /// VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeaturesKhr = {};
+        /// fragmentShadingRateFeaturesKhr.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+        /// fragmentShadingRateFeaturesKhr.attachmentFragmentShadingRate = VK_TRUE;
+        /// fragmentShadingRateFeaturesKhr.primitiveFragmentShadingRate = VK_TRUE;
+        /// fragmentShadingRateFeaturesKhr.pipelineFragmentShadingRate = VK_TRUE;
+        /// fragmentShadingRateFeaturesKhr.pNext = nullptr;
 
         //!=============================================================================================================
 
-        VkPhysicalDeviceLineRasterizationFeaturesEXT lineRasterizationFeaturesExt = {};
-        lineRasterizationFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT;
-        lineRasterizationFeaturesExt.pNext = (void*)&fragmentShadingRateFeaturesKhr;
-        lineRasterizationFeaturesExt.rectangularLines         = VK_FALSE;
-        lineRasterizationFeaturesExt.bresenhamLines           = VK_TRUE;
-        lineRasterizationFeaturesExt.smoothLines              = VK_FALSE;
-        lineRasterizationFeaturesExt.stippledRectangularLines = VK_FALSE;
-        lineRasterizationFeaturesExt.stippledBresenhamLines   = VK_TRUE;
-        lineRasterizationFeaturesExt.stippledSmoothLines      = VK_FALSE;
+        /// VkPhysicalDeviceLineRasterizationFeaturesEXT lineRasterizationFeaturesExt = {};
+        /// lineRasterizationFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT;
+        /// lineRasterizationFeaturesExt.pNext = (void*)&fragmentShadingRateFeaturesKhr;
+        /// lineRasterizationFeaturesExt.rectangularLines         = VK_FALSE;
+        /// lineRasterizationFeaturesExt.bresenhamLines           = VK_TRUE;
+        /// lineRasterizationFeaturesExt.smoothLines              = VK_FALSE;
+        /// lineRasterizationFeaturesExt.stippledRectangularLines = VK_FALSE;
+        /// lineRasterizationFeaturesExt.stippledBresenhamLines   = VK_TRUE;
+        /// lineRasterizationFeaturesExt.stippledSmoothLines      = VK_FALSE;
 
         //!=============================================================================================================
 
@@ -449,6 +448,9 @@ namespace EvoVulkan::Tools {
         deviceFeatures2.pNext = (void*)&deviceVulkan12Features;
         /// deviceFeatures2.pNext = (void*)&floatFeatures;
         /// deviceFeatures2.pNext = (void*)&lineRasterizationFeaturesExt;
+
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
         deviceFeatures2.features = deviceFeatures;
 
         //!=============================================================================================================

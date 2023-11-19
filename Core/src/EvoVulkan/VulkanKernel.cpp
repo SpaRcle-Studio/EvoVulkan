@@ -141,6 +141,11 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         return false;
     }
 
+    if (auto&& pQueues = m_device->GetQueues(); !pQueues || !pQueues->IsReady()) {
+        VK_ERROR("VulkanKernel::Init() : something went wrong! Family queues isn't ready...");
+        return false;
+    }
+
     if (!m_device->IsReady()) {
         VK_ERROR("VulkanKernel::Init() : something went wrong! Device isn't ready...");
         return false;
@@ -337,6 +342,10 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 bool EvoVulkan::Core::VulkanKernel::Destroy() {
     VK_LOG("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
 
+    if (m_device) {
+        m_device->WaitQueuesIdle();
+    }
+
     if (m_multisample) {
         m_multisample->Destroy();
         m_multisample->Free();
@@ -351,8 +360,9 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_pipelineCache)
         Tools::DestroyPipelineCache(*m_device, &m_pipelineCache);
 
-    if (m_syncs.IsReady())
+    if (m_syncs.IsReady()) {
         Tools::DestroySynchronization(*m_device, &m_syncs);
+    }
 
     if (m_renderPass.IsReady())
         Types::DestroyRenderPass(m_device, &m_renderPass);

@@ -141,70 +141,11 @@ namespace EvoVulkan::Types {
         ////deviceFeatures.textureCompressionETC2     = true;
         ////deviceFeatures.textureCompressionASTC_LDR = true;
 
-        VkPhysicalDeviceFeatures deviceFeatures = {
-                .robustBufferAccess = true,
-                .fullDrawIndexUint32 = false,
-                .imageCubeArray = true,
-                .independentBlend = true,
-                .geometryShader = true,
-                .tessellationShader = true,
-                .sampleRateShading = true,
-                .dualSrcBlend = true,
-                .logicOp = true,
-                .multiDrawIndirect = false,
-                .drawIndirectFirstInstance = false,
-                .depthClamp = true,
-                .depthBiasClamp = true,
-                .fillModeNonSolid = true,
-                .depthBounds = false /** is_depth_bounds_supported */,
-                .wideLines = true,
-                .largePoints = true,
-                .alphaToOne = false,
-                .multiViewport = true,
-                .samplerAnisotropy = true,
-                .textureCompressionETC2 = false,
-                .textureCompressionASTC_LDR = false /** is_optimal_astc_supported */,
-                .textureCompressionBC = true,
-                .occlusionQueryPrecise = true,
-                .pipelineStatisticsQuery = false,
-                .vertexPipelineStoresAndAtomics = true,
-                .fragmentStoresAndAtomics = true,
-                .shaderTessellationAndGeometryPointSize = false,
-                .shaderImageGatherExtended = true,
-                .shaderStorageImageExtendedFormats = false,
-                .shaderStorageImageMultisample = false /** is_shader_storage_image_multisample */,
-                .shaderStorageImageReadWithoutFormat = false /** is_formatless_image_load_supported */,
-                .shaderStorageImageWriteWithoutFormat = true,
-                .shaderUniformBufferArrayDynamicIndexing = false,
-                .shaderSampledImageArrayDynamicIndexing = false,
-                .shaderStorageBufferArrayDynamicIndexing = false,
-                .shaderStorageImageArrayDynamicIndexing = false,
-                .shaderClipDistance = true,
-                .shaderCullDistance = true,
-                .shaderFloat64 = false /** is_shader_float64_supported */,
-                .shaderInt64 = false /** is_shader_int64_supported */,
-                .shaderInt16 = false /** is_shader_int16_supported */,
-                .shaderResourceResidency = false,
-                .shaderResourceMinLod = false,
-                .sparseBinding = false,
-                .sparseResidencyBuffer = false,
-                .sparseResidencyImage2D = false,
-                .sparseResidencyImage3D = false,
-                .sparseResidency2Samples = false,
-                .sparseResidency4Samples = false,
-                .sparseResidency8Samples = false,
-                .sparseResidency16Samples = false,
-                .sparseResidencyAliased = false,
-                .variableMultisampleRate = false,
-                .inheritedQueries = false,
-        };
-
         logicalDevice = Tools::CreateLogicalDevice(
                 physicalDevice,
                 pQueues,
                 info.extensions,
-                info.validationLayers,
-                deviceFeatures);
+                info.validationLayers);
 
         if (logicalDevice == VK_NULL_HANDLE) {
             VK_ERROR("Device::Create() : failed create logical device!");
@@ -430,5 +371,19 @@ namespace EvoVulkan::Types {
         }
 
         return depthFormat;
+    }
+
+    void Device::WaitQueuesIdle() {
+        if (!m_familyQueues) {
+            return;
+        }
+
+        if (auto&& pQueue = m_familyQueues->GetGraphicsQueue()) {
+            vkQueueWaitIdle(pQueue);
+        }
+
+        if (auto&& pQueue = m_familyQueues->GetPresentQueue()) {
+            vkQueueWaitIdle(pQueue);
+        }
     }
 }

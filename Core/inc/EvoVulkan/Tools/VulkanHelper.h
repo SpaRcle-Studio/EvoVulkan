@@ -316,6 +316,22 @@ namespace EvoVulkan::Tools {
         return true;
     }
 
+    EVK_MAYBE_UNUSED static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::string& extension) {
+        uint32_t extensionCount;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        for (auto& availableExtension : availableExtensions) {
+            if (extension == availableExtension.extensionName) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     EVK_MAYBE_UNUSED static std::vector<VkPhysicalDevice> GetAllDevices(const VkInstance& instance) {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
