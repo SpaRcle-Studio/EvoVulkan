@@ -220,6 +220,14 @@ namespace EvoVulkan::Types {
             dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
         }
 
+        /// validate
+        for (uint32_t i = 0; i < attachments.size(); ++i) {
+            if (!Tools::IsFormatInRange(attachments[i].format)) {
+                VK_HALT("RenderPass::CreateRenderPass() : format is in not a range! Index: " + std::to_string(i));
+                return RenderPass(); /// NOLINT
+            }
+        }
+
         VkRenderPassCreateInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -234,7 +242,7 @@ namespace EvoVulkan::Types {
         if (result != VK_SUCCESS) {
             VK_ERROR("Types::CreateRenderPass() : failed to create vulkan render pass! Reason: " +
                      Tools::Convert::result_to_description(result));
-            return RenderPass();
+            return RenderPass(); /// NOLINT
         }
 
         return { renderPass, (uint32_t)attachments.size(), (uint32_t)colorReferences.size() };

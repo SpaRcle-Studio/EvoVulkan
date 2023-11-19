@@ -61,7 +61,6 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD bool IsReady() const;
         EVK_NODISCARD bool IsExtensionSupported(const std::string& extension) const;
         EVK_NODISCARD bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
-        EVK_NODISCARD bool IsSeparateDepthStencilLayoutsSupported() const { return false; }
         EVK_NODISCARD VkCommandPool CreateCommandPool(VkCommandPoolCreateFlags flagBits) const;
 
         uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;

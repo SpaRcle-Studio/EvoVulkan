@@ -54,6 +54,11 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
+        if (!Tools::IsFormatInRange(depthFormat)) {
+            VK_HALT("FrameBuffer::Create() : format is in not a range!");
+            return nullptr;
+        }
+
         auto&& pFBO = new FrameBuffer();
         {
             pFBO->m_layersCount        = arrayLayers;
@@ -461,6 +466,10 @@ namespace EvoVulkan::Complexes {
     }
 
     void FrameBuffer::SetDepthFormat(VkFormat depthFormat) {
+        if (Tools::IsFormatInRange(depthFormat)) {
+            VK_HALT("FrameBuffer::SetDepthFormat() : format is in not a range!");
+            return;
+        }
         m_depthFormat = depthFormat;
     }
 
