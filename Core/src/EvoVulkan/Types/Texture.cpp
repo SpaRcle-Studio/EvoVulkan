@@ -111,6 +111,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
         texture->m_device,
         texture->m_allocator,
         texture->m_width, texture->m_height,
+        1 /** depth */,
         texture->m_format,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
         1 /** sample count */,
@@ -139,6 +140,9 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
             bufferCopyRegion.imageSubresource.mipLevel       = level;
             bufferCopyRegion.imageSubresource.baseArrayLayer = face;
             bufferCopyRegion.imageSubresource.layerCount     = 1;
+            bufferCopyRegion.imageOffset.x                   = 0;
+            bufferCopyRegion.imageOffset.y                   = 0;
+            bufferCopyRegion.imageOffset.z                   = 0;
             bufferCopyRegion.imageExtent.width               = width >> level;
             bufferCopyRegion.imageExtent.height              = height >> level;
             bufferCopyRegion.imageExtent.depth               = 1;
@@ -294,7 +298,7 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
     auto&& imageCI = Types::ImageCreateInfo(
         m_device,
         m_allocator,
-        m_width, m_height,
+        m_width, m_height, 1,
         m_format,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
         1 /** sample count */,

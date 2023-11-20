@@ -26,6 +26,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD bool IsComplete() const override;
         EVK_NODISCARD bool IsReady() const override;
 
+        EVK_NODISCARD VkQueue GetTransferQueue() const noexcept { return m_transferQueue; }
         EVK_NODISCARD VkQueue GetGraphicsQueue() const noexcept { return m_graphicsQueue; }
         EVK_NODISCARD VkQueue GetPresentQueue() const noexcept { return m_graphicsQueue; }
 
@@ -38,6 +39,8 @@ namespace EvoVulkan::Types {
         bool FindIndices();
 
     private:
+        std::vector<VkQueueFamilyProperties> m_queueFamilyProperties;
+
         uint32_t m_queueFamilyPropertyCount = 0;
 
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;

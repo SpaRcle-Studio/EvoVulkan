@@ -20,6 +20,7 @@ namespace EvoVulkan::Types {
             Memory::Allocator* pAllocator,
             uint32_t _width,
             uint32_t _height,
+            uint32_t _depth,
             VkImageUsageFlags _usage,
             uint8_t _sampleCount
         );
@@ -29,6 +30,7 @@ namespace EvoVulkan::Types {
             Memory::Allocator* pAllocator,
             uint32_t _width,
             uint32_t _height,
+            uint32_t _depth,
             VkFormat _format,
             VkImageUsageFlags _usage,
             uint8_t _sampleCount,
@@ -43,6 +45,7 @@ namespace EvoVulkan::Types {
         Memory::Allocator* allocator = nullptr;
         uint32_t width = 0;
         uint32_t height = 0;
+        uint32_t depth = 0;
         uint32_t mipLevels = 0;
         VkFormat format = VK_FORMAT_UNDEFINED;
         VkImageTiling tiling = VK_IMAGE_TILING_MAX_ENUM;

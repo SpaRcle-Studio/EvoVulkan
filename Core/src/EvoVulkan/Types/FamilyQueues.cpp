@@ -36,27 +36,6 @@ namespace EvoVulkan::Types {
     }
 
     FamilyQueues* FamilyQueues::Find(VkPhysicalDevice physicalDevice, const Surface* pSurface) {
-        /// =================================================[ DEBUG ]==================================================
-
-        uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-
-        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
-
-        for (const VkQueueFamilyProperties& queueFamily : queueFamilies) {
-            VK_LOG("FamilyQueues::Find() : found queue family: "
-                  "\n\tCount queues: " + std::to_string(queueFamily.queueCount) +
-                  "\n\tTimestamp valid bits: " + std::to_string(queueFamily.timestampValidBits) +
-                  "\n\tGraphics: " + std::string(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT ? "True" : "False") +
-                  "\n\tCompute: " + std::string(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT ? "True" : "False") +
-                  "\n\tTransfer: " + std::string(queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT ? "True" : "False") +
-                  "\n\tProtected: " + std::string(queueFamily.queueFlags & VK_QUEUE_PROTECTED_BIT ? "True" : "False")
-            );
-        }
-
-        /// =================================================[ DEBUG ]==================================================
-
         auto&& pQueues = new FamilyQueues(physicalDevice, pSurface);
 
         if (!pQueues->FindIndices()) {
@@ -112,8 +91,23 @@ namespace EvoVulkan::Types {
         uint32_t queuesIndices[3] = { ~0u, ~0u, ~0u };
 
         vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &m_queueFamilyPropertyCount, nullptr);
-        std::vector<VkQueueFamilyProperties> queueFamilyProperties(m_queueFamilyPropertyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &m_queueFamilyPropertyCount, queueFamilyProperties.data());
+        m_queueFamilyProperties.resize(m_queueFamilyPropertyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &m_queueFamilyPropertyCount, m_queueFamilyProperties.data());
+
+        for (const VkQueueFamilyProperties& queueFamily : m_queueFamilyProperties) {
+            VK_LOG("FamilyQueues::FindIndices() : found queue family: "
+                   "\n\tCount queues: " + std::to_string(queueFamily.queueCount) +
+                   "\n\tTimestamp valid bits: " + std::to_string(queueFamily.timestampValidBits) +
+                   "\n\tGraphics: " + std::string(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT ? "True" : "False") +
+                   "\n\tCompute: " + std::string(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT ? "True" : "False") +
+                   "\n\tTransfer: " + std::string(queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT ? "True" : "False") +
+                   "\n\tProtected: " + std::string(queueFamily.queueFlags & VK_QUEUE_PROTECTED_BIT ? "True" : "False") +
+                   "\n\tMin image transfer granularity: "
+                        "\n\t\tWidth: " + std::to_string(queueFamily.minImageTransferGranularity.width) +
+                        "\n\t\tHeight: " + std::to_string(queueFamily.minImageTransferGranularity.height) +
+                        "\n\t\tDepth: " + std::to_string(queueFamily.minImageTransferGranularity.depth)
+            );
+        }
 
         for (size_t i = 0; i < 3; ++i) {
             const VkQueueFlagBits flag = askingFlags[i];
@@ -121,8 +115,8 @@ namespace EvoVulkan::Types {
 
             if (flag == VK_QUEUE_COMPUTE_BIT) {
                 for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
-                    if ((queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
-                        !(queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+                    if ((m_queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
+                        !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
                         queueIdx = j;
                         break;
                     }
@@ -130,9 +124,9 @@ namespace EvoVulkan::Types {
             }
             else if (flag == VK_QUEUE_TRANSFER_BIT) {
                 for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
-                    if ((queueFamilyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
-                        !(queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-                        !(queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                    if ((m_queueFamilyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
+                        !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+                        !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
                         queueIdx = j;
                         break;
                     }
@@ -141,7 +135,7 @@ namespace EvoVulkan::Types {
 
             if (queueIdx == ~0u) {
                 for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
-                    if (queueFamilyProperties[j].queueFlags & flag) {
+                    if (m_queueFamilyProperties[j].queueFlags & flag) {
                         queueIdx = j;
                         break;
                     }
@@ -149,7 +143,7 @@ namespace EvoVulkan::Types {
             }
         }
 
-        for (uint32_t i = 0; i < queueFamilyProperties.size(); ++i) {
+        for (uint32_t i = 0; i < m_queueFamilyProperties.size(); ++i) {
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, *m_surface, &presentSupport);
 

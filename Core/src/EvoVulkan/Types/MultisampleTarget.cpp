@@ -54,7 +54,7 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
     m_height = height;
 
     auto&& imageCI = Types::ImageCreateInfo(
-        m_device, m_allocator, m_width, m_height,
+        m_device, m_allocator, m_width, m_height, 1,
         VK_FORMAT_UNDEFINED /** format */,
         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT /** usage */,
         m_sampleCount,

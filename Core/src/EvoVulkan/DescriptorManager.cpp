@@ -33,10 +33,12 @@ namespace EvoVulkan::Core {
                 VK_ERROR("DescriptorManager::AllocateDescriptorSet(): descriptor pool is fragmented!");
                 return Types::DescriptorSet();
             case VK_ERROR_OUT_OF_POOL_MEMORY:
-                VK_ERROR("DescriptorManager::AllocateDescriptorSet(): out of memory descriptor pool!");
                 if (!reallocate) {
-                    /// reallocate pool
+                    VK_ERROR("DescriptorManager::AllocateDescriptorSet(): out of memory descriptor pool! Trying to reallocate pool...");
                     return AllocateDescriptorSet(layout, requestTypes, true);
+                }
+                else {
+                    VK_ERROR("DescriptorManager::AllocateDescriptorSet(): out of memory descriptor pool!");
                 }
                 EVK_FALLTHROUGH;
             default:

@@ -33,7 +33,7 @@ namespace EvoVulkan::Complexes {
         }
         else {
             auto&& imageCI = Types::ImageCreateInfo(
-                pAllocator->GetDevice(), pAllocator, imageSize.width, imageSize.height,
+                pAllocator->GetDevice(), pAllocator, imageSize.width, imageSize.height, 1,
                 format,
                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
                 samplesCount,
@@ -99,7 +99,7 @@ namespace EvoVulkan::Complexes {
         pFBOAttachment->m_allocator = pAllocator;
 
         auto&& imageCI = Types::ImageCreateInfo(
-                pAllocator->GetDevice(), pAllocator, imageSize.width, imageSize.height,
+                pAllocator->GetDevice(), pAllocator, imageSize.width, imageSize.height, 1,
             format,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT /** usage */,
             samplesCount,
@@ -170,6 +170,7 @@ namespace EvoVulkan::Complexes {
             pAllocator,
             imageSize.width,
             imageSize.height,
+            1,
             format,
             usage,
             samplesCount,
