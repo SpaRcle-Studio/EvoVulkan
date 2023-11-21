@@ -59,11 +59,18 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
     return true;
 }
 
-bool EvoVulkan::Tools::IsBetterThan(VkPhysicalDevice const& newDevice, VkPhysicalDevice const& oldDevice)  {
+bool EvoVulkan::Tools::IsBetterThan(VkPhysicalDevice const& newDevice, VkPhysicalDevice const& oldDevice) {
     const bool newIsLLVMPipe = Tools::GetDeviceName(newDevice).find("llvmpipe") != std::string::npos;
     const bool oldIsLLVMPipe = Tools::GetDeviceName(oldDevice).find("llvmpipe") != std::string::npos;
 
     if (newIsLLVMPipe && !oldIsLLVMPipe) {
+        return false;
+    }
+
+    const bool newIsIntel = Tools::GetDeviceName(newDevice).find("Intel") != std::string::npos;
+    const bool oldIsIntel = Tools::GetDeviceName(oldDevice).find("Intel") != std::string::npos;
+
+    if (newIsIntel && !oldIsIntel) {
         return false;
     }
 

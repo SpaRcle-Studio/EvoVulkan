@@ -61,7 +61,8 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD VkImageView GetAttachment(uint32_t layer, uint32_t id) const;
 
         EVK_NODISCARD std::vector<Types::Texture*> AllocateColorTextureReferences();
-        EVK_NODISCARD Types::Texture* AllocateDepthTextureReference();
+        EVK_NODISCARD std::vector<Types::Texture*> AllocateDepthTextureReferences();
+        EVK_NODISCARD Types::Texture* AllocateDepthTextureReference(int32_t index);
 
         EVK_NODISCARD bool IsMultisampleEnabled() const;
         EVK_NODISCARD bool IsDepthEnabled() const;
@@ -73,6 +74,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE const std::vector<VkFormat>& GetColorFormats() const noexcept { return m_attachFormats; }
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE const FrameBufferLayers& GetLayers() const noexcept { return m_layers; }
+        EVK_NODISCARD EVK_INLINE uint32_t GetLayersCount() const noexcept { return m_layersCount; }
         EVK_NODISCARD EVK_INLINE VkRect2D GetRenderPassArea() const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
         EVK_NODISCARD EVK_INLINE VkCommandBuffer GetCmd() const noexcept { return *m_cmdBuff; }
         EVK_NODISCARD EVK_INLINE VkCommandBuffer* GetCmdRef() const noexcept { return m_cmdBuff->GetCmdRef(); }

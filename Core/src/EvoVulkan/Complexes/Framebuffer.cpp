@@ -316,14 +316,22 @@ namespace EvoVulkan::Complexes {
         return true;
     }
 
-    EvoVulkan::Types::Texture *EvoVulkan::Complexes::FrameBuffer::AllocateDepthTextureReference() {
+    EvoVulkan::Types::Texture *EvoVulkan::Complexes::FrameBuffer::AllocateDepthTextureReference(int32_t index) {
         if (!IsDepthEnabled()) {
             return nullptr;
         }
 
         auto&& texture = new EvoVulkan::Types::Texture();
 
-        if (m_layersCount > 1) {
+        if (index >= 0) {
+            if (index >= m_layers.size()) {
+                VK_ASSERT(false);
+                return nullptr;
+            }
+            texture->m_view = m_layers.at(index)->GetDepthAttachment()->GetView();
+            texture->m_image = m_layers.at(index)->GetDepthAttachment()->GetImage().Copy();
+        }
+        else if (m_layersCount > 1) {
             texture->m_view = m_depthAttachment->GetView();
             texture->m_image = m_depthAttachment->GetImage().Copy();
         }
@@ -480,5 +488,20 @@ namespace EvoVulkan::Complexes {
     void FrameBuffer::ClearSignalSemaphores() {
         m_signalSemaphores.clear();
         m_signalSemaphores.emplace_back(GetSemaphore());
+    }
+
+    std::vector<Types::Texture*> FrameBuffer::AllocateDepthTextureReferences() {
+        std::vector<Types::Texture*> attachments;
+
+        if (m_depthAspect != VK_IMAGE_ASPECT_DEPTH_BIT) {
+            return attachments;
+        }
+
+        for (uint32_t layerIndex = 0; layerIndex < m_layersCount; ++layerIndex) {
+            if (auto&& pTexture = AllocateDepthTextureReference(layerIndex)) {
+                attachments.emplace_back(pTexture);
+            }
+        }
+        return attachments;
     }
 }
