@@ -102,10 +102,9 @@ namespace EvoVulkan::Types {
                    "\n\tCompute: " + std::string(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT ? "True" : "False") +
                    "\n\tTransfer: " + std::string(queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT ? "True" : "False") +
                    "\n\tProtected: " + std::string(queueFamily.queueFlags & VK_QUEUE_PROTECTED_BIT ? "True" : "False") +
-                   "\n\tMin image transfer granularity: "
-                        "\n\t\tWidth: " + std::to_string(queueFamily.minImageTransferGranularity.width) +
-                        "\n\t\tHeight: " + std::to_string(queueFamily.minImageTransferGranularity.height) +
-                        "\n\t\tDepth: " + std::to_string(queueFamily.minImageTransferGranularity.depth)
+                   "\n\tMin image transfer granularity: width: " + std::to_string(queueFamily.minImageTransferGranularity.width) +
+                        ", Height: " + std::to_string(queueFamily.minImageTransferGranularity.height) +
+                        ", Depth: " + std::to_string(queueFamily.minImageTransferGranularity.depth)
             );
         }
 

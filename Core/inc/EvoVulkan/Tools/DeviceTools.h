@@ -12,6 +12,7 @@ namespace EvoVulkan::Tools {
 
     struct DeviceSelectionInfo {
         VkPhysicalDeviceType type = VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM;
+        std::string name;
         bool llvmPipe = false;
         uint32_t extensions = 0;
         uint64_t heapsSize = 0;

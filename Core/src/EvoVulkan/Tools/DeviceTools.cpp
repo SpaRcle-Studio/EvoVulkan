@@ -84,6 +84,7 @@ EvoVulkan::Tools::DeviceSelectionInfo EvoVulkan::Tools::GetSelectionDeviceInfo(c
 
     DeviceSelectionInfo info = {};
 
+    info.name = Tools::GetDeviceName(device);
     info.device = device;
     info.llvmPipe = deviceName.find("llvmpipe") != std::string::npos;
     info.extensions = Tools::GetSupportedDeviceExtensions(device).size();
@@ -113,6 +114,26 @@ std::string EvoVulkan::Tools::ToLower(std::string str) noexcept {
 }
 
 VkPhysicalDevice EvoVulkan::Tools::SelectBetterDevice(const std::vector<DeviceSelectionInfo>& devices) {
+    if (devices.empty()) {
+        return VK_NULL_HANDLE;
+    }
+
+    if (devices.size() == 1) {
+        return devices.front().device;
+    }
+
+    std::string log = "Tools::SelectBetterDevice() : selecting better device:";
+    for (auto&& device : devices) {
+        log += "\n\tname = \"" + device.name +
+                "\", type = " + Tools::Convert::physical_device_type_to_string(device.type) +
+                ", llvmpipe = " + (device.llvmPipe ? "true" : "false") +
+                ", extensions = " + std::to_string(device.extensions) +
+                ", heapsSize = " + std::to_string(device.heapsSize)
+        ;
+    }
+
+    VK_LOG(log);
+
     std::vector<DeviceSelectionInfo> llvmPipe;
     std::vector<DeviceSelectionInfo> integrated;
     std::vector<DeviceSelectionInfo> discrete;
@@ -163,26 +184,46 @@ VkPhysicalDevice EvoVulkan::Tools::SelectBetterDevice(const std::vector<DeviceSe
         return SelectBetterDeviceByProperties(discrete);
     }
 
+    VK_ASSERT("Unresolved situation!");
+
     return VK_NULL_HANDLE;
 }
 
+int32_t SelectBetterDeviceByPropertiesComparator(const EvoVulkan::Tools::DeviceSelectionInfo& a, const EvoVulkan::Tools::DeviceSelectionInfo& b)
+{
+    if (a.extensions < b.extensions) {
+        return -1;
+    }
+
+    if (a.extensions == b.extensions) {
+        return 0;
+    }
+
+    ///////////////////////////////////////////
+
+    if (a.heapsSize < b.heapsSize) {
+        return -1;
+    }
+
+    if (a.heapsSize == b.heapsSize) {
+        return 0;
+    }
+
+    return 1;
+}
+
 VkPhysicalDevice EvoVulkan::Tools::SelectBetterDeviceByProperties(const std::vector<DeviceSelectionInfo>& devices) {
-    return devices.front().device;
-    /*auto sorted = devices;
+    auto sorted = devices;
 
-    std::sort(sorted.begin(), sorted.end(), [](const DeviceSelectionInfo& left, const DeviceSelectionInfo& right) -> int {
-        if (left.extensions < right.extensions) {
-            return -1;
-        }
-
-        if (aP == bP) {
-            return 0;
-        }
-
-        return 1;
+    std::stable_sort(sorted.begin(), sorted.end(), [](const EvoVulkan::Tools::DeviceSelectionInfo& a, const EvoVulkan::Tools::DeviceSelectionInfo& b) -> bool {
+        return a.extensions > b.extensions;
     });
 
-    for (auto&& device : devices) {
+    std::stable_sort(sorted.begin(), sorted.end(), [](const EvoVulkan::Tools::DeviceSelectionInfo& a, const EvoVulkan::Tools::DeviceSelectionInfo& b) -> bool {
+        return a.extensions == b.extensions && a.heapsSize > b.heapsSize;
+    });
 
-    }*/
+    auto&& device = sorted.front();
+    VK_LOG("Tools::SelectBetterDeviceByProperties() : selected device is \"" + device.name + "\"");
+    return device.device;
 }

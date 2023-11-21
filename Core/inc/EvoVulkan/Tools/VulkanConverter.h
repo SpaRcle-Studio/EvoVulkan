@@ -28,6 +28,10 @@ namespace EvoVulkan::Tools::Convert {
         }
     }
 
+    EVK_MAYBE_UNUSED static std::string DeviceTypeToString(VkFormat format) {
+
+    }
+
     EVK_MAYBE_UNUSED static VkFormat CompressedFormatToDecodedFormat(VkFormat format) {
         switch (format) {
             case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
