@@ -67,13 +67,6 @@ bool EvoVulkan::Tools::IsBetterThan(VkPhysicalDevice const& newDevice, VkPhysica
         return false;
     }
 
-    const bool newIsIntel = Tools::GetDeviceName(newDevice).find("Intel") != std::string::npos;
-    const bool oldIsIntel = Tools::GetDeviceName(oldDevice).find("Intel") != std::string::npos;
-
-    if (newIsIntel && !oldIsIntel) {
-        return false;
-    }
-
     auto newProp = Tools::GetDeviceProperties(newDevice);
     auto oldProp = Tools::GetDeviceProperties(oldDevice);
 
@@ -84,4 +77,112 @@ bool EvoVulkan::Tools::IsBetterThan(VkPhysicalDevice const& newDevice, VkPhysica
     const int64_t extensionsDifference = newExtensions.size() - oldExtensions.size();
 
     return (storageDifference + extensionsDifference) > 0;
+}
+
+EvoVulkan::Tools::DeviceSelectionInfo EvoVulkan::Tools::GetSelectionDeviceInfo(const VkPhysicalDevice& device) {
+    auto&& deviceName = Tools::ToLower(Tools::GetDeviceName(device));
+
+    DeviceSelectionInfo info = {};
+
+    info.device = device;
+    info.llvmPipe = deviceName.find("llvmpipe") != std::string::npos;
+    info.extensions = Tools::GetSupportedDeviceExtensions(device).size();
+
+    auto&& deviceProperties = Tools::GetDeviceProperties(device);
+    info.type = deviceProperties.deviceType;
+
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
+
+    auto&& heapsPointer = memoryProperties.memoryHeaps;
+    auto&& heaps = std::vector<VkMemoryHeap>(heapsPointer, heapsPointer + memoryProperties.memoryHeapCount);
+
+    for (const auto& heap : heaps) {
+        if (heap.flags & VkMemoryHeapFlagBits::VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+            info.heapsSize += heap.size;
+        }
+    }
+
+    return info;
+}
+
+std::string EvoVulkan::Tools::ToLower(std::string str) noexcept {
+    for (char& t : str)
+        t = tolower(t);
+    return str;
+}
+
+VkPhysicalDevice EvoVulkan::Tools::SelectBetterDevice(const std::vector<DeviceSelectionInfo>& devices) {
+    std::vector<DeviceSelectionInfo> llvmPipe;
+    std::vector<DeviceSelectionInfo> integrated;
+    std::vector<DeviceSelectionInfo> discrete;
+    std::vector<DeviceSelectionInfo> virtualGPU;
+    std::vector<DeviceSelectionInfo> cpu;
+    std::vector<DeviceSelectionInfo> other;
+
+    for (auto&& device : devices) {
+        if (device.llvmPipe) {
+            llvmPipe.emplace_back(device);
+            continue;
+        }
+
+        switch (device.type) {
+            case VK_PHYSICAL_DEVICE_TYPE_OTHER: other.emplace_back(device); break;
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: integrated.emplace_back(device); break;
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: discrete.emplace_back(device); break;
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: virtualGPU.emplace_back(device); break;
+            case VK_PHYSICAL_DEVICE_TYPE_CPU: cpu.emplace_back(device); break;
+            case VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM:
+            default:
+                VK_ASSERT("Unresolved situation!");
+                break;
+        }
+    }
+
+    if (!discrete.empty()) {
+        return SelectBetterDeviceByProperties(discrete);
+    }
+
+    if (!integrated.empty()) {
+        return SelectBetterDeviceByProperties(discrete);
+    }
+
+    if (!virtualGPU.empty()) {
+        return SelectBetterDeviceByProperties(discrete);
+    }
+
+    if (!cpu.empty()) {
+        return SelectBetterDeviceByProperties(discrete);
+    }
+
+    if (!llvmPipe.empty()) {
+        return SelectBetterDeviceByProperties(discrete);
+    }
+
+    if (!other.empty()) {
+        return SelectBetterDeviceByProperties(discrete);
+    }
+
+    return VK_NULL_HANDLE;
+}
+
+VkPhysicalDevice EvoVulkan::Tools::SelectBetterDeviceByProperties(const std::vector<DeviceSelectionInfo>& devices) {
+    return devices.front().device;
+    /*auto sorted = devices;
+
+    std::sort(sorted.begin(), sorted.end(), [](const DeviceSelectionInfo& left, const DeviceSelectionInfo& right) -> int {
+        if (left.extensions < right.extensions) {
+            return -1;
+        }
+
+        if (aP == bP) {
+            return 0;
+        }
+
+        return 1;
+    });
+
+    for (auto&& device : devices) {
+
+    }*/
 }

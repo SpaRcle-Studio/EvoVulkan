@@ -49,21 +49,18 @@ namespace EvoVulkan::Types {
             VK_LOG("Device::Create() : found device - " + Tools::GetDeviceName(device));
         }
 
+        std::vector<Tools::DeviceSelectionInfo> deviceInfos;
+
         for (auto&& physDev : devices) {
             if (Tools::IsDeviceSuitable(physDev, (*info.pSurface), info.extensions)) {
-                if (physicalDevice == VK_NULL_HANDLE) {
-                    physicalDevice = physDev;
-                    continue;
-                }
-
-                if (Tools::IsBetterThan(physDev, physicalDevice)) {
-                    physicalDevice = physDev;
-                }
+                deviceInfos.emplace_back(Tools::GetSelectionDeviceInfo(physDev));
             }
             else {
                 VK_WARN("Device::Create() : device \"" + Tools::GetDeviceName(physDev) + "\" isn't suitable!");
             }
         }
+
+        physicalDevice = Tools::SelectBetterDevice(deviceInfos);
 
         if (!physicalDevice) {
             VK_ERROR("Device::Create() : suitable device is not found!");
