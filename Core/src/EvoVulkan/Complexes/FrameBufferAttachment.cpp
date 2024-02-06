@@ -23,7 +23,6 @@ namespace EvoVulkan::Complexes {
     ) {
         auto&& pFBOAttachment = std::make_unique<FrameBufferAttachment>();
 
-        pFBOAttachment->m_format = format;
         pFBOAttachment->m_device = pAllocator->GetDevice();
         pFBOAttachment->m_allocator = pAllocator;
 
@@ -33,9 +32,9 @@ namespace EvoVulkan::Complexes {
         }
         else {
             auto&& imageCI = Types::ImageCreateInfo(
-                pAllocator->GetDevice(), pAllocator, imageSize.width, imageSize.height, 1,
+                pAllocator, pPool, imageSize.width, imageSize.height, 1, aspect,
                 format,
-                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
+                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /** usage */,
                 samplesCount,
                 false /** cpu usage */,
                 1 /** mip levels */,
@@ -48,34 +47,13 @@ namespace EvoVulkan::Complexes {
                 return nullptr;
             }
 
-            {
-                auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(pAllocator->GetDevice(), pPool);
-
-                EvoVulkan::Tools::TransitionImageLayoutEx(
-                    copyCmd,
-                    pFBOAttachment->m_image,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-                    1, // mip levels
-                    VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
-                    layersCount
-                );
-
-                delete copyCmd;
+            if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)) {
+                VK_ERROR("FrameBufferAttachment::CreateDepthAttachment() : failed to transition depth image layout!");
+                return nullptr;
             }
         }
 
-        pFBOAttachment->m_view = Tools::CreateImageView(
-            *pAllocator->GetDevice(),
-            pFBOAttachment->m_image,
-            format,
-            1 /** mip levels */,
-            aspect,
-            layersCount,
-            layer,
-            layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D
-        );
-
+        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer);
         if (pFBOAttachment->m_view == VK_NULL_HANDLE) {
             VK_ERROR("FrameBufferAttachment::CreateDepthAttachment() : failed to create depth image view!");
             return nullptr;
@@ -86,6 +64,7 @@ namespace EvoVulkan::Complexes {
 
     std::unique_ptr<FrameBufferAttachment> FrameBufferAttachment::CreateResolveAttachment(
         EvoVulkan::Memory::Allocator* pAllocator,
+        EvoVulkan::Types::CmdPool* pPool,
         VkFormat format,
         VkExtent2D imageSize,
         uint32_t samplesCount,
@@ -94,14 +73,13 @@ namespace EvoVulkan::Complexes {
     ) {
         auto&& pFBOAttachment = std::make_unique<FrameBufferAttachment>();
 
-        pFBOAttachment->m_format = format;
         pFBOAttachment->m_device = pAllocator->GetDevice();
         pFBOAttachment->m_allocator = pAllocator;
 
         auto&& imageCI = Types::ImageCreateInfo(
-                pAllocator->GetDevice(), pAllocator, imageSize.width, imageSize.height, 1,
+            pAllocator, pPool, imageSize.width, imageSize.height, VK_IMAGE_ASPECT_COLOR_BIT, 1,
             format,
-            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT /** usage */,
+            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT/** usage */,
             samplesCount,
             false /** cpu usage */,
             1 /** mip levels */,
@@ -114,17 +92,12 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        pFBOAttachment->m_view = Tools::CreateImageView(
-            *pAllocator->GetDevice(),
-            pFBOAttachment->m_image,
-            format,
-            1 /** mip levels */,
-            VK_IMAGE_ASPECT_COLOR_BIT,
-            layersCount /** layers count */,
-            layer /** layer index */,
-            layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D
-        );
+        if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
+            VK_ERROR("FrameBufferAttachment::CreateDepthAttachment() : failed to transition depth image layout!");
+            return nullptr;
+        }
 
+        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer);
         if (pFBOAttachment->m_view == VK_NULL_HANDLE) {
             VK_ERROR("FrameBufferAttachment::CreateResolveAttachment() : failed to create resolve image view!");
             return nullptr;
@@ -135,7 +108,7 @@ namespace EvoVulkan::Complexes {
 
     std::unique_ptr<FrameBufferAttachment> FrameBufferAttachment::CreateColorAttachment(
         EvoVulkan::Memory::Allocator* pAllocator,
-        EvoVulkan::Types::CmdPool* pool,
+        EvoVulkan::Types::CmdPool* pPool,
         VkFormat format,
         VkImageUsageFlags usage,
         VkExtent2D imageSize,
@@ -145,7 +118,6 @@ namespace EvoVulkan::Complexes {
     ) {
         auto&& pFBOAttachment = std::make_unique<FrameBufferAttachment>();
 
-        pFBOAttachment->m_format = format;
         pFBOAttachment->m_device = pAllocator->GetDevice();
         pFBOAttachment->m_allocator = pAllocator;
 
@@ -166,11 +138,12 @@ namespace EvoVulkan::Complexes {
         }
 
         auto&& imageCI = EvoVulkan::Types::ImageCreateInfo(
-            pAllocator->GetDevice(),
             pAllocator,
+            pPool,
             imageSize.width,
             imageSize.height,
             1,
+            aspectMask,
             format,
             usage,
             samplesCount,
@@ -182,31 +155,9 @@ namespace EvoVulkan::Complexes {
         pFBOAttachment->m_image = EvoVulkan::Types::Image::Create(imageCI);
 
         /// ставим барьер памяти, чтобы можно было использовать в шейдерах
-        {
-            auto&& pCopyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(pAllocator->GetDevice(), pool);
+        pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-            EvoVulkan::Tools::TransitionImageLayout(
-                pCopyCmd,
-                pFBOAttachment->m_image,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                1 /** mip levels */,
-                layersCount
-            );
-
-            delete pCopyCmd;
-        }
-
-        pFBOAttachment->m_view = EvoVulkan::Tools::CreateImageView(
-            *pAllocator->GetDevice(),
-            pFBOAttachment->m_image,
-            format,
-            1 /** mip levels */,
-            aspectMask,
-            layersCount,
-            layer,
-            layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D
-        );
+        pFBOAttachment->m_view = EvoVulkan::Tools::CreateImageView(pFBOAttachment->m_image, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer);
 
         return std::move(pFBOAttachment);
     }
@@ -228,7 +179,6 @@ namespace EvoVulkan::Complexes {
     bool FrameBufferAttachment::Ready() const {
         return m_image.Valid() &&
                m_view   != VK_NULL_HANDLE &&
-               m_device != VK_NULL_HANDLE &&
-               m_format != VK_FORMAT_UNDEFINED;
+               m_device != VK_NULL_HANDLE;
     }
 }

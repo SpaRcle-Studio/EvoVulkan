@@ -2,8 +2,8 @@
 // Created by Monika on 18.06.2023.
 //
 
-#ifndef SRENGINE_FRAMEBUFFERATTACHMENT_H
-#define SRENGINE_FRAMEBUFFERATTACHMENT_H
+#ifndef EVO_VULKAN_FRAME_BUFFER_ATTACHMENT_H
+#define EVO_VULKAN_FRAME_BUFFER_ATTACHMENT_H
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Image.h>
@@ -19,7 +19,6 @@ namespace EvoVulkan::Complexes {
         FrameBufferAttachment(FrameBufferAttachment&& attachment) noexcept {
             m_image = std::exchange(attachment.m_image, {});
             m_view = std::exchange(attachment.m_view, {});
-            m_format = std::exchange(attachment.m_format, {});
             m_device = std::exchange(attachment.m_device, {});
             m_allocator = std::exchange(attachment.m_allocator, {});
         }
@@ -27,10 +26,8 @@ namespace EvoVulkan::Complexes {
         FrameBufferAttachment& operator=(FrameBufferAttachment&& attachment) noexcept {
             m_image = std::exchange(attachment.m_image, {});
             m_view = std::exchange(attachment.m_view, {});
-            m_format = std::exchange(attachment.m_format, {});
             m_device = std::exchange(attachment.m_device, {});
             m_allocator = std::exchange(attachment.m_allocator, {});
-
             return *this;
         }
 
@@ -60,6 +57,7 @@ namespace EvoVulkan::Complexes {
 
         static std::unique_ptr<FrameBufferAttachment> CreateResolveAttachment(
             EvoVulkan::Memory::Allocator* allocator,
+            EvoVulkan::Types::CmdPool* pPool,
             VkFormat format,
             VkExtent2D imageSize,
             uint32_t samplesCount,
@@ -68,19 +66,18 @@ namespace EvoVulkan::Complexes {
         );
 
         EVK_NODISCARD bool Ready() const;
-        EVK_NODISCARD VkImageView GetView() const noexcept { return m_view; }
-        EVK_NODISCARD VkFormat GetFormat() const noexcept { return m_format; }
+        EVK_NODISCARD VkFormat GetFormat() const noexcept { return m_image.GetFormat(); }
         EVK_NODISCARD Types::Image& GetImage() noexcept { return m_image; }
+        EVK_NODISCARD VkImageView GetView() const noexcept { return m_view; }
 
     private:
         bool m_weakImage = false;
-        Types::Image m_image = Types::Image();
+        Types::Image m_image;
         VkImageView m_view = VK_NULL_HANDLE;
-        VkFormat m_format = VK_FORMAT_UNDEFINED;
         Types::Device* m_device = nullptr;
         EvoVulkan::Memory::Allocator* m_allocator = nullptr;
 
     };
 }
 
-#endif //SRENGINE_FRAMEBUFFERATTACHMENT_H
+#endif //EVO_VULKAN_FRAME_BUFFER_ATTACHMENT_H

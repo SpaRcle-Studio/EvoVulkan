@@ -5,37 +5,13 @@
 #include <EvoVulkan/Types/Image.h>
 
 namespace EvoVulkan::Types {
-    EvoVulkan::Types::ImageCreateInfo::ImageCreateInfo(
-        Device *pDevice,
-        Memory::Allocator *pAllocator,
-        uint32_t _width,
-        uint32_t _height,
-        uint32_t _depth,
-        VkImageUsageFlags _usage,
-        uint8_t _sampleCount
-    )
-        : ImageCreateInfo(
-            pDevice,
-            pAllocator,
-            _width,
-            _height,
-            _depth,
-            VK_FORMAT_UNDEFINED,
-            _usage,
-            _sampleCount,
-            false,
-            1 /** mip levels */,
-            1 /** array layers */,
-            VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM
-        )
-    { }
-
     ImageCreateInfo::ImageCreateInfo(
-        Device* pDevice,
         Memory::Allocator* pAllocator,
+        EvoVulkan::Types::CmdPool* pPool,
         uint32_t _width,
         uint32_t _height,
         uint32_t _depth,
+        VkImageAspectFlags _aspect,
         VkFormat _format,
         VkImageUsageFlags _usage,
         uint8_t _sampleCount,
@@ -44,11 +20,12 @@ namespace EvoVulkan::Types {
         uint32_t _arrayLayers,
         VkImageCreateFlagBits _flags
     )
-        : device(pDevice)
-        , allocator(pAllocator)
+        : pAllocator(pAllocator)
+        , pPool(pPool)
         , width(_width)
         , height(_height)
         , depth(_depth)
+        , aspect(_aspect)
         , mipLevels(_mipLevels)
         , format(_format)
         , tiling(_cpuUsage ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL)
@@ -97,7 +74,7 @@ namespace EvoVulkan::Types {
             imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         }
         else if (info.sampleCount == 0) {
-            imageInfo.samples = info.device->GetMSAASamples();
+            imageInfo.samples = info.pAllocator->GetDevice()->GetMSAASamples();
         }
         else {
             imageInfo.samples = Tools::Convert::IntToSampleCount(info.sampleCount);
@@ -108,7 +85,8 @@ namespace EvoVulkan::Types {
         if (info.createFlagBits != VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM)
             imageInfo.flags = info.createFlagBits;
 
-        Image image = info.allocator->AllocImage(imageInfo, info.CPUUsage);
+        Image image = info.pAllocator->AllocImage(imageInfo, info.CPUUsage);
+        image.m_info = info;
 
         if (!image.Valid()) {
             VK_ERROR("Image::Image() : failed to create vulkan image!");
@@ -119,7 +97,7 @@ namespace EvoVulkan::Types {
     }
 
     bool Image::Valid() const {
-        return m_image && m_allocation && m_allocator;
+        return m_image && m_allocation && m_allocator && m_info.format != VK_FORMAT_UNDEFINED;
     }
 
     Image Image::Copy() const {
@@ -128,7 +106,26 @@ namespace EvoVulkan::Types {
         image.m_image = m_image;
         image.m_allocation = m_allocation;
         image.m_allocator = m_allocator;
+        image.m_layout = m_layout;
+        image.m_info = m_info;
 
         return image;
+    }
+
+    bool Image::TransitionImageLayout(VkImageLayout layout, CmdBuffer* pBuffer) const {
+        auto&& copyCmd = pBuffer ? pBuffer : EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_info.pAllocator->GetDevice(), m_info.pPool);
+
+        const bool result = EvoVulkan::Tools::TransitionImageLayoutEx(
+            copyCmd, m_image, m_layout,layout,
+            m_info.mipLevels, m_info.aspect,m_info.arrayLayers
+        );
+
+        m_layout = layout;
+
+        if (!pBuffer) {
+            delete copyCmd;
+        }
+
+        return result;
     }
 }

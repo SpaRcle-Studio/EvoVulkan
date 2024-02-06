@@ -236,10 +236,14 @@ namespace EvoVulkan::Complexes {
             attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
             if (i == m_attachFormats.size()) {
+                attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
                 attachmentDesc.format = m_depthFormat;
                 attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
             }
             else {
+                attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
                 attachmentDesc.format = m_attachFormats[i];
                 attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             }
@@ -343,7 +347,6 @@ namespace EvoVulkan::Complexes {
         texture->m_format            = m_depthFormat;
         texture->m_descriptorManager = m_descriptorManager;
         texture->m_sampler           = m_colorSampler;
-        texture->m_imageLayout       = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
         texture->m_device            = m_device;
         texture->m_pool              = m_cmdPool;
         texture->m_allocator         = m_allocator;
@@ -356,7 +359,7 @@ namespace EvoVulkan::Complexes {
         texture->m_descriptor = {
                 texture->m_sampler,
                 texture->m_view,
-                texture->m_imageLayout
+                texture->m_image.GetLayout()
         };
 
         return texture;
@@ -374,7 +377,6 @@ namespace EvoVulkan::Complexes {
                 pTexture->m_format            = m_layers[layerIndex]->GetColorAttachments()[attachmentIndex]->GetFormat();
                 pTexture->m_descriptorManager = m_descriptorManager;
                 pTexture->m_sampler           = m_colorSampler;
-                pTexture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 pTexture->m_device            = m_device;
                 pTexture->m_pool              = m_cmdPool;
                 pTexture->m_allocator         = m_allocator;
@@ -387,7 +389,7 @@ namespace EvoVulkan::Complexes {
                 pTexture->m_descriptor = {
                     pTexture->m_sampler,
                     pTexture->m_view,
-                    pTexture->m_imageLayout
+                    pTexture->m_image.GetLayout()
                 };
 
                 references.emplace_back(pTexture);

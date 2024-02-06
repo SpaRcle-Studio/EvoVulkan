@@ -30,7 +30,8 @@ namespace EvoVulkan::Complexes {
             static const VkImageUsageFlags usageFlags =
                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                     VK_IMAGE_USAGE_SAMPLED_BIT |
-                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
             m_colorAttachments[i] = FrameBufferAttachment::CreateColorAttachment(
                 m_frameBuffer->GetAllocator(),
@@ -55,6 +56,7 @@ namespace EvoVulkan::Complexes {
             for (uint32_t i = 0; i < colorFormats.size(); ++i) {
                 m_resolveAttachments[i] = FrameBufferAttachment::CreateResolveAttachment(
                     m_frameBuffer->GetAllocator(),
+                    m_frameBuffer->GetCmdPool(),
                     colorFormats[i],
                     m_frameBuffer->GetExtent2D(),
                     m_frameBuffer->GetSampleCount(),
