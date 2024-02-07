@@ -27,18 +27,17 @@ namespace EvoVulkan::Complexes {
         /// =============================================== color targets ==============================================
 
         for (uint32_t i = 0; i < colorFormats.size(); ++i) {
-            static const VkImageUsageFlags usageFlags =
-                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                    VK_IMAGE_USAGE_SAMPLED_BIT |
-                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            const VkImageUsageFlags usageFlags =
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                (m_frameBuffer->GetFeatures().colorShaderRead ? VK_IMAGE_USAGE_SAMPLED_BIT : 0) |
+                (m_frameBuffer->GetFeatures().colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0) |
+                (m_frameBuffer->GetFeatures().colorTransferDst ? VK_IMAGE_USAGE_TRANSFER_DST_BIT : 0)
+            ;
 
             m_colorAttachments[i] = FrameBufferAttachment::CreateColorAttachment(
-                m_frameBuffer->GetAllocator(),
-                m_frameBuffer->GetCmdPool(),
+                m_frameBuffer,
                 colorFormats[i],
                 usageFlags,
-                m_frameBuffer->GetExtent2D(),
-                1 /** samples count */,
                 1 /** layers count */,
                 m_index /** layer index */
             );
@@ -54,10 +53,8 @@ namespace EvoVulkan::Complexes {
         if (m_frameBuffer->IsMultisampleEnabled() && !colorFormats.empty()) {
             for (uint32_t i = 0; i < colorFormats.size(); ++i) {
                 m_resolveAttachments[i] = FrameBufferAttachment::CreateResolveAttachment(
-                    m_frameBuffer->GetAllocator(),
+                    m_frameBuffer,
                     colorFormats[i],
-                    m_frameBuffer->GetExtent2D(),
-                    m_frameBuffer->GetSampleCount(),
                     1 /** layers count */,
                     m_index /** layer index */
                 );
@@ -76,13 +73,10 @@ namespace EvoVulkan::Complexes {
 
         if (depthAspect != EvoVulkan::Tools::Initializers::EVK_IMAGE_ASPECT_NONE && depthFormat != VK_FORMAT_UNDEFINED) {
             m_depthAttachment = FrameBufferAttachment::CreateDepthAttachment(
-                m_frameBuffer->GetAllocator(),
-                m_frameBuffer->GetCmdPool(),
+                m_frameBuffer,
                 m_depthArray,
                 depthFormat,
                 depthAspect,
-                m_frameBuffer->GetExtent2D(),
-                m_frameBuffer->GetSampleCount(),
                 1 /** layers count */,
                 m_index /** layer index */
             );

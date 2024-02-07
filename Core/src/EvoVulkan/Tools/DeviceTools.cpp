@@ -155,7 +155,7 @@ VkPhysicalDevice EvoVulkan::Tools::SelectBetterDevice(const std::vector<DeviceSe
             case VK_PHYSICAL_DEVICE_TYPE_CPU: cpu.emplace_back(device); break;
             case VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM:
             default:
-                VK_ASSERT("Unresolved situation!");
+                VK_HALT("Unresolved situation!");
                 break;
         }
     }
@@ -184,7 +184,7 @@ VkPhysicalDevice EvoVulkan::Tools::SelectBetterDevice(const std::vector<DeviceSe
         return SelectBetterDeviceByProperties(discrete);
     }
 
-    VK_ASSERT("Unresolved situation!");
+    VK_HALT("Unresolved situation!");
 
     return VK_NULL_HANDLE;
 }

@@ -584,42 +584,6 @@ namespace EvoVulkan::Tools {
         return results;
     }
 
-    EVK_MAYBE_UNUSED static VkImageView CreateImageView(
-        const VkDevice& device,
-        VkImage image,
-        VkFormat format,
-        uint32_t mipLevels,
-        VkImageAspectFlags imageAspectFlags,
-        uint32_t layerCount,
-        uint32_t layer,
-        VkImageViewType viewType
-    ) {
-        VkImageView view = VK_NULL_HANDLE;
-
-        VkImageViewCreateInfo viewCI           = Tools::Initializers::ImageViewCreateInfo();
-        viewCI.image                           = image;
-        viewCI.viewType                        = viewType; // cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
-        viewCI.format                          = format;
-
-        if (imageAspectFlags != VK_IMAGE_ASPECT_COLOR_BIT) {
-            viewCI.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-        }
-
-        //viewCI.components                      = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
-        viewCI.subresourceRange.aspectMask     = imageAspectFlags; //VK_IMAGE_ASPECT_COLOR_BIT;
-        viewCI.subresourceRange.baseMipLevel   = 0;
-        viewCI.subresourceRange.baseArrayLayer = layer;
-        viewCI.subresourceRange.layerCount     = layerCount; // cubeMap ? 6 : 1;
-        viewCI.subresourceRange.levelCount     = mipLevels;
-
-        if (vkCreateImageView(device, &viewCI, nullptr, &view) != VK_SUCCESS) {
-            VK_ERROR("Tools::CreateImageView() : failed to create image view!");
-            return VK_NULL_HANDLE;
-        }
-
-        return view;
-    }
-
     /*
     static VkImage CreateImage(
             Types::Device* device,
@@ -696,6 +660,49 @@ namespace EvoVulkan::Tools {
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
         return deviceProperties.limits.maxSamplerAnisotropy;
+    }
+
+    EVK_MAYBE_UNUSED static VkImageLayout FindDepthFormatLayout(VkImageAspectFlags aspectMask, bool readOnly, bool separateDepthStencilLayouts) {
+        if (!separateDepthStencilLayouts) {
+            if (aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT || aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT) {
+                if (readOnly) {
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                }
+                else {
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                }
+            }
+            VK_HALT("Unknown aspect mask!");
+            return VK_IMAGE_LAYOUT_UNDEFINED;
+        }
+
+        if (aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT) {
+            if (readOnly) {
+                return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+            }
+            else {
+                return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            }
+        }
+        else if (aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT) {
+            if (readOnly) {
+                return VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
+            }
+            else {
+                return VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+            }
+        }
+        else if (aspectMask == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
+            if (readOnly) {
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            }
+            else {
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            }
+        }
+
+        VK_HALT("Unknown aspect mask!");
+        return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 
     EVK_MAYBE_UNUSED static bool TransitionImageLayoutEx(

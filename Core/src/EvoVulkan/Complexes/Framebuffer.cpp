@@ -36,6 +36,7 @@ namespace EvoVulkan::Complexes {
         Core::DescriptorManager* manager,
         Types::Swapchain* swapchain,
         Types::CmdPool* pool,
+        FrameBufferFeatures features,
         const std::vector<VkFormat>& colorAttachments,
         uint32_t width, uint32_t height,
         uint32_t arrayLayers,
@@ -71,6 +72,7 @@ namespace EvoVulkan::Complexes {
             pFBO->m_attachFormats      = colorAttachments;
             pFBO->m_depthFormat        = depthFormat;
             pFBO->m_depthAspect        = depthAspect;
+            pFBO->m_features           = features;
         }
 
         pFBO->SetSampleCount(samplesCount);
@@ -237,11 +239,26 @@ namespace EvoVulkan::Complexes {
 
             if (i == m_attachFormats.size()) {
                 attachmentDesc.format = m_depthFormat;
-                attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                if (m_features.depthLoad) {
+                    attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+                }
+                attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, m_features.depthShaderRead, false);
+                attachmentDesc.finalLayout = attachmentDesc.initialLayout;
             }
             else {
                 attachmentDesc.format = m_attachFormats[i];
-                attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                if (m_features.colorLoad) {
+                    attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+                }
+
+                if (m_features.colorShaderRead) {
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                }
+                else {
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
             }
 
             attachmentDescriptions.push_back(attachmentDesc);
@@ -285,18 +302,15 @@ namespace EvoVulkan::Complexes {
     bool FrameBuffer::CreateAttachments() {
         if (IsDepthEnabled() && m_layersCount > 1) {
             m_depthAttachment = FrameBufferAttachment::CreateDepthAttachment(
-                GetAllocator(),
-                GetCmdPool(),
+                this,
                 nullptr /** image array */,
                 GetDepthFormat(),
                 GetDepthAspect(),
-                GetExtent2D(),
-                GetSampleCount(),
                 m_layersCount,
                 0 /** layer index */
             );
 
-            if (!m_depthAttachment->Ready()) {
+            if (!m_depthAttachment || !m_depthAttachment->Ready()) {
                 VK_ERROR("FrameBuffer::CreateAttachments() : failed to create depth attachment!");
                 return false;
             }
@@ -343,7 +357,6 @@ namespace EvoVulkan::Complexes {
         texture->m_format            = m_depthFormat;
         texture->m_descriptorManager = m_descriptorManager;
         texture->m_sampler           = m_colorSampler;
-        texture->m_imageLayout       = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
         texture->m_device            = m_device;
         texture->m_pool              = m_cmdPool;
         texture->m_allocator         = m_allocator;
@@ -356,7 +369,7 @@ namespace EvoVulkan::Complexes {
         texture->m_descriptor = {
                 texture->m_sampler,
                 texture->m_view,
-                texture->m_imageLayout
+                texture->m_image.GetLayout()
         };
 
         return texture;
@@ -374,7 +387,6 @@ namespace EvoVulkan::Complexes {
                 pTexture->m_format            = m_layers[layerIndex]->GetColorAttachments()[attachmentIndex]->GetFormat();
                 pTexture->m_descriptorManager = m_descriptorManager;
                 pTexture->m_sampler           = m_colorSampler;
-                pTexture->m_imageLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 pTexture->m_device            = m_device;
                 pTexture->m_pool              = m_cmdPool;
                 pTexture->m_allocator         = m_allocator;
@@ -387,7 +399,7 @@ namespace EvoVulkan::Complexes {
                 pTexture->m_descriptor = {
                     pTexture->m_sampler,
                     pTexture->m_view,
-                    pTexture->m_imageLayout
+                    pTexture->m_image.GetLayout()
                 };
 
                 references.emplace_back(pTexture);

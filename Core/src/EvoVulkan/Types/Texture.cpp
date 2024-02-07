@@ -108,10 +108,11 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     }
 
     auto&& imageCI = Types::ImageCreateInfo(
-        texture->m_device,
         texture->m_allocator,
+        pool,
         texture->m_width, texture->m_height,
         1 /** depth */,
+        VK_IMAGE_ASPECT_COLOR_BIT,
         texture->m_format,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
         1 /** sample count */,
@@ -153,11 +154,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     auto copyCmd = Types::CmdBuffer::BeginSingleTime(device, pool);
 
-    Tools::TransitionImageLayout(
-            copyCmd, texture->m_image,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            mipLevels, 6);
+    texture->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copyCmd);
 
     {
         if (!copyCmd->IsBegin())
@@ -176,13 +173,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
         copyCmd->End();
     }
 
-    Tools::TransitionImageLayout(
-            copyCmd, texture->m_image,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            mipLevels, 6);
-
-    texture->m_imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    texture->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, copyCmd);
 
     //!=================================================================================================================
 
@@ -191,16 +182,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     //!=================================================================================================================
 
-    texture->m_view = Tools::CreateImageView(
-        *texture->m_device,
-        texture->m_image,
-        texture->m_format,
-        texture->m_mipLevels,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        6 /** layer count */,
-        0 /** layer index */,
-        VK_IMAGE_VIEW_TYPE_CUBE
-    );
+    texture->m_view = Tools::CreateImageView(texture->m_image, VK_IMAGE_VIEW_TYPE_CUBE, 0);
 
     if (texture->m_view == VK_NULL_HANDLE) {
         VK_ERROR("Texture::LoadCubeMap() : failed to create image view!");
@@ -231,7 +213,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     texture->m_descriptor = {
             texture->m_sampler,
             texture->m_view,
-            texture->m_imageLayout
+            texture->m_image.GetLayout()
     };
     return texture;
 }
@@ -296,9 +278,9 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
 
 bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffer) {
     auto&& imageCI = Types::ImageCreateInfo(
-        m_device,
-        m_allocator,
+        m_allocator, m_pool,
         m_width, m_height, 1,
+        VK_IMAGE_ASPECT_COLOR_BIT,
         m_format,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
         1 /** sample count */,
@@ -314,27 +296,12 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
 
     auto&& copyCmd = Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
 
-    Tools::TransitionImageLayout(
-        copyCmd,
-        m_image,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        m_mipLevels,
-        1 /** layers count */
-    );
+    m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copyCmd);
 
     Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_width, m_height);
 
     if (m_mipLevels == 1) {
-        Tools::TransitionImageLayout(
-            copyCmd,
-            m_image,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            m_mipLevels,
-            1 /** layers count */
-        );
-        m_imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, copyCmd);
     }
     else if (!GenerateMipmaps(this, copyCmd)) {
         VK_ERROR("Texture::Create() : failed to generate mip maps!");
@@ -348,16 +315,7 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
 
     //!=================================================================================================================
 
-    m_view = Tools::CreateImageView(
-        *m_device,
-        m_image,
-        m_format,
-        m_mipLevels,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        m_cubeMap ? 6 : 1,
-        0 /** layer index */,
-        m_cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D
-    );
+    m_view = Tools::CreateImageView(m_image, m_cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D, 0);
 
     if (m_view == VK_NULL_HANDLE) {
         VK_ERROR("Texture::Create() : failed to create image view!");
@@ -386,7 +344,7 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
     m_descriptor = {
         m_sampler,
         m_view,
-        m_imageLayout
+        m_image.GetLayout()
     };
 
     return true;
@@ -469,14 +427,14 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
         subresourceRange
     );
 
-    texture->m_imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    texture->m_image.SetLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     return singleBuffer->End();
 }
 
 EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDescriptorSetLayout layout) {
     if (!m_descriptorManager) {
-        VK_ASSERT("Texture::GetDescriptorSet() : texture have not descriptor manager!");
+        VK_HALT("Texture::GetDescriptorSet() : texture have not descriptor manager!");
         return Types::DescriptorSet();
     }
 
@@ -506,6 +464,11 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
         return {};
     }
 
+    if (!(m_image.GetInfo().usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)) {
+        VK_ERROR("Texture::GetPixel() : image does not support VK_IMAGE_USAGE_TRANSFER_SRC_BIT!");
+        return {};
+    }
+
     auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
 
     auto&& pBuffer = EvoVulkan::Types::Buffer::Create(
@@ -530,14 +493,13 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
     bufferCopyRegion.imageExtent.height = 1;
     bufferCopyRegion.imageExtent.depth = 1;
 
-    EvoVulkan::Tools::TransitionImageLayout(
-            copyCmd, m_image,
-            m_imageLayout,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            1 /** mip levels*/,
-            1 /** layers count */,
-            false /** need end */
-    );
+    const auto layout = m_image.GetLayout();
+
+    m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, copyCmd);
+
+    if (!copyCmd->IsBegin()) {
+        copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    }
 
     vkCmdCopyImageToBuffer(
         *copyCmd,
@@ -548,14 +510,7 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
         &bufferCopyRegion
     );
 
-    EvoVulkan::Tools::TransitionImageLayout(
-        copyCmd, m_image,
-        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        m_imageLayout,
-        1 /** mip levels*/,
-        1 /** layers count */,
-        false /** need end */
-    );
+    m_image.TransitionImageLayout(layout, copyCmd);
 
     copyCmd->End();
     delete copyCmd;

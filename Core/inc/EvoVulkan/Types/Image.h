@@ -2,8 +2,8 @@
 // Created by Monika on 07.02.2022.
 //
 
-#ifndef EVOVULKAN_IMAGE_H
-#define EVOVULKAN_IMAGE_H
+#ifndef EVO_VULKAN_IMAGE_H
+#define EVO_VULKAN_IMAGE_H
 
 #include <EvoVulkan/Types/Device.h>
 
@@ -16,21 +16,12 @@ namespace EvoVulkan::Types {
         ImageCreateInfo() = default;
 
         ImageCreateInfo(
-            Types::Device* pDevice,
             Memory::Allocator* pAllocator,
+            EvoVulkan::Types::CmdPool* pPool,
             uint32_t _width,
             uint32_t _height,
             uint32_t _depth,
-            VkImageUsageFlags _usage,
-            uint8_t _sampleCount
-        );
-
-        ImageCreateInfo(
-            Types::Device* pDevice,
-            Memory::Allocator* pAllocator,
-            uint32_t _width,
-            uint32_t _height,
-            uint32_t _depth,
+            VkImageAspectFlags _aspect,
             VkFormat _format,
             VkImageUsageFlags _usage,
             uint8_t _sampleCount,
@@ -41,11 +32,12 @@ namespace EvoVulkan::Types {
         );
 
     public:
-        Types::Device* device = nullptr;
-        Memory::Allocator* allocator = nullptr;
+        Memory::Allocator* pAllocator = nullptr;
+        EvoVulkan::Types::CmdPool* pPool = nullptr;
         uint32_t width = 0;
         uint32_t height = 0;
         uint32_t depth = 0;
+        VkImageAspectFlags aspect = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM;
         uint32_t mipLevels = 0;
         VkFormat format = VK_FORMAT_UNDEFINED;
         VkImageTiling tiling = VK_IMAGE_TILING_MAX_ENUM;
@@ -56,7 +48,7 @@ namespace EvoVulkan::Types {
         bool CPUUsage = false;
 
         EVK_NODISCARD bool Valid() const {
-            return width > 0 && height > 0 && device && allocator;
+            return width > 0 && height > 0 && pAllocator;
         }
     };
 
@@ -70,32 +62,89 @@ namespace EvoVulkan::Types {
             m_image = std::exchange(image.m_image, {});
             m_allocation = std::exchange(image.m_allocation, {});
             m_allocator = std::exchange(image.m_allocator, {});
+            m_layout = std::exchange(image.m_layout, {});
+            m_info = image.m_info;
         }
 
         Image& operator=(Image&& image) noexcept {
             m_image = std::exchange(image.m_image, {});
             m_allocation = std::exchange(image.m_allocation, {});
             m_allocator = std::exchange(image.m_allocator, {});
-
+            m_layout = std::exchange(image.m_layout, {});
+            m_info = image.m_info;
             return *this;
         }
+
+        bool TransitionImageLayout(VkImageLayout layout, CmdBuffer* pBuffer = nullptr) const;
+        bool TransitionImageLayout(VkImageLayout layout, VkImageAspectFlags aspect, CmdBuffer* pBuffer = nullptr) const;
 
     public:
         static Image Create(const ImageCreateInfo& info);
 
         bool Bind();
 
+        EVK_NODISCARD VkImageLayout GetLayout() const { return m_layout; }
+        EVK_NODISCARD VkFormat GetFormat() const { return m_info.format; }
+        EVK_NODISCARD VkImageUsageFlags GetUsage() const { return m_info.usage; }
+        EVK_NODISCARD VkImageAspectFlags GetAspect() const { return m_info.aspect; }
+        EVK_NODISCARD const ImageCreateInfo& GetInfo() const { return m_info; }
+
         EVK_NODISCARD Image Copy() const;
         EVK_NODISCARD bool Valid() const;
 
-        operator VkImage() const { return m_image; }
+        void SetLayout(VkImageLayout layout) { m_layout = layout; }
+
+        operator VkImage() const { return m_image; } /// NOLINT
 
     private:
-        VkImage m_image            = VK_NULL_HANDLE;
+        ImageCreateInfo m_info;
+        VkImage m_image = VK_NULL_HANDLE;
         VmaAllocation m_allocation = VK_NULL_HANDLE;
-        VmaAllocator m_allocator   = VK_NULL_HANDLE;
+        VmaAllocator m_allocator = VK_NULL_HANDLE;
+        mutable VkImageLayout m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     };
 }
 
-#endif //EVOVULKAN_IMAGE_H
+namespace EvoVulkan::Tools {
+    EVK_MAYBE_UNUSED static VkImageView CreateImageView(const Types::Image& image, VkImageViewType viewType, uint32_t layerIndex) {
+        VkImageView view = VK_NULL_HANDLE;
+
+        VkImageViewCreateInfo viewCI = Tools::Initializers::ImageViewCreateInfo();
+        viewCI.image = image;
+        viewCI.viewType = viewType;
+        viewCI.format = image.GetFormat();
+
+        if (image.GetAspect() != VK_IMAGE_ASPECT_COLOR_BIT) {
+            viewCI.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+        }
+
+        if (viewCI.format == VK_FORMAT_D32_SFLOAT_S8_UINT && image.GetAspect() == VK_IMAGE_ASPECT_COLOR_BIT) {
+            VK_HALT("Tools::CreateImageView() : invalid format for color image view!");
+            return VK_NULL_HANDLE;
+        }
+
+        viewCI.subresourceRange.aspectMask = image.GetAspect();
+        viewCI.subresourceRange.baseMipLevel = 0;
+        viewCI.subresourceRange.baseArrayLayer = layerIndex;
+
+        if (viewType == VK_IMAGE_VIEW_TYPE_1D || viewType == VK_IMAGE_VIEW_TYPE_2D || viewType == VK_IMAGE_VIEW_TYPE_3D) {
+            viewCI.subresourceRange.layerCount = 1;
+        }
+        else {
+            viewCI.subresourceRange.layerCount = image.GetInfo().arrayLayers;
+        }
+
+        /// viewCI.subresourceRange.layerCount = image.GetInfo().arrayLayers;
+        viewCI.subresourceRange.levelCount = image.GetInfo().mipLevels;
+
+        if (vkCreateImageView(*image.GetInfo().pAllocator->GetDevice(), &viewCI, nullptr, &view) != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateImageView() : failed to create image view!");
+            return VK_NULL_HANDLE;
+        }
+
+        return view;
+    }
+}
+
+#endif //EVO_VULKAN_IMAGE_H
