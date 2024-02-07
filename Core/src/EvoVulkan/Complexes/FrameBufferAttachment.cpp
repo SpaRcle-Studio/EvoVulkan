@@ -34,8 +34,8 @@ namespace EvoVulkan::Complexes {
             const VkImageUsageFlags usage =
                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
                 (pFrameBuffer->GetFeatures().depthShaderRead ? VK_IMAGE_USAGE_SAMPLED_BIT : 0) |
-                (pFrameBuffer->GetFeatures().transferSrcDepth ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0) |
-                (pFrameBuffer->GetFeatures().transferDstDepth ? VK_IMAGE_USAGE_TRANSFER_DST_BIT : 0)
+                (pFrameBuffer->GetFeatures().depthTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0) |
+                (pFrameBuffer->GetFeatures().depthTransferDst ? VK_IMAGE_USAGE_TRANSFER_DST_BIT : 0)
             ;
 
             auto&& imageCI = Types::ImageCreateInfo(
@@ -52,9 +52,9 @@ namespace EvoVulkan::Complexes {
                 return nullptr;
             }
 
-            const VkImageLayout layout = pFrameBuffer->GetFeatures().depthShaderRead ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            const VkImageLayout layout = Tools::FindDepthFormatLayout(pFrameBuffer->GetDepthAspect(), pFrameBuffer->GetFeatures().depthShaderRead, false);
 
-            if (!pFBOAttachment->m_image.TransitionImageLayout(layout)) {
+            if (!pFBOAttachment->m_image.TransitionImageLayout(layout, VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT)) {
                 VK_ERROR("FrameBufferAttachment::CreateDepthAttachment() : failed to transition depth image layout!");
                 return nullptr;
             }

@@ -76,6 +76,7 @@ namespace EvoVulkan::Types {
         }
 
         bool TransitionImageLayout(VkImageLayout layout, CmdBuffer* pBuffer = nullptr) const;
+        bool TransitionImageLayout(VkImageLayout layout, VkImageAspectFlags aspect, CmdBuffer* pBuffer = nullptr) const;
 
     public:
         static Image Create(const ImageCreateInfo& info);
@@ -126,7 +127,15 @@ namespace EvoVulkan::Tools {
         viewCI.subresourceRange.aspectMask = image.GetAspect();
         viewCI.subresourceRange.baseMipLevel = 0;
         viewCI.subresourceRange.baseArrayLayer = layerIndex;
-        viewCI.subresourceRange.layerCount = image.GetInfo().arrayLayers;
+
+        if (viewType == VK_IMAGE_VIEW_TYPE_1D || viewType == VK_IMAGE_VIEW_TYPE_2D || viewType == VK_IMAGE_VIEW_TYPE_3D) {
+            viewCI.subresourceRange.layerCount = 1;
+        }
+        else {
+            viewCI.subresourceRange.layerCount = image.GetInfo().arrayLayers;
+        }
+
+        /// viewCI.subresourceRange.layerCount = image.GetInfo().arrayLayers;
         viewCI.subresourceRange.levelCount = image.GetInfo().mipLevels;
 
         if (vkCreateImageView(*image.GetInfo().pAllocator->GetDevice(), &viewCI, nullptr, &view) != VK_SUCCESS) {

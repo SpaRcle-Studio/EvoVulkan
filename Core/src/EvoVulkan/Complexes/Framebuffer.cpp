@@ -242,14 +242,8 @@ namespace EvoVulkan::Complexes {
                 if (m_features.depthLoad) {
                     attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
                 }
-                if (m_features.depthShaderRead) {
-                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                }
-                else {
-                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                }
+                attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, m_features.depthShaderRead, false);
+                attachmentDesc.finalLayout = attachmentDesc.initialLayout;
             }
             else {
                 attachmentDesc.format = m_attachFormats[i];
@@ -316,7 +310,7 @@ namespace EvoVulkan::Complexes {
                 0 /** layer index */
             );
 
-            if (!m_depthAttachment->Ready()) {
+            if (!m_depthAttachment || !m_depthAttachment->Ready()) {
                 VK_ERROR("FrameBuffer::CreateAttachments() : failed to create depth attachment!");
                 return false;
             }

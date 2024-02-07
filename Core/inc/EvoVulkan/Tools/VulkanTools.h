@@ -662,6 +662,49 @@ namespace EvoVulkan::Tools {
         return deviceProperties.limits.maxSamplerAnisotropy;
     }
 
+    EVK_MAYBE_UNUSED static VkImageLayout FindDepthFormatLayout(VkImageAspectFlags aspectMask, bool readOnly, bool separateDepthStencilLayouts) {
+        if (!separateDepthStencilLayouts) {
+            if (aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT || aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT) {
+                if (readOnly) {
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                }
+                else {
+                    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                }
+            }
+            VK_HALT("Unknown aspect mask!");
+            return VK_IMAGE_LAYOUT_UNDEFINED;
+        }
+
+        if (aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT) {
+            if (readOnly) {
+                return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+            }
+            else {
+                return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            }
+        }
+        else if (aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT) {
+            if (readOnly) {
+                return VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
+            }
+            else {
+                return VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+            }
+        }
+        else if (aspectMask == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
+            if (readOnly) {
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            }
+            else {
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            }
+        }
+
+        VK_HALT("Unknown aspect mask!");
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    }
+
     EVK_MAYBE_UNUSED static bool TransitionImageLayoutEx(
             Types::CmdBuffer* copyCmd,
             VkImage image,

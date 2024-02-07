@@ -113,11 +113,20 @@ namespace EvoVulkan::Types {
     }
 
     bool Image::TransitionImageLayout(VkImageLayout layout, CmdBuffer* pBuffer) const {
+        return TransitionImageLayout(layout, m_info.aspect, pBuffer);
+    }
+
+    bool Image::TransitionImageLayout(VkImageLayout layout, VkImageAspectFlags aspect, CmdBuffer *pBuffer) const {
         auto&& copyCmd = pBuffer ? pBuffer : EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_info.pAllocator->GetDevice(), m_info.pPool);
 
+        if (m_info.format == VK_FORMAT_D32_SFLOAT_S8_UINT && aspect == VK_IMAGE_ASPECT_DEPTH_BIT) {
+            VK_ERROR("Image::TransitionImageLayout() : can't transition depth image layout!");
+            return false;
+        }
+
         const bool result = EvoVulkan::Tools::TransitionImageLayoutEx(
-            copyCmd, m_image, m_layout,layout,
-            m_info.mipLevels, m_info.aspect,m_info.arrayLayers, false
+                copyCmd, m_image, m_layout,layout,
+                m_info.mipLevels, aspect,m_info.arrayLayers, false
         );
 
         m_layout = layout;

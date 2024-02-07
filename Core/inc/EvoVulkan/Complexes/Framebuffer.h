@@ -21,10 +21,10 @@ namespace EvoVulkan::Complexes {
     struct FrameBufferFeatures {
         bool depthLoad = false;
         bool colorLoad = false;
-        bool transferSrcDepth = false;
-        bool transferSrcColor = false;
-        bool transferDstDepth = false;
-        bool transferDstColor = false;
+        bool depthTransferSrc = false;
+        bool colorTransferSrc = false;
+        bool depthTransferDst = false;
+        bool colorTransferDst = false;
         bool depthShaderRead = false;
         bool colorShaderRead = true;
     };

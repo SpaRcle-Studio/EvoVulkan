@@ -30,8 +30,8 @@ namespace EvoVulkan::Complexes {
             const VkImageUsageFlags usageFlags =
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                 (m_frameBuffer->GetFeatures().colorShaderRead ? VK_IMAGE_USAGE_SAMPLED_BIT : 0) |
-                (m_frameBuffer->GetFeatures().transferSrcColor ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0) |
-                (m_frameBuffer->GetFeatures().transferDstColor ? VK_IMAGE_USAGE_TRANSFER_DST_BIT : 0)
+                (m_frameBuffer->GetFeatures().colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0) |
+                (m_frameBuffer->GetFeatures().colorTransferDst ? VK_IMAGE_USAGE_TRANSFER_DST_BIT : 0)
             ;
 
             m_colorAttachments[i] = FrameBufferAttachment::CreateColorAttachment(
