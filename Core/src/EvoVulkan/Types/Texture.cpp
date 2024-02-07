@@ -464,6 +464,11 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
         return {};
     }
 
+    if (!(m_image.GetInfo().usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)) {
+        VK_ERROR("Texture::GetPixel() : image does not support VK_IMAGE_USAGE_TRANSFER_SRC_BIT!");
+        return {};
+    }
+
     auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
 
     auto&& pBuffer = EvoVulkan::Types::Buffer::Create(
@@ -491,6 +496,10 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
     const auto layout = m_image.GetLayout();
 
     m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, copyCmd);
+
+    if (!copyCmd->IsBegin()) {
+        copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    }
 
     vkCmdCopyImageToBuffer(
         *copyCmd,

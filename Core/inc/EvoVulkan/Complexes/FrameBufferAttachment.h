@@ -33,34 +33,25 @@ namespace EvoVulkan::Complexes {
 
     public:
         static std::unique_ptr<FrameBufferAttachment> CreateColorAttachment(
-            EvoVulkan::Memory::Allocator* allocator,
-            EvoVulkan::Types::CmdPool* pool,
+            EvoVulkan::Complexes::FrameBuffer* pFrameBuffer,
             VkFormat format,
             VkImageUsageFlags usage,
-            VkExtent2D imageSize,
-            uint32_t samplesCount,
             uint32_t layersCount,
             uint32_t layer
         );
 
         static std::unique_ptr<FrameBufferAttachment> CreateDepthAttachment(
-            EvoVulkan::Memory::Allocator* allocator,
-            EvoVulkan::Types::CmdPool* pPool,
+            EvoVulkan::Complexes::FrameBuffer* pFrameBuffer,
             FrameBufferAttachment* pImageArray,
             VkFormat format,
             VkImageAspectFlags aspect,
-            VkExtent2D imageSize,
-            uint32_t samplesCount,
             uint32_t layersCount,
             uint32_t layer
         );
 
         static std::unique_ptr<FrameBufferAttachment> CreateResolveAttachment(
-            EvoVulkan::Memory::Allocator* allocator,
-            EvoVulkan::Types::CmdPool* pPool,
+            EvoVulkan::Complexes::FrameBuffer* pFrameBuffer,
             VkFormat format,
-            VkExtent2D imageSize,
-            uint32_t samplesCount,
             uint32_t layersCount,
             uint32_t layer
         );

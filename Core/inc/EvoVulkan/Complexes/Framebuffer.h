@@ -2,8 +2,8 @@
 // Created by Nikita on 12.04.2021.
 //
 
-#ifndef EVOVULKAN_FRAMEBUFFER_H
-#define EVOVULKAN_FRAMEBUFFER_H
+#ifndef EVO_VULKAN_FRAME_BUFFER_H
+#define EVO_VULKAN_FRAME_BUFFER_H
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Texture.h>
@@ -18,6 +18,17 @@
 #include <EvoVulkan/DescriptorManager.h>
 
 namespace EvoVulkan::Complexes {
+    struct FrameBufferFeatures {
+        bool depthLoad = false;
+        bool colorLoad = false;
+        bool transferSrcDepth = false;
+        bool transferSrcColor = false;
+        bool transferDstDepth = false;
+        bool transferDstColor = false;
+        bool depthShaderRead = false;
+        bool colorShaderRead = true;
+    };
+
     class DLL_EVK_EXPORT FrameBuffer : private Tools::NonCopyable {
         using FrameBufferLayers = std::vector<std::unique_ptr<FrameBufferLayer>>;
         using Attachment = std::unique_ptr<FrameBufferAttachment>;
@@ -34,6 +45,7 @@ namespace EvoVulkan::Complexes {
                 Core::DescriptorManager* manager,
                 Types::Swapchain* swapchain,
                 Types::CmdPool* pool,
+                FrameBufferFeatures features,
                 const std::vector<VkFormat>& colorAttachments,
                 uint32_t width, uint32_t height,
                 uint32_t arrayLayers,
@@ -53,6 +65,7 @@ namespace EvoVulkan::Complexes {
         void SetLayersCount(uint32_t layersCount);
         void SetDepthFormat(VkFormat depthFormat);
         void SetDepthAspect(VkImageAspectFlags depthAspect);
+        void SetFeatures(const FrameBufferFeatures& features) { m_features = features; }
 
         void ClearWaitSemaphores() { m_waitSemaphores.clear(); }
         void ClearSignalSemaphores();
@@ -87,6 +100,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE uint32_t GetCountClearValues() const { return m_countClearValues; }
         EVK_NODISCARD EVK_INLINE VkImageAspectFlags GetDepthAspect() const { return m_depthAspect; }
         EVK_NODISCARD EVK_INLINE VkFormat GetDepthFormat() const { return m_depthFormat; }
+        EVK_NODISCARD EVK_INLINE const FrameBufferFeatures& GetFeatures() const { return m_features; }
         EVK_NODISCARD const VkClearValue* GetClearValues() const { return m_clearValues.data(); }
         EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_waitSemaphores; }
         EVK_NODISCARD std::vector<VkSemaphore>& GetSignalSemaphores() { return m_signalSemaphores; }
@@ -102,6 +116,8 @@ namespace EvoVulkan::Complexes {
         bool CreateSampler();
 
     private:
+        FrameBufferFeatures m_features;
+
         Attachment                m_depthAttachment;
         VkImageAspectFlags        m_depthAspect        = EvoVulkan::Tools::Initializers::EVK_IMAGE_ASPECT_NONE;
         VkFormat                  m_depthFormat        = VK_FORMAT_UNDEFINED;
@@ -147,4 +163,4 @@ namespace EvoVulkan::Complexes {
     };
 }
 
-#endif //EVOVULKAN_FRAMEBUFFER_H
+#endif //EVO_VULKAN_FRAME_BUFFER_H

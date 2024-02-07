@@ -36,6 +36,7 @@ namespace EvoVulkan::Complexes {
         Core::DescriptorManager* manager,
         Types::Swapchain* swapchain,
         Types::CmdPool* pool,
+        FrameBufferFeatures features,
         const std::vector<VkFormat>& colorAttachments,
         uint32_t width, uint32_t height,
         uint32_t arrayLayers,
@@ -71,6 +72,7 @@ namespace EvoVulkan::Complexes {
             pFBO->m_attachFormats      = colorAttachments;
             pFBO->m_depthFormat        = depthFormat;
             pFBO->m_depthAspect        = depthAspect;
+            pFBO->m_features           = features;
         }
 
         pFBO->SetSampleCount(samplesCount);
@@ -236,16 +238,33 @@ namespace EvoVulkan::Complexes {
             attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
             if (i == m_attachFormats.size()) {
-                attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
                 attachmentDesc.format = m_depthFormat;
-                attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                if (m_features.depthLoad) {
+                    attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+                }
+                if (m_features.depthShaderRead) {
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                }
+                else {
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                }
             }
             else {
-                attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
                 attachmentDesc.format = m_attachFormats[i];
-                attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                if (m_features.colorLoad) {
+                    attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+                }
+
+                if (m_features.colorShaderRead) {
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                }
+                else {
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
             }
 
             attachmentDescriptions.push_back(attachmentDesc);
@@ -289,13 +308,10 @@ namespace EvoVulkan::Complexes {
     bool FrameBuffer::CreateAttachments() {
         if (IsDepthEnabled() && m_layersCount > 1) {
             m_depthAttachment = FrameBufferAttachment::CreateDepthAttachment(
-                GetAllocator(),
-                GetCmdPool(),
+                this,
                 nullptr /** image array */,
                 GetDepthFormat(),
                 GetDepthAspect(),
-                GetExtent2D(),
-                GetSampleCount(),
                 m_layersCount,
                 0 /** layer index */
             );

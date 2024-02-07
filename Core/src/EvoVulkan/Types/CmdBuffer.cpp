@@ -11,6 +11,8 @@
 
 namespace EvoVulkan::Types {
     EvoVulkan::Types::CmdBuffer::~CmdBuffer() {
+        End();
+
         if (m_buffer) {
             vkFreeCommandBuffers(*m_device, *m_cmdPool, 1, &m_buffer);
             m_buffer = VK_NULL_HANDLE;
@@ -101,6 +103,9 @@ namespace EvoVulkan::Types {
     }
 
     bool CmdBuffer::End() {
+        if (!m_isBegin) {
+            return false;
+        }
         m_isBegin = false;
 
         vkEndCommandBuffer(m_buffer);

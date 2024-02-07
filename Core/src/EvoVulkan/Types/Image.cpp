@@ -117,7 +117,7 @@ namespace EvoVulkan::Types {
 
         const bool result = EvoVulkan::Tools::TransitionImageLayoutEx(
             copyCmd, m_image, m_layout,layout,
-            m_info.mipLevels, m_info.aspect,m_info.arrayLayers
+            m_info.mipLevels, m_info.aspect,m_info.arrayLayers, false
         );
 
         m_layout = layout;
