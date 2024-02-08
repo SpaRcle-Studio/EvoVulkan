@@ -469,6 +469,12 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
         return {};
     }
 
+    if (x >= m_image.GetInfo().width || y >= m_image.GetInfo().height || z >= m_image.GetInfo().depth) {
+        VK_ERROR("Texture::GetPixel() : incorrect pixel position! Width: " + std::to_string(m_image.GetInfo().width) +
+                 " Height: " + std::to_string(m_image.GetInfo().height) + " Depth: " + std::to_string(m_image.GetInfo().depth));
+        return {};
+    }
+
     auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
 
     auto&& pBuffer = EvoVulkan::Types::Buffer::Create(
