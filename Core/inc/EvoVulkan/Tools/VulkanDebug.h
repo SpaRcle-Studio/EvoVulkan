@@ -39,6 +39,8 @@ namespace EvoVulkan::Tools {
         void PushLogLevel(LogLevel logLevel);
         void PopLogLevel();
 
+        void Reset();
+
         EVK_NODISCARD LogLevelFlags GetLogLevel() const;
 
     public:
@@ -59,6 +61,7 @@ namespace EvoVulkan::Tools {
 
     private:
         std::stack<LogLevel> m_logLevelStack;
+        mutable std::recursive_mutex m_mutex;
 
     };
 

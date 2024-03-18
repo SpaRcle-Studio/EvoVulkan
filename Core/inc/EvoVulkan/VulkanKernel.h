@@ -39,7 +39,7 @@ namespace EvoVulkan::Core {
         VulkanKernel() = default;
 
     public:
-        ~VulkanKernel() override = default;
+        ~VulkanKernel() override;
 
     public:
         virtual bool PreInit(

@@ -5,6 +5,8 @@
 #include <EvoVulkan/VulkanKernel.h>
 #include <EvoVulkan/Complexes/Shader.h>
 
+EvoVulkan::Core::VulkanKernel::~VulkanKernel() = default;
+
 bool EvoVulkan::Core::VulkanKernel::PreInit(
         const std::string& appName,
         const std::string& engineName,

@@ -7,6 +7,8 @@
 
 namespace EvoVulkan::Tools {
     bool VkFunctionsHolder::Ready() const {
+        std::lock_guard lock(m_mutex);
+
         const bool debugFunctions = LogCallback && WarnCallback && ErrorCallback && GraphCallback && AssertCallback;
         const bool fileSysFunctions = Delete && IsExists && Copy && CreateFolder;
         const bool hashFunctions = GetFileHash && ReadHash && WriteHash;
@@ -24,30 +26,40 @@ namespace EvoVulkan::Tools {
     }
 
     void VkFunctionsHolder::Error(const std::string &msg) {
+        std::lock_guard lock(m_mutex);
+
         if (Ready() && (GetLogLevel() & static_cast<int>(LogLevel::Errors))) {
             ErrorCallback(msg);
         }
     }
 
     void VkFunctionsHolder::Warn(const std::string &msg) {
+        std::lock_guard lock(m_mutex);
+
         if (Ready() && (GetLogLevel() & static_cast<int>(LogLevel::Warns))) {
             WarnCallback(msg);
         }
     }
 
     void VkFunctionsHolder::Log(const std::string &msg) {
+        std::lock_guard lock(m_mutex);
+
         if (Ready() && (GetLogLevel() & static_cast<int>(LogLevel::Logs))) {
             LogCallback(msg);
         }
     }
 
     void VkFunctionsHolder::Graph(const std::string &msg) {
+        std::lock_guard lock(m_mutex);
+
         if (Ready() && (GetLogLevel() & static_cast<int>(LogLevel::Graphical))) {
             GraphCallback(msg);
         }
     }
 
     bool VkFunctionsHolder::Assert(const std::string &msg) {
+        std::lock_guard lock(m_mutex);
+
         if (Ready() && (GetLogLevel() & static_cast<int>(LogLevel::Asserts))) {
             return AssertCallback(msg);
         }
@@ -56,6 +68,8 @@ namespace EvoVulkan::Tools {
     }
 
     void VkFunctionsHolder::PushLogLevel(EvoVulkan::Tools::LogLevel logLevel) {
+        std::lock_guard lock(m_mutex);
+
         if (m_logLevelStack.size() > 1024) {
             VK_HALT("VkFunctionsHolder::PushLogLevel() : buffer overflow!");
             return;
@@ -65,6 +79,8 @@ namespace EvoVulkan::Tools {
     }
 
     void VkFunctionsHolder::PopLogLevel() {
+        std::lock_guard lock(m_mutex);
+
         if (m_logLevelStack.empty()) {
             return;
         }
@@ -73,10 +89,29 @@ namespace EvoVulkan::Tools {
     }
 
     LogLevelFlags VkFunctionsHolder::GetLogLevel() const {
+        std::lock_guard lock(m_mutex);
+
         if (m_logLevelStack.empty()) {
             return static_cast<LogLevelFlags>(LogLevel::Full);
         }
 
         return (LogLevelFlags) m_logLevelStack.top();
+    }
+
+    void VkFunctionsHolder::Reset() {
+        std::lock_guard lock(m_mutex);
+
+        ErrorCallback = nullptr;
+        LogCallback = nullptr;
+        GraphCallback = nullptr;
+        WarnCallback = nullptr;
+        AssertCallback = nullptr;
+        Delete = nullptr;
+        IsExists = nullptr;
+        Copy = nullptr;
+        CreateFolder = nullptr;
+        GetFileHash = nullptr;
+        ReadHash = nullptr;
+        WriteHash = nullptr;
     }
 }
