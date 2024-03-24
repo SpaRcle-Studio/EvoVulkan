@@ -189,7 +189,7 @@ namespace EvoVulkan::Types {
             dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
         }
         /// просто цвет без мультисемплинга
-        else if (attachments.size() > 1) {
+        else if (attachments.size() > 1 || !depth) {
             dependencies.resize(1);
 
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -244,6 +244,8 @@ namespace EvoVulkan::Types {
                      Tools::Convert::result_to_description(result));
             return RenderPass(); /// NOLINT
         }
+
+        VK_LOG("Types::CreateRenderPass() : vulkan render pass " + EvoVulkan::Tools::PointerToString(renderPass) + " created successfully!");
 
         return { renderPass, (uint32_t)attachments.size(), (uint32_t)colorReferences.size() };
     }

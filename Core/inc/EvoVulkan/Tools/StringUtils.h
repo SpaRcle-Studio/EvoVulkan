@@ -67,6 +67,14 @@ namespace EvoVulkan::Tools {
 
         return result;
     }
+
+    template<typename T> static std::string PointerToString(const T* pPtr) {
+        auto&& string = Format("%p", (void*)pPtr);
+        std::transform(string.begin(), string.end(), string.begin(), ::tolower);
+        return string;
+    }
 }
+
+#define EVK_FORMAT(x, ...) EvoVulkan::Tools::Format(x, __VA_ARGS__)
 
 #endif //EVOVULKAN_STRINGUTILS_H
