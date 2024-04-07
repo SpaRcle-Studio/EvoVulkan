@@ -60,7 +60,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     VkFormat format,
     int32_t width,
     int32_t height,
-    const std::array<uint8_t*, 6> &sides,
+    const std::array<const uint8_t*, 6> &sides,
     uint32_t mipLevels,
     bool cpuUsage)
 {

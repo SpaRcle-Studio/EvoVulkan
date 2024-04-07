@@ -51,7 +51,7 @@ namespace EvoVulkan::Types {
                 VkFormat format,
                 int32_t width,
                 int32_t height,
-                const std::array<uint8_t*, 6>& sides,
+                const std::array<const uint8_t*, 6>& sides,
                 uint32_t mipLevels = 0,
                 bool cpuUsage = false);
 
@@ -60,7 +60,7 @@ namespace EvoVulkan::Types {
                 Memory::Allocator *allocator,
                 Core::DescriptorManager* manager,
                 CmdPool *pool,
-                const unsigned char *pixels,
+                const uint8_t* pixels,
                 VkFormat format,
                 int32_t width, int32_t height,
                 uint32_t mipLevels, VkFilter,
@@ -71,7 +71,7 @@ namespace EvoVulkan::Types {
                 Memory::Allocator *allocator,
                 Core::DescriptorManager* manager,
                 CmdPool *pool,
-                const unsigned char *pixels,
+                const uint8_t* pixels,
                 VkFormat format,
                 int32_t width,
                 int32_t height, VkFilter filter,
@@ -86,7 +86,7 @@ namespace EvoVulkan::Types {
                 Memory::Allocator *allocator,
                 Core::DescriptorManager* manager,
                 CmdPool *pool,
-                const unsigned char *pixels,
+                const uint8_t* pixels,
                 VkFormat format,
                 int32_t width, int32_t height, VkFilter filter,
                 bool cpuUsage = false)
