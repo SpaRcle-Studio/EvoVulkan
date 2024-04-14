@@ -20,7 +20,7 @@ namespace EvoVulkan::Types {
 
     bool FamilyQueues::IsComplete() const {
         return
-            m_presentQueueFamilyIndex >= 0 &&
+            (!m_surface || m_presentQueueFamilyIndex >= 0) &&
             m_graphicsQueueFamilyIndex >= 0 &&
             m_computeQueueFamilyIndex >= 0 &&
             m_transferQueueFamilyIndex >= 0;
@@ -29,7 +29,7 @@ namespace EvoVulkan::Types {
     bool FamilyQueues::IsReady() const {
         return
             IsComplete() &&
-            m_presentQueue != VK_NULL_HANDLE &&
+            (!m_surface ||m_presentQueue != VK_NULL_HANDLE) &&
             m_graphicsQueue != VK_NULL_HANDLE &&
             m_transferQueue != VK_NULL_HANDLE &&
             m_computeQueue  != VK_NULL_HANDLE;
@@ -61,7 +61,10 @@ namespace EvoVulkan::Types {
         vkGetDeviceQueue(m_logicalDevice, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
         vkGetDeviceQueue(m_logicalDevice, m_computeQueueFamilyIndex, 0, &m_computeQueue);
         vkGetDeviceQueue(m_logicalDevice, m_transferQueueFamilyIndex, 0, &m_transferQueue);
-        vkGetDeviceQueue(m_logicalDevice, m_presentQueueFamilyIndex, 0, &m_presentQueue);
+
+        if (m_surface) {
+            vkGetDeviceQueue(m_logicalDevice, m_presentQueueFamilyIndex, 0, &m_presentQueue);
+        }
 
         if (!m_graphicsQueue || m_graphicsQueueFamilyIndex < 0) {
             VK_ERROR("FamilyQueues::Initialize() : graphics queue is not supported!");
@@ -78,7 +81,7 @@ namespace EvoVulkan::Types {
             return false;
         }
 
-        if (!m_presentQueue || m_presentQueueFamilyIndex < 0) {
+        if (m_surface && (!m_presentQueue || m_presentQueueFamilyIndex < 0)) {
             VK_ERROR("FamilyQueues::Initialize() : present queue is not supported!");
             return false;
         }
@@ -142,13 +145,15 @@ namespace EvoVulkan::Types {
             }
         }
 
-        for (uint32_t i = 0; i < m_queueFamilyProperties.size(); ++i) {
-            VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, *m_surface, &presentSupport);
+        if (m_surface) {
+            for (uint32_t i = 0; i < m_queueFamilyProperties.size(); ++i) {
+                VkBool32 presentSupport = false;
+                vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, *m_surface, &presentSupport);
 
-            if (presentSupport) {
-                m_presentQueueFamilyIndex = static_cast<int32_t>(i);
-                break;
+                if (presentSupport) {
+                    m_presentQueueFamilyIndex = static_cast<int32_t>(i);
+                    break;
+                }
             }
         }
 

@@ -116,11 +116,13 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     //!=============================================[Create surface]====================================================
 
-    VK_GRAPH("VulkanKernel::Init() : create vulkan surface...");
-    m_surface = Tools::CreateSurface(*m_instance, platformCreate, windowHandle);
-    if (!m_surface) {
-        VK_ERROR("VulkanKernel::Init() : failed create vulkan surface!");
-        return false;
+    if (windowHandle) {
+        VK_GRAPH("VulkanKernel::Init() : create vulkan surface...");
+        m_surface = Tools::CreateSurface(*m_instance, platformCreate, windowHandle);
+        if (!m_surface) {
+            VK_ERROR("VulkanKernel::Init() : failed create vulkan surface!");
+            return false;
+        }
     }
 
     //!==========================================[Create logical device]================================================
@@ -175,9 +177,11 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     //!=============================================[Init surface]======================================================
 
-    if (!m_surface->Init(m_device)) {
-        VK_ERROR("VulkanKernel::Init() : failed to create initialize surface!");
-        return false;
+    if (m_surface) {
+        if (!m_surface->Init(m_device)) {
+            VK_ERROR("VulkanKernel::Init() : failed to create initialize surface!");
+            return false;
+        }
     }
 
     //!===========================================[Create command pool]=================================================
@@ -199,24 +203,26 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     m_newWidth = -1;
     m_newHeight = -1;
 
-    m_swapchain = Types::Swapchain::Create(
-        *m_instance,
-        m_surface,
-        m_device,
-        vsync,
-        m_width,
-        m_height,
-        m_swapchainImages
-    );
+    if (m_surface) {
+        m_swapchain = Types::Swapchain::Create(
+            *m_instance,
+            m_surface,
+            m_device,
+            vsync,
+            m_width,
+            m_height,
+            m_swapchainImages
+        );
 
-    if (!m_swapchain) {
-        VK_ERROR("VulkanKernel::Init() : failed to create swapchain!");
-        return false;
-    }
+        if (!m_swapchain) {
+            VK_ERROR("VulkanKernel::Init() : failed to create swapchain!");
+            return false;
+        }
 
-    if (!m_swapchain->IsReady()) {
-        VK_ERROR("VulkanKernel::Init() : swapchain isn't ready!");
-        return false;
+        if (!m_swapchain->IsReady()) {
+            VK_ERROR("VulkanKernel::Init() : swapchain isn't ready!");
+            return false;
+        }
     }
 
     VK_LOG("VulkanKernel::Init() : depth format is " + Tools::Convert::format_to_string(m_device->GetDepthFormat()));
@@ -237,70 +243,78 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     VK_GRAPH("VulkanKernel::PostInit() : allocate draw command buffers...");
 
-    m_countDCB = m_swapchain->GetCountImages();
+    m_countDCB = m_swapchain ? m_swapchain->GetCountImages() : 0;
 
-    m_drawCmdBuffs = Tools::AllocateCommandBuffers(
+    if (m_countDCB > 0) {
+        m_drawCmdBuffs = Tools::AllocateCommandBuffers(
             *m_device,
             Tools::Initializers::CommandBufferAllocateInfo(
                 *m_cmdPool,
                 VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 m_countDCB
             )
-    );
+        );
 
-    if (!m_drawCmdBuffs) {
-        VK_ERROR("Vulkan::PostInit() : failed to allocate draw command buffers!");
-        return false;
+        if (!m_drawCmdBuffs) {
+            VK_ERROR("Vulkan::PostInit() : failed to allocate draw command buffers!");
+            return false;
+        }
     }
 
     //!=================================================================================================================
 
-    VK_GRAPH("VulkanKernel::PostInit() : create wait fences...");
-    m_waitFences = Tools::CreateFences(*m_device, this->m_countDCB);
-    if (m_waitFences.empty()) {
-        VK_ERROR("VulkanKernel::PostInit() : failed to create wait fences!");
-        return false;
+    if (m_countDCB > 0) {
+        VK_GRAPH("VulkanKernel::PostInit() : create wait fences...");
+        m_waitFences = Tools::CreateFences(*m_device, m_countDCB);
+        if (m_waitFences.empty()) {
+            VK_ERROR("VulkanKernel::PostInit() : failed to create wait fences!");
+            return false;
+        }
     }
 
     //!=================================================================================================================
 
-    VK_GRAPH("VulkanKernel::PostInit() : create multisample target...");
+    if (m_swapchain) {
+        VK_GRAPH("VulkanKernel::PostInit() : create multisample target...");
 
-    m_multisample = Types::MultisampleTarget::Create(
-        m_device,
-        m_allocator,
-        m_cmdPool,
-        m_swapchain,
-        m_swapchain->GetSurfaceWidth(),
-        m_swapchain->GetSurfaceHeight(),
-        { m_swapchain->GetColorFormat() },
-        GetSampleCount(),
-        1 /** layers count */,
-        VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
-        m_device->GetDepthFormat()
-    );
-
-    if (!m_multisample) {
-        VK_ERROR("VulkanKernel::PostInit() : failed to create multisample!");
-        return false;
-    }
-
-    //!=================================================================================================================
-
-    VK_GRAPH("VulkanKernel::PostInit() : create render pass...");
-    m_renderPass = Types::CreateRenderPass(
+        m_multisample = Types::MultisampleTarget::Create(
             m_device,
+            m_allocator,
+            m_cmdPool,
             m_swapchain,
-            { } /** color attachments */,
-            { } /** input attachments */,
+            m_swapchain->GetSurfaceWidth(),
+            m_swapchain->GetSurfaceHeight(),
+            { m_swapchain->GetColorFormat() },
             GetSampleCount(),
+            1 /** layers count */,
             VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
             m_device->GetDepthFormat()
-    );
+        );
 
-    if (!m_renderPass.IsReady()) {
-        VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
-        return false;
+        if (!m_multisample) {
+            VK_ERROR("VulkanKernel::PostInit() : failed to create multisample!");
+            return false;
+        }
+    }
+
+    //!=================================================================================================================
+
+    if (m_swapchain) {
+        VK_GRAPH("VulkanKernel::PostInit() : create render pass...");
+        m_renderPass = Types::CreateRenderPass(
+                m_device,
+                m_swapchain,
+                { } /** color attachments */,
+                { } /** input attachments */,
+                GetSampleCount(),
+                VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
+                m_device->GetDepthFormat()
+        );
+
+        if (!m_renderPass.IsReady()) {
+            VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
+            return false;
+        }
     }
 
     //!=================================================================================================================
@@ -397,6 +411,10 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
+    if (!m_swapchain) {
+        return true;
+    }
+
     VK_GRAPH("VulkanKernel::ReCreateFrameBuffers() : re-create vulkan frame buffers...");
 
     if (!m_renderPass.IsReady()) {

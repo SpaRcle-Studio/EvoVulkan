@@ -21,11 +21,6 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
         VkSurfaceKHR const &surface,
         const std::vector<const char *> &extensions)
 {
-    if (!surface) {
-        VK_ERROR("Types::IsDeviceSuitable() : surface is nullptr!");
-        return false;
-    }
-
     for (auto&& extension : extensions) {
         if (!Tools::CheckDeviceExtensionSupport(physicalDevice, extension)) {
             VK_WARN("Tools::IsDeviceSuitable() : device \"" + Tools::GetDeviceName(physicalDevice) + "\" doesn't support extensions!"
@@ -34,17 +29,19 @@ bool EvoVulkan::Tools::IsDeviceSuitable(
         }
     }
 
-    Types::SwapChainSupportDetails swapChainSupport = Types::QuerySwapChainSupport(physicalDevice, surface);
-    if (!swapChainSupport.m_complete) {
-        VK_WARN("Tools::IsDeviceSuitable() : something went wrong! Details isn't complete!");
-        return false;
-    }
+    if (surface) {
+        Types::SwapChainSupportDetails swapChainSupport = Types::QuerySwapChainSupport(physicalDevice, surface);
+        if (!swapChainSupport.m_complete) {
+            VK_WARN("Tools::IsDeviceSuitable() : something went wrong! Details isn't complete!");
+            return false;
+        }
 
-    bool swapChainAdequate = !swapChainSupport.m_formats.empty() && !swapChainSupport.m_presentModes.empty();
-    if (!swapChainAdequate) {
-        VK_WARN("Tools::IsDeviceSuitable() : device \"" +
-                                     Tools::GetDeviceName(physicalDevice) + "\" isn't support swapchain!");
-        return false;
+        bool swapChainAdequate = !swapChainSupport.m_formats.empty() && !swapChainSupport.m_presentModes.empty();
+        if (!swapChainAdequate) {
+            VK_WARN("Tools::IsDeviceSuitable() : device \"" +
+                                         Tools::GetDeviceName(physicalDevice) + "\" isn't support swapchain!");
+            return false;
+        }
     }
 
     VkPhysicalDeviceFeatures supportedFeatures;
