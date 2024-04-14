@@ -52,7 +52,7 @@ namespace EvoVulkan::Types {
         std::vector<Tools::DeviceSelectionInfo> deviceInfos;
 
         for (auto&& physDev : devices) {
-            if (Tools::IsDeviceSuitable(physDev, info.pSurface ? *info.pSurface : nullptr, info.extensions)) {
+            if (Tools::IsDeviceSuitable(physDev, info.pSurface ? (*info.pSurface) : VkSurfaceKHR(), info.extensions)) {
                 deviceInfos.emplace_back(Tools::GetSelectionDeviceInfo(physDev));
             }
             else {

@@ -17,9 +17,9 @@ std::string EvoVulkan::Tools::GetDeviceName(VkPhysicalDevice const &physicalDevi
 }
 
 bool EvoVulkan::Tools::IsDeviceSuitable(
-        VkPhysicalDevice const &physicalDevice,
-        VkSurfaceKHR const &surface,
-        const std::vector<const char *> &extensions)
+        const VkPhysicalDevice& physicalDevice,
+        const VkSurfaceKHR& surface,
+        const std::vector<const char*>& extensions)
 {
     for (auto&& extension : extensions) {
         if (!Tools::CheckDeviceExtensionSupport(physicalDevice, extension)) {
