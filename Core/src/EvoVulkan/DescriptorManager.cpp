@@ -14,7 +14,7 @@ namespace EvoVulkan::Core {
         Types::DescriptorPool* pPool = pFound;
 
         if (!pPool) {
-            VK_LOG("DescriptorPool::Create() : create new descriptor pool. Total: " + std::to_string(m_pools.size() + 1));
+            /// VK_LOG("DescriptorPool::Create() : create new descriptor pool. Total: " + std::to_string(m_pools.size() + 1));
             pPool = AllocateDescriptorPool(layout, requestTypes);
         }
 
