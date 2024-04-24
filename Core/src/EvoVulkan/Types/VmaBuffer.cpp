@@ -31,6 +31,33 @@ namespace EvoVulkan::Types {
         return buffer;
     }
 
+    VmaBuffer* VmaBuffer::Create(
+            Memory::Allocator* allocator,
+            VkBufferUsageFlags bufferUsage,
+            VmaMemoryUsage memoryUsage,
+            VkDeviceSize size,
+            VkSharingMode sharingMode,
+            VkBufferCreateFlags createFlags,
+            VmaAllocationCreateFlags allocateFlags,
+            void* data)
+    {
+        auto&& buffer = new VmaBuffer(allocator, size);
+
+        auto&& bufferCreateInfo = Tools::Initializers::BufferCreateInfo(bufferUsage, size);
+        bufferCreateInfo.sharingMode = sharingMode;
+        bufferCreateInfo.flags = createFlags;
+
+        buffer->m_buffer = allocator->AllocBuffer(bufferCreateInfo, memoryUsage, allocateFlags);
+
+        if (data) {
+            buffer->CopyToDevice(data, memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY);
+        }
+
+        buffer->SetupDescriptor();
+
+        return buffer;
+    }
+
     VmaBuffer* VmaBuffer::Create(EvoVulkan::Memory::Allocator* allocator, VkDeviceSize size, void* data) {
         return Create(allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, size, data);
     }

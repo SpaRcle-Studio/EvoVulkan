@@ -6,6 +6,7 @@
 #define EVOVULKAN_VMABUFFER_H
 
 #include <EvoVulkan/Tools/NonCopyable.h>
+#include <EvoVulkan/Memory/Allocator.h>
 
 namespace EvoVulkan::Memory {
     class Allocator;
@@ -29,6 +30,16 @@ namespace EvoVulkan::Types {
                 VkBufferUsageFlags bufferUsage,
                 VmaMemoryUsage memoryUsage,
                 VkDeviceSize size,
+                void* data = nullptr);
+
+        static VmaBuffer* Create(
+                Memory::Allocator* allocator,
+                VkBufferUsageFlags bufferUsage,
+                VmaMemoryUsage memoryUsage,
+                VkDeviceSize size,
+                VkSharingMode sharingMode,
+                VkBufferCreateFlags createFlags,
+                VmaAllocationCreateFlags allocateFlags,
                 void* data = nullptr);
 
         static VmaBuffer* Create(

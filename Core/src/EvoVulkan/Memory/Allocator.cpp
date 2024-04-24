@@ -146,10 +146,14 @@ uint64_t EvoVulkan::Memory::Allocator::GetCPUMemoryUsage() const {
 }
 
 EvoVulkan::Memory::Buffer EvoVulkan::Memory::Allocator::AllocBuffer(const VkBufferCreateInfo &info, VmaMemoryUsage usage) {
+    return AllocBuffer(info, usage, static_cast<VmaAllocationCreateFlags>(0));
+}
+
+EvoVulkan::Memory::Buffer EvoVulkan::Memory::Allocator::AllocBuffer(const VkBufferCreateInfo &info, VmaMemoryUsage usage, VmaAllocationCreateFlags flags) {
     EvoVulkan::Memory::Buffer buffer = {};
 
     VmaAllocationCreateInfo allocInfo;
-    allocInfo.flags = 0;
+    allocInfo.flags = flags;
     allocInfo.usage = usage;
     allocInfo.requiredFlags = 0;
     allocInfo.preferredFlags = 0;

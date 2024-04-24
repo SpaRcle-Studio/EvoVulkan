@@ -57,6 +57,7 @@ namespace EvoVulkan::Memory {
 
     public:
         Buffer AllocBuffer(const VkBufferCreateInfo& info, VmaMemoryUsage usage);
+        Buffer AllocBuffer(const VkBufferCreateInfo& info, VmaMemoryUsage usage, VmaAllocationCreateFlags flags);
         Types::Image AllocImage(const VkImageCreateInfo& info, bool CPUUsage);
         RawMemory AllocateMemory(VkMemoryAllocateInfo memoryAllocateInfo);
 
