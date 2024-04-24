@@ -34,7 +34,7 @@ namespace EvoVulkan::Core {
 
     private:
         const EvoVulkan::Types::Device* m_device = nullptr;
-        std::set<Types::DescriptorPool*> m_pools  = std::set<Types::DescriptorPool*>();
+        std::set<Types::DescriptorPool*> m_pools;
 
     };
 }
