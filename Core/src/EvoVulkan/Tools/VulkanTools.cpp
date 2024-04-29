@@ -43,7 +43,7 @@ namespace EvoVulkan::Tools {
         }
     }
 
-    VkPipelineLayout CreatePipelineLayout(const VkDevice& device, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkPushConstantRange>& pushConstants) {
+    VkPipelineLayout CreatePipelineLayout(const VkDevice& device, uint32_t setLayoutCount, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkPushConstantRange>& pushConstants) {
         for (auto&& pushConstant : pushConstants) {
             if (pushConstant.stageFlags == 0) {
                 VK_ERROR("Tools::CreatePipelineLayout() : push constant does not contains any stages!");
@@ -51,7 +51,7 @@ namespace EvoVulkan::Tools {
             }
         }
 
-        VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = Initializers::PipelineLayoutCreateInfo(&descriptorSetLayout, 1, pushConstants);
+        VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = Initializers::PipelineLayoutCreateInfo(&descriptorSetLayout, setLayoutCount, pushConstants);
 
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         auto result = vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &pipelineLayout);

@@ -216,7 +216,7 @@ bool EvoVulkan::Complexes::Shader::BuildLayouts() {
         return false;
     }
 
-    m_pipelineLayout = Tools::CreatePipelineLayout(*m_device, m_descriptorSetLayout, m_pushConstants);
+    m_pipelineLayout = Tools::CreatePipelineLayout(*m_device, 1, m_descriptorSetLayout, m_pushConstants);
     if (m_pipelineLayout == VK_NULL_HANDLE) {
         VK_ERROR("Shader::BuildLayouts() : failed to create pipeline layout!");
         return false;

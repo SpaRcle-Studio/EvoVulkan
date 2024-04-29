@@ -93,6 +93,7 @@
 #include <cmath>
 #include <unordered_set>
 #include <unordered_map>
+#include <optional>
 #include <memory>
 
 #endif //EVOVULKAN_MACROS_H

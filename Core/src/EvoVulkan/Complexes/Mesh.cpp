@@ -8,7 +8,7 @@
 void EvoVulkan::Complexes::Mesh::Draw(const VkCommandBuffer& cmd) {
     VkDeviceSize offsets[1] = {0};
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            this->m_attachShader->GetPipelineLayout(), 0, 1, &m_descriptorSet.m_self, 0, NULL);
+                            m_attachShader->GetPipelineLayout(), 0, 1, &m_descriptorSet.descriptorSet, 0, NULL);
     vkCmdBindVertexBuffers(cmd, 0, 1, m_vertices->GetCRef(), offsets);
     vkCmdBindIndexBuffer(cmd, *m_indices, 0, VK_INDEX_TYPE_UINT32);
 

@@ -67,9 +67,9 @@ namespace EvoVulkan::Core {
         }
 
         /// берем не по ссылке, чтобы случайно не затереть при вызове Reset
-        Types::DescriptorPool* pool = descriptorSet->m_pool;
+        Types::DescriptorPool* pool = descriptorSet->pPool;
 
-        if (pool->GetLayout() != descriptorSet->m_layout) {
+        if (pool->GetLayout() != descriptorSet->layout) {
             VK_ERROR("DescriptorManager::FreeDescriptorSet() : layouts are different! Something went wrong!");
             return false;
         }

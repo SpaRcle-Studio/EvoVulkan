@@ -20,27 +20,27 @@ namespace EvoVulkan::Types {
             : DescriptorSet(VK_NULL_HANDLE, VK_NULL_HANDLE, nullptr)
         { }
 
-        DescriptorSet(VkDescriptorSet set, VkDescriptorSetLayout layout, DescriptorPool* pool)
-            : m_self(set)
-            , m_layout(layout)
-            , m_pool(pool)
+        DescriptorSet(VkDescriptorSet descriptorSet, VkDescriptorSetLayout layout, DescriptorPool* pPool)
+            : descriptorSet(descriptorSet)
+            , layout(layout)
+            , pPool(pPool)
         { }
 
         void Reset() noexcept {
-            m_self = VK_NULL_HANDLE;
-            m_layout = VK_NULL_HANDLE;
-            m_pool = nullptr;
+            descriptorSet = VK_NULL_HANDLE;
+            layout = VK_NULL_HANDLE;
+            pPool = nullptr;
         }
 
         EVK_NODISCARD bool Valid() const noexcept {
-            return m_self != VK_NULL_HANDLE && m_layout != VK_NULL_HANDLE && m_pool;
+            return descriptorSet != VK_NULL_HANDLE && layout != VK_NULL_HANDLE && pPool;
         }
 
-        VkDescriptorSet       m_self;
-        VkDescriptorSetLayout m_layout;
-        DescriptorPool*       m_pool;
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+        DescriptorPool* pPool = nullptr;
 
-        operator VkDescriptorSet() const { return m_self; }
+        operator VkDescriptorSet() const { return descriptorSet; }
     };
 }
 
