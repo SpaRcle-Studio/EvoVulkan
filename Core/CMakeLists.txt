@@ -3,9 +3,11 @@ project(EvoVulkanCore)
 
 set(CMAKE_CXX_STANDARD 20)
 
-message("[EvoVulkan] Vulkan sdk path: $ENV{VULKAN_SDK}")
+message("[EvoVulkan] Vulkan SDK path: $ENV{VULKAN_SDK}")
 
 find_package(Vulkan REQUIRED)
+
+message("[EvoVulkan] Vulkan SDK Version: ${Vulkan_VERSION}")
 
 if (EVO_VULKAN_STATIC_LIBRARY)
     add_library(EvoVulkan STATIC EvoVulkan.cxx)
