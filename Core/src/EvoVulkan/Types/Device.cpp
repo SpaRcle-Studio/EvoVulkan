@@ -32,7 +32,7 @@ namespace EvoVulkan::Types {
     }
 
     Device* Device::Create(EvoDeviceCreateInfo info) {
-        VK_GRAPH("Device::Create() : create vulkan device...");
+        VK_GRAPH("Device::Create() : creating vulkan device...");
 
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice         logicalDevice  = VK_NULL_HANDLE;
@@ -86,7 +86,7 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
         else {
-            VK_LOG("Device::Create() : select \"" + Tools::GetDeviceName(physicalDevice) + "\" device.");
+            VK_LOG("Device::Create() : choosing \"" + Tools::GetDeviceName(physicalDevice) + "\" device.");
         }
 
         FamilyQueues* pQueues = FamilyQueues::Find(physicalDevice, info.pSurface);
@@ -166,7 +166,7 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
-        VK_LOG("Device::Create() : the device was successfully initialized!");
+        VK_LOG("Device::Create() : the device is successfully initialized!");
 
         return pDevice;
     }
@@ -192,21 +192,21 @@ namespace EvoVulkan::Types {
 
         /// device->m_maxCountMSAASamples = calculate...
         if (m_multisampling) {
-            VK_LOG("Device::Initialize() : multisampling required...");
+            VK_LOG("Device::Initialize() : multisampling is required...");
 
             if (sampleCount <= 0) {
                 m_maxCountMSAASamples = Tools::GetMaxUsableSampleCount(m_physicalDevice);
             }
             else {
                 if (sampleCount == 1) {
-                    VK_ERROR("Device::Initialize() : sample count is 1, but multisample disabled!");
+                    VK_ERROR("Device::Initialize() : sample count is 1, but multisampling is disabled!");
                     return false;
                 }
 
                 auto&& maxSampleCount = Tools::Convert::SampleCountToInt(Tools::GetMaxUsableSampleCount(m_physicalDevice));
                 if (sampleCount > maxSampleCount) {
                     m_maxCountMSAASamples = Tools::Convert::IntToSampleCount(maxSampleCount);
-                    VK_LOG("Device::Initialize() : sample count = " + std::to_string(sampleCount) + ", but max sample count " + std::to_string(maxSampleCount));
+                    VK_LOG("Device::Initialize() : sample count is " + std::to_string(sampleCount) + ", but max sample count is " + std::to_string(maxSampleCount));
                     if (m_maxCountMSAASamples == VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM) {
                         VK_ERROR("Device::Initialize() : incorrect truncated sample count! Count: " + std::to_string(sampleCount));
                         return false;

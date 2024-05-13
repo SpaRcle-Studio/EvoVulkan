@@ -39,7 +39,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
         uint32_t height,
         uint32_t imagesCount)
 {
-    VK_GRAPH("Swapchain::Create() : create vulkan swapchain...");
+    VK_GRAPH("Swapchain::Create() : creating vulkan swapchain...");
 
     if (!surface->IsReady()) {
         VK_ERROR("Swapchain::Create() : surface isn't ready!");
@@ -72,7 +72,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
 }
 
 bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint32_t countImages) {
-    VK_GRAPH("Swapchain::ReSetup() : re-setup vulkan swapchain..."
+    VK_GRAPH("Swapchain::ReSetup() : re-setting up vulkan swapchain..."
          "\n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height)
      );
 
@@ -81,7 +81,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
     // Get physical device surface properties and formats
     VkSurfaceCapabilitiesKHR surfCaps = {};
     if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS) {
-        VK_ERROR("Swapchain::ReSetup() : failed get physical device surface capabilities!");
+        VK_ERROR("Swapchain::ReSetup() : failed to get physical device surface capabilities!");
         return false;
     }
 
@@ -103,7 +103,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         return false;
     }
 
-    VK_GRAPH("Swapchain::ReSetup() : get present mode...");
+    VK_GRAPH("Swapchain::ReSetup() : getting present mode...");
     m_presentMode = Tools::GetPresentMode(*m_device, *m_surface, m_vsync);
 
     /// Determine the number of images
@@ -165,7 +165,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
 
-    VK_GRAPH("Swapchain::ReSetup() : create swapchain struct...");
+    VK_GRAPH("Swapchain::ReSetup() : creating swapchain struct...");
 
     if (vkCreateSwapchainKHR(*m_device, &swapchainCI, nullptr, &m_swapchain) != VK_SUCCESS) {
         VK_ERROR("Swapchain::ReSetup() : failed to create swapchain!");
@@ -181,7 +181,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
 
     //!=================================================================================================================
 
-    VK_GRAPH("Swapchain::ReSetup() : create images...");
+    VK_GRAPH("Swapchain::ReSetup() : creating images...");
     if (m_swapchainImages) { // images data automatic destroy after destroying swapchain
         free(m_swapchainImages);
         m_countImages = 0;
@@ -193,7 +193,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         return false;
     }
 
-    VK_GRAPH("Swapchain::ReSetup() : create buffers...");
+    VK_GRAPH("Swapchain::ReSetup() : creating buffers...");
     if (m_buffers) {
         DestroyBuffers();
     }
@@ -205,7 +205,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
 
     m_dirty = false;
 
-    VK_GRAPH("Swapchain::ReSetup() : swapchain successfully re-configured!");
+    VK_GRAPH("Swapchain::ReSetup() : swapchain is successfully re-configured!");
 
     return true;
 }
@@ -277,11 +277,11 @@ bool EvoVulkan::Types::Swapchain::CreateImages() {
     }
 
     if (m_countImages == 0) {
-        VK_ERROR("Swapchain::CreateImages() : count swapchain images is zero!");
+        VK_ERROR("Swapchain::CreateImages() : swapchain image count is zero!");
         return false;
     }
 
-    VK_LOG("Swapchain::CreateImages() : use " + std::to_string(m_countImages) + " images");
+    VK_LOG("Swapchain::CreateImages() : using " + std::to_string(m_countImages) + " images");
 
     m_swapchainImages = (VkImage*)malloc(m_countImages * sizeof(VkImage));
     if (!m_swapchainImages) {

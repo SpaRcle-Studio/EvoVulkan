@@ -25,7 +25,7 @@ bool EvoVulkan::Types::CmdPool::IsReady() const {
 }
 
 EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::Device *device) {
-    VK_GRAPH("CmdPool::Create() : create vulkan command pool...");
+    VK_GRAPH("CmdPool::Create() : creating vulkan command pool...");
 
     if (!device->IsReady()) {
         VK_ERROR("CmdPool::Create() : device isn't ready!");

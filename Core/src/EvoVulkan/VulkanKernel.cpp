@@ -45,7 +45,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
     #endif
 #endif
 
-    VK_GRAPH("VulkanKernel::PreInit() : create vulkan instance...");
+    VK_GRAPH("VulkanKernel::PreInit() : creating vulkan instance...");
 
     std::string supportedExtMsg = "VulkanKernel::PreInit() : supported instance extensions:";
     auto&& supportedExtensions = Tools::GetSupportedInstanceExtensions();
@@ -96,7 +96,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
     if (m_validationEnabled) {
         m_debugMessenger = Tools::SetupDebugMessenger(*m_instance);
         if (m_debugMessenger == VK_NULL_HANDLE) {
-            VK_ERROR("VulkanKernel::PreInit() : failed to setup debug messenger! Try continue...");
+            VK_ERROR("VulkanKernel::PreInit() : failed to setup debug messenger! Trying to continue...");
         }
     }
 
@@ -117,17 +117,17 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     //!=============================================[Create surface]====================================================
 
     if (windowHandle) {
-        VK_GRAPH("VulkanKernel::Init() : create vulkan surface...");
+        VK_GRAPH("VulkanKernel::Init() : creating vulkan surface...");
         m_surface = Tools::CreateSurface(*m_instance, platformCreate, windowHandle);
         if (!m_surface) {
-            VK_ERROR("VulkanKernel::Init() : failed create vulkan surface!");
+            VK_ERROR("VulkanKernel::Init() : failed to create vulkan surface!");
             return false;
         }
     }
 
     //!==========================================[Create logical device]================================================
 
-    VK_GRAPH("VulkanKernel::Init() : create vulkan logical device...");
+    VK_GRAPH("VulkanKernel::Init() : creating vulkan logical device...");
 
     Types::EvoDeviceCreateInfo deviceCreateInfo;
     deviceCreateInfo.pInstance = m_instance;
@@ -146,7 +146,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     }
 
     if (auto&& pQueues = m_device->GetQueues(); !pQueues || !pQueues->IsReady()) {
-        VK_ERROR("VulkanKernel::Init() : something went wrong! Family queues isn't ready...");
+        VK_ERROR("VulkanKernel::Init() : something went wrong! Family queues aren't ready...");
         return false;
     }
 
@@ -159,16 +159,16 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     /// то нам стоит переспросить у устройства реальное значение, которое оно поддерживает
     m_sampleCount = EVK_MIN(m_device->GetMSAASamples(), m_sampleCount);
 
-    VK_LOG("VulkanKernel::Init() : supported and used count MSAA samples is " + std::to_string(m_device->GetMSAASamples()));
+    VK_LOG("VulkanKernel::Init() : supported and used MSAA sample count is " + std::to_string(m_device->GetMSAASamples()));
 
     //!=============================================[Create allocator]==================================================
 
-    VK_LOG("VulkanKernel::Init() : create allocator...");
+    VK_LOG("VulkanKernel::Init() : creating allocator...");
     m_allocator = Memory::Allocator::Create(m_device);
 
     //!========================================[Create descriptor manager]==============================================
 
-    VK_LOG("VulkanKernel::Init() : create descriptor manager...");
+    VK_LOG("VulkanKernel::Init() : creating descriptor manager...");
     m_descriptorManager = Core::DescriptorManager::Create(m_device);
     if (!m_descriptorManager) {
         VK_ERROR("VulkanKernel::Init() : failed to create descriptor manager!");
@@ -194,7 +194,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     //!=============================================[Create swapchain]==================================================
 
-    VK_GRAPH("VulkanKernel::Init() : create vulkan swapchain with sizes: width = " +
+    VK_GRAPH("VulkanKernel::Init() : creating vulkan swapchain with sizes: width = " +
              std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
 
     m_width  = m_newWidth;
@@ -264,7 +264,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     if (m_countDCB > 0) {
-        VK_GRAPH("VulkanKernel::PostInit() : create wait fences...");
+        VK_GRAPH("VulkanKernel::PostInit() : creating wait fences...");
         m_waitFences = Tools::CreateFences(*m_device, m_countDCB);
         if (m_waitFences.empty()) {
             VK_ERROR("VulkanKernel::PostInit() : failed to create wait fences!");
@@ -275,7 +275,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     if (m_swapchain) {
-        VK_GRAPH("VulkanKernel::PostInit() : create multisample target...");
+        VK_GRAPH("VulkanKernel::PostInit() : creating multisample target...");
 
         m_multisample = Types::MultisampleTarget::Create(
             m_device,
@@ -300,7 +300,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     if (m_swapchain) {
-        VK_GRAPH("VulkanKernel::PostInit() : create render pass...");
+        VK_GRAPH("VulkanKernel::PostInit() : creating render pass...");
         m_renderPass = Types::CreateRenderPass(
                 m_device,
                 m_swapchain,
@@ -319,7 +319,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     //!=================================================================================================================
 
-    VK_GRAPH("VulkanKernel::PostInit() : create synchronizations...");
+    VK_GRAPH("VulkanKernel::PostInit() : creating synchronizations...");
     if (!ReCreateSynchronizations()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create synchronizations!");
         return false;
@@ -342,7 +342,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     m_isPostInitialized = true;
 
-    VK_LOG("VulkanKernel::PostInit() : call custom on-complete function...");
+    VK_LOG("VulkanKernel::PostInit() : calling custom on-complete function...");
     if (!OnComplete()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to complete Evo Vulkan!");
         return false;
@@ -356,7 +356,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::Destroy() {
-    VK_LOG("VulkanKernel::Destroy() : free Evo Vulkan kernel memory...");
+    VK_LOG("VulkanKernel::Destroy() : freeing Evo Vulkan kernel memory...");
 
     if (m_device) {
         m_device->WaitQueuesIdle();
@@ -405,7 +405,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
 
     EVSafeFreeObject(m_instance);
 
-    VK_LOG("VulkanKernel::Destroy() : all resources has been freed!");
+    VK_LOG("VulkanKernel::Destroy() : all resources are freed!");
 
     return true;
 }
@@ -415,10 +415,10 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
         return true;
     }
 
-    VK_GRAPH("VulkanKernel::ReCreateFrameBuffers() : re-create vulkan frame buffers...");
+    VK_GRAPH("VulkanKernel::ReCreateFrameBuffers() : re-creating vulkan frame buffers...");
 
     if (!m_renderPass.IsReady()) {
-        VK_ERROR("VulkanKernel::ReCreateFrameBuffers() : render pass in nullptr!");
+        VK_ERROR("VulkanKernel::ReCreateFrameBuffers() : render pass is nullptr!");
         return false;
     }
 
@@ -575,7 +575,7 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
-    VK_LOG("VulkanKernel::ReCreate() : re-create vulkan kernel...");
+    VK_LOG("VulkanKernel::ReCreate() : re-creating vulkan kernel...");
 
     if (reason == FrameResult::OutOfDate || reason == FrameResult::Suboptimal) {
         VK_LOG("VulkanKernel::ReCreate() : waiting for a change in the size of the client window...");
@@ -602,7 +602,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
                std::to_string(m_newWidth) + "; height = " + std::to_string(m_newHeight));
 
         if (!m_isPostInitialized) {
-            VK_ERROR("VulkanKernel::ReCreate() : kernel is not complete!");
+            VK_ERROR("VulkanKernel::ReCreate() : kernel is not ready!");
             return false;
         }
 
@@ -632,13 +632,13 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
         return false;
     }
 
-    VK_LOG("VulkanKernel::ReCreate() : call custom on-resize function...");
+    VK_LOG("VulkanKernel::ReCreate() : calling custom on-resize function...");
     if (!OnResize()) {
         VK_ERROR("VulkanKernel::ReCreate() : failed to resize inherited class!");
         return false;
     }
 
-    VK_GRAPH("VulkanKernel::ReCreate() : re-create synchronizations...");
+    VK_GRAPH("VulkanKernel::ReCreate() : re-creating synchronizations...");
     if (!ReCreateSynchronizations()) {
         VK_ERROR("VulkanKernel::ReCreate() : failed to re-create synchronizations!");
         return false;
@@ -676,7 +676,7 @@ void EvoVulkan::Core::VulkanKernel::SetMultisampling(uint32_t sampleCount) {
 void EvoVulkan::Core::VulkanKernel::SetSize(uint32_t width, uint32_t height)  {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    VK_LOG("VulkanKernel::SetSize() : set new surface sizes: " + std::to_string(width) + "x" + std::to_string(height));
+    VK_LOG("VulkanKernel::SetSize() : setting new surface sizes: " + std::to_string(width) + "x" + std::to_string(height));
 
     m_newWidth  = width;
     m_newHeight = height;
@@ -704,10 +704,10 @@ void EvoVulkan::Core::VulkanKernel::SetSwapchainImagesCount(uint32_t count) {
 void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
 {
     if ((m_GUIEnabled = enabled)) {
-        VK_LOG("VulkanKernel::SetGUIEnabled() : gui was been enabled!");
+        VK_LOG("VulkanKernel::SetGUIEnabled() : gui is enabled!");
     }
     else {
-        VK_LOG("VulkanKernel::SetGUIEnabled() : gui was been disabled!");
+        VK_LOG("VulkanKernel::SetGUIEnabled() : gui is disabled!");
     }
 }
 
