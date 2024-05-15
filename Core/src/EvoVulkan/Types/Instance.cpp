@@ -32,10 +32,10 @@ namespace EvoVulkan::Types {
             appName.c_str(), engineName.c_str(), validationEnabled ? "true" : "false", logExtensions.c_str(), logLayers.c_str()
         );
 
-        VK_GRAPH("Instance::Create() : create vulkan instance..." + log);
+        VK_GRAPH("Instance::Create() : creating vulkan instance..." + log);
 
         if (extensions.empty()) {
-            VK_ERROR("Instance::Create() : extensions is empty!");
+            VK_ERROR("Instance::Create() : extensions are empty!");
             return nullptr;
         }
 
@@ -86,7 +86,7 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
-        VK_GRAPH("Instance::Create() : instance successfully created!");
+        VK_GRAPH("Instance::Create() : instance is created successfully!");
 
         return instance;
     }

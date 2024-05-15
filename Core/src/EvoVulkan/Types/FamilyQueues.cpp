@@ -47,7 +47,7 @@ namespace EvoVulkan::Types {
     }
 
     bool EvoVulkan::Types::FamilyQueues::Initialize(VkDevice logicalDevice) {
-        VK_GRAPH("FamilyQueues::Initialize() : initialize family queues queues...");
+        VK_GRAPH("FamilyQueues::Initialize() : initializing family queues queues...");
 
         m_logicalDevice = logicalDevice;
 

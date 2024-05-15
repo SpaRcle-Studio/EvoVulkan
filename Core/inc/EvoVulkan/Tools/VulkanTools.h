@@ -326,7 +326,7 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static VkDebugUtilsMessengerEXT SetupDebugMessenger(const VkInstance& instance) {
-        VK_GRAPH("VulkanTools::SetupDebugMessenger() : setup vulkan debug messenger...");
+        VK_GRAPH("VulkanTools::SetupDebugMessenger() : setting up vulkan debug messenger...");
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         Tools::PopulateDebugMessengerCreateInfo(createInfo);
@@ -363,7 +363,7 @@ namespace EvoVulkan::Tools {
             const std::vector<const char *> &extensions,
             const std::vector<const char *> &validLayers)
     {
-        VK_GRAPH("VulkanTools::CreateLogicalDevice() : create vulkan logical device...");
+        VK_GRAPH("VulkanTools::CreateLogicalDevice() : creating vulkan logical device...");
 
         //!=============================================================================================================
 
@@ -472,7 +472,7 @@ namespace EvoVulkan::Tools {
             createInfo.enabledLayerCount = 0;
         }
         else {
-            VK_GRAPH("VulkanTools::CreateLogicalDevice() : validation layers enabled.");
+            VK_GRAPH("VulkanTools::CreateLogicalDevice() : validation layers are enabled.");
 
             createInfo.enabledLayerCount   = static_cast<uint32_t>(validLayers.size());
             createInfo.ppEnabledLayerNames = validLayers.data();

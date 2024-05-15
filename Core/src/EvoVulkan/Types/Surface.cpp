@@ -35,22 +35,22 @@ namespace EvoVulkan::Types {
     }
 
     bool Surface::Init(const EvoVulkan::Types::Device *device) {
-        VK_GRAPH("Surface::Init() : initialize vulkan surface...");
+        VK_GRAPH("Surface::Init() : initializing vulkan surface...");
 
         /// Get list of supported formats
         if (vkGetPhysicalDeviceSurfaceFormatsKHR(*device, this->m_surface, &m_countSurfaceFormats, NULL) != VK_SUCCESS) {
-            VK_ERROR("Surface::Init() : failed get physical device surface format!");
+            VK_ERROR("Surface::Init() : failed to get physical device surface format!");
             return false;
         }
 
         if (m_countSurfaceFormats == 0) {
-            VK_ERROR("Surface::Init : count surface formats is zero!");
+            VK_ERROR("Surface::Init : surface format count is zero!");
             return false;
         }
 
         m_surfFormats = (VkSurfaceFormatKHR *)malloc(m_countSurfaceFormats * sizeof(VkSurfaceFormatKHR));
         if (vkGetPhysicalDeviceSurfaceFormatsKHR(*device, this->m_surface, &m_countSurfaceFormats, this->m_surfFormats) != VK_SUCCESS) {
-            VK_ERROR("Surface::Init() : failed get physical device surface format!");
+            VK_ERROR("Surface::Init() : failed to get physical device surface format!");
             return false;
         }
 
