@@ -578,7 +578,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
     VK_LOG("VulkanKernel::ReCreate() : re-creating vulkan kernel...");
 
     if (reason == FrameResult::OutOfDate || reason == FrameResult::Suboptimal) {
-        VK_LOG("VulkanKernel::ReCreate() : waiting for a change in the size of the client window...");
+        VK_INFO("VulkanKernel::ReCreate() : waiting for a change in the size of the client window...");
 
         /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
         while (true) {
