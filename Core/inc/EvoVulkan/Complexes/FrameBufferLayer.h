@@ -2,8 +2,8 @@
 // Created by Monika on 18.06.2023.
 //
 
-#ifndef SRENGINE_FRAMEBUFFERLAYER_H
-#define SRENGINE_FRAMEBUFFERLAYER_H
+#ifndef SR_ENGINE_FRAMEBUFFERLAYER_H
+#define SR_ENGINE_FRAMEBUFFERLAYER_H
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Image.h>
@@ -41,4 +41,4 @@ namespace EvoVulkan::Complexes {
     };
 }
 
-#endif //SRENGINE_FRAMEBUFFERLAYER_H
+#endif //SR_ENGINE_FRAMEBUFFERLAYER_H
