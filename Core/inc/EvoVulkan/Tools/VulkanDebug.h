@@ -44,6 +44,8 @@ namespace EvoVulkan::Tools {
         EVK_NODISCARD LogLevelFlags GetLogLevel() const;
 
     public:
+        bool ValidationErrorAsAssert = false;
+
         std::function<bool(const std::string& path)> CreateFolder;
         std::function<bool(const std::string& from, const std::string& to)> Copy;
         std::function<bool(const std::string& path)> IsExists;

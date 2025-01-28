@@ -30,7 +30,7 @@ namespace EvoVulkan::Types {
                 VkBufferUsageFlags bufferUsage,
                 VmaMemoryUsage memoryUsage,
                 VkDeviceSize size,
-                void* data = nullptr);
+                const void* data = nullptr);
 
         static VmaBuffer* Create(
                 Memory::Allocator* allocator,
@@ -40,18 +40,18 @@ namespace EvoVulkan::Types {
                 VkSharingMode sharingMode,
                 VkBufferCreateFlags createFlags,
                 VmaAllocationCreateFlags allocateFlags,
-                void* data = nullptr);
+                const void* data = nullptr);
 
         static VmaBuffer* Create(
                 Memory::Allocator* allocator,
                 VkDeviceSize size,
-                void *data = nullptr);
+                const void *data = nullptr);
 
     public:
         EVK_NODISCARD const VkBuffer* GetCRef() const { return &m_buffer.m_buffer; }
         EVK_NODISCARD VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
 
-        void CopyToDevice(void *data, bool flush = false);
+        void CopyToDevice(const void *data, bool flush = false);
         void SetupDescriptor(VkDeviceSize offset = 0);
 
         VkResult Flush();

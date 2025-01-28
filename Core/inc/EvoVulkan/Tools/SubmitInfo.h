@@ -2,8 +2,8 @@
 // Created by Monika on 19.07.2023.
 //
 
-#ifndef SRENGINE_SUBMITINFO_H
-#define SRENGINE_SUBMITINFO_H
+#ifndef SR_ENGINE_SUBMITINFO_H
+#define SR_ENGINE_SUBMITINFO_H
 
 #include <EvoVulkan/Memory/Allocator.h>
 #include <EvoVulkan/Tools/VulkanInitializers.h>
@@ -66,4 +66,4 @@ namespace EvoVulkan {
     };
 }
 
-#endif //SRENGINE_SUBMITINFO_H
+#endif //SR_ENGINE_SUBMITINFO_H

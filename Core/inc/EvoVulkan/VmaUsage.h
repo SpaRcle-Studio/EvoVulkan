@@ -2,8 +2,8 @@
 // Created by Monika on 15.11.2022.
 //
 
-#ifndef SRENGINE_VMAUSAGE_H
-#define SRENGINE_VMAUSAGE_H
+#ifndef SR_ENGINE_VMAUSAGE_H
+#define SR_ENGINE_VMAUSAGE_H
 
 #include <EvoVulkan/macros.h>
 
@@ -83,4 +83,4 @@ include all public interface declarations. Example:
     #pragma warning(pop)
 #endif
 
-#endif //SRENGINE_VMAUSAGE_H
+#endif //SR_ENGINE_VMAUSAGE_H

@@ -224,8 +224,14 @@ namespace EvoVulkan::Tools {
             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
             void* pUserData)
     {
-        if (std::string(pCallbackData->pMessage).find("Error") != std::string::npos)
-            VK_ERROR(pCallbackData->pMessage);
+        if (std::string(pCallbackData->pMessage).find("Error") != std::string::npos) {
+            if (VkFunctionsHolder::Instance().ValidationErrorAsAssert) {
+                VK_HALT("DebugReportCallback() : " + std::string(pCallbackData->pMessage) + "\nA validation error caused execution to stop because \"ValidationErrorAsAssert\" is set to \"true\".");
+            }
+            else {
+                VK_ERROR("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+            }
+        }
             //printf("VkDebugReportCallback: %s\n", pCallbackData->pMessage);
         return VK_FALSE;    // Т.к. мы не хотим чтобы вызывающая функция упала.
     }

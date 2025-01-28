@@ -2,8 +2,8 @@
 // Created by Nikita on 11.06.2021.
 //
 
-#ifndef GAMEENGINE_MULTISAMPLETARGET_H
-#define GAMEENGINE_MULTISAMPLETARGET_H
+#ifndef SR_ENGINE_MULTISAMPLETARGET_H
+#define SR_ENGINE_MULTISAMPLETARGET_H
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Swapchain.h>
@@ -72,4 +72,4 @@ namespace EvoVulkan::Types {
     };
 }
 
-#endif //GAMEENGINE_MULTISAMPLETARGET_H
+#endif //SR_ENGINE_MULTISAMPLETARGET_H

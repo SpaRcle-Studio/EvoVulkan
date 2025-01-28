@@ -15,7 +15,7 @@ namespace EvoVulkan::Types {
             VkBufferUsageFlags bufferUsage,
             VmaMemoryUsage memoryUsage,
             VkDeviceSize size,
-            void* data)
+            const void* data)
     {
         auto buffer = new VmaBuffer(allocator, size);
         auto bufferCreateInfo = Tools::Initializers::BufferCreateInfo(bufferUsage, size);
@@ -39,7 +39,7 @@ namespace EvoVulkan::Types {
             VkSharingMode sharingMode,
             VkBufferCreateFlags createFlags,
             VmaAllocationCreateFlags allocateFlags,
-            void* data)
+            const void* data)
     {
         auto&& buffer = new VmaBuffer(allocator, size);
 
@@ -58,7 +58,7 @@ namespace EvoVulkan::Types {
         return buffer;
     }
 
-    VmaBuffer* VmaBuffer::Create(EvoVulkan::Memory::Allocator* allocator, VkDeviceSize size, void* data) {
+    VmaBuffer* VmaBuffer::Create(EvoVulkan::Memory::Allocator* allocator, VkDeviceSize size, const void* data) {
         return Create(allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, size, data);
     }
 
@@ -67,7 +67,7 @@ namespace EvoVulkan::Types {
         , m_size(size)
     { }
 
-    void EvoVulkan::Types::VmaBuffer::CopyToDevice(void *data, bool flush) {
+    void EvoVulkan::Types::VmaBuffer::CopyToDevice(const void *data, bool flush) {
         Map();
 
         memcpy(m_mapped, data, m_size);
