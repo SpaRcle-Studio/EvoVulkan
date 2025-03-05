@@ -15,6 +15,11 @@ namespace EvoVulkan::Memory {
 namespace EvoVulkan::Types {
     class Device;
 
+    struct VmaBufferDebugInfo {
+        uint32_t itemSize = 0;
+        uint32_t itemCount = 0;
+    };
+
     class DLL_EVK_EXPORT VmaBuffer : Tools::NonCopyable {
     private:
         VmaBuffer(Memory::Allocator* allocator, VkDeviceSize size);
@@ -48,9 +53,11 @@ namespace EvoVulkan::Types {
                 const void *data = nullptr);
 
     public:
+        EVK_NODISCARD const VmaBufferDebugInfo& GetDebugInfo() const { return m_debugInfo; }
         EVK_NODISCARD const VkBuffer* GetCRef() const { return &m_buffer.m_buffer; }
         EVK_NODISCARD VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
 
+        void SetDebugInfo(const VmaBufferDebugInfo& debugInfo) { m_debugInfo = debugInfo; }
         void CopyToDevice(const void *data, bool flush = false);
         void SetupDescriptor(VkDeviceSize offset = 0);
 
@@ -66,6 +73,7 @@ namespace EvoVulkan::Types {
         Memory::Buffer         m_buffer     = { };
         VkDescriptorBufferInfo m_descriptor = { };
         VkDeviceSize           m_size       = 0;
+        VmaBufferDebugInfo     m_debugInfo  = { };
 
     };
 }
