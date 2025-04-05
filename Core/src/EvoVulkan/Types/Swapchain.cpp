@@ -85,13 +85,28 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         return false;
     }
 
+    if (surfCaps.currentExtent.width == std::numeric_limits<uint32_t>::max() || surfCaps.currentExtent.height == std::numeric_limits<uint32_t>::max()) {
+        // This is needed (due to the specifications of our architecture) to correctly initialize the surface with GLFW
+        surfCaps.currentExtent.width = width;
+        surfCaps.currentExtent.height = height;
+    }
+
+    if (width < surfCaps.minImageExtent.width || width > surfCaps.maxImageExtent.width ||
+        height < surfCaps.minImageExtent.height || height > surfCaps.maxImageExtent.height
+    ) {
+        VK_ERROR("Swapchain::ReSetup() : requested size is outside of valid range!");
+        return false;
+    }
+
     //! TODO: see VS example
     if (surfCaps.currentExtent.width != width || surfCaps.currentExtent.height != height) {
         VK_ASSERT2(false, "Swapchain::ReSize() : swap chain size different! "
-                              "\n\tWidth  surface: " + std::to_string(surfCaps.currentExtent.width) +
-                              "\n\tHeight surface: " + std::to_string(surfCaps.currentExtent.height) +
-                              "\n\tWidth   window: " + std::to_string(width) +
-                              "\n\tHeight  window: " + std::to_string(height));
+           "\n\tWidth  surface: " + std::to_string(surfCaps.currentExtent.width) +
+           "\n\tHeight surface: " + std::to_string(surfCaps.currentExtent.height) +
+           "\n\tWidth   window: " + std::to_string(width) +
+           "\n\tHeight  window: " + std::to_string(height)
+        );
+
         return false;
     }
 
