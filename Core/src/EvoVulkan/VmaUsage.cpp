@@ -4,7 +4,9 @@
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
 
-#define VMA_IMPLEMENTATION
+#ifdef EVO_VULKAN_BUILD_VMA
+    #define VMA_IMPLEMENTATION
+#endif
 
 #ifndef VMA_ASSERT
     #define VMA_ASSERT(expr) VK_ASSERT(expr)

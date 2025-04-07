@@ -95,5 +95,7 @@
 #include <unordered_map>
 #include <optional>
 #include <memory>
+#include <utility>
+#include <cstdio>
 
 #endif //EVOVULKAN_MACROS_H

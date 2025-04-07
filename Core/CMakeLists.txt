@@ -3,6 +3,12 @@ project(EvoVulkanCore)
 
 set(CMAKE_CXX_STANDARD 20)
 
+option(EVO_VULKAN_BUILD_VMA "Build Vulkan Memory Allocator" ON)
+
+if (EVO_VULKAN_BUILD_VMA)
+    add_compile_definitions(EVO_VULKAN_BUILD_VMA)
+endif()
+
 message("[EvoVulkan] Vulkan SDK path: $ENV{VULKAN_SDK}")
 
 find_package(Vulkan REQUIRED)
