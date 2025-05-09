@@ -398,7 +398,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     EVSafeFreeObject(m_allocator);
     EVSafeFreeObject(m_device);
 
-    if (m_validationEnabled) {
+    if (m_validationEnabled && m_instance) {
         Tools::DestroyDebugUtilsMessengerEXT(*m_instance, m_debugMessenger, nullptr);
         m_debugMessenger = VK_NULL_HANDLE;
     }
