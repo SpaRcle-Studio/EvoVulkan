@@ -397,7 +397,7 @@ VkResult EvoVulkan::Types::Swapchain::QueuePresent(VkQueue queue, uint32_t image
         return vkQueuePresentKHR(queue, &presentInfo);
     }
     catch (const std::exception& ex) {
-        VK_ERROR("Swapchain::QueuePresent() : an exception has been occurred! \n\tMessage: " + std::string(ex.what()));
+        VK_ERROR("Swapchain::QueuePresent() : an exception has occurred! \n\tMessage: " + std::string(ex.what()));
         return VK_ERROR_UNKNOWN;
     }
 }
