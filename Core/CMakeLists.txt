@@ -37,4 +37,8 @@ else()
     message("[EvoVulkan] Vulkan include directories (public): ${Vulkan_INCLUDE_DIRS}")
 endif()
 
+if (UNIX)
+    target_compile_options(EvoVulkan PRIVATE -fPIC)
+endif()
+
 target_include_directories(EvoVulkan PUBLIC inc)
