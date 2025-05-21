@@ -89,6 +89,12 @@ namespace EvoVulkan::Types {
             VK_LOG("Device::Create() : choosing \"" + Tools::GetDeviceName(physicalDevice) + "\" device.");
         }
 
+        if (Tools::GetDeviceName(physicalDevice).find("llvmpipe") != std::string::npos) {
+            VK_WARN("Device::Create() : llvmpipe is chosen!"
+                    "\n\tMake sure you have proper video drivers installed and that your GPU supports Vulkan!"
+            );
+        }
+
         FamilyQueues* pQueues = FamilyQueues::Find(physicalDevice, info.pSurface);
 
         if (!pQueues) {
