@@ -89,4 +89,8 @@ namespace EvoVulkan::Complexes {
 
         return true;
     }
+
+    const VkRenderPass FrameBufferLayer::GetRenderPass() const {
+        return m_frameBuffer->GetRenderPass();
+    }
 }

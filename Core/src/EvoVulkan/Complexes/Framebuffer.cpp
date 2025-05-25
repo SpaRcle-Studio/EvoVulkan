@@ -201,8 +201,11 @@ namespace EvoVulkan::Complexes {
             FBO_CI.height                  = m_height;
             FBO_CI.layers                  = 1;
 
-            const bool isSuccess = vkCreateFramebuffer(*m_device, &FBO_CI, nullptr, &m_layers[layerIndex]->GetFramebuffer()) == VK_SUCCESS;
-            if (!isSuccess || m_layers[layerIndex]->GetFramebuffer() == VK_NULL_HANDLE) {
+            VkFramebuffer vkFramebuffer = VK_NULL_HANDLE;
+            const bool isSuccess = vkCreateFramebuffer(*m_device, &FBO_CI, nullptr, &vkFramebuffer) == VK_SUCCESS;
+            m_layers[layerIndex]->SetFrameBuffer(vkFramebuffer);
+
+            if (!isSuccess || vkFramebuffer == VK_NULL_HANDLE) {
                 VK_ERROR("Framebuffer::CreateFramebuffer() : failed to create vulkan framebuffer!");
                 return false;
             }
@@ -212,18 +215,18 @@ namespace EvoVulkan::Complexes {
     }
 
     bool FrameBuffer::CreateRenderPass() {
-        const bool dirtySamples = m_currentSampleCount != m_sampleCount;
-
         m_currentSampleCount = m_sampleCount;
 
         if (m_renderPass.IsReady()) {
-            if (dirtySamples) {
+            if (m_dirtyRenderPass) {
                 Types::DestroyRenderPass(m_device, &m_renderPass);
             }
             else {
                 return true;
             }
         }
+
+        m_dirtyRenderPass = false;
 
         std::vector<VkAttachmentDescription> attachmentDescriptions;
         VkAttachmentDescription attachmentDesc = { };
@@ -437,7 +440,7 @@ namespace EvoVulkan::Complexes {
         vkCmdSetScissor(*m_cmdBuff, 0, 1, &m_scissor);
     }
 
-    VkRenderPassBeginInfo EvoVulkan::Complexes::FrameBuffer::BeginRenderPass(VkClearValue *clearValues, uint32_t countCls, uint32_t layer) const {
+    /*VkRenderPassBeginInfo EvoVulkan::Complexes::FrameBuffer::BeginRenderPass(VkClearValue *clearValues, uint32_t countCls, uint32_t layer) const {
         VkRenderPassBeginInfo renderPassBeginInfo = Tools::Initializers::RenderPassBeginInfo();
 
         renderPassBeginInfo.renderPass               = m_renderPass.m_self;
@@ -448,7 +451,7 @@ namespace EvoVulkan::Complexes {
         renderPassBeginInfo.pClearValues             = clearValues;
 
         return renderPassBeginInfo;
-    }
+    }*/
 
     bool EvoVulkan::Complexes::FrameBuffer::IsMultisampleEnabled() const {
         return m_device->IsMultiSamplingEnabled() && m_currentSampleCount > 1;
@@ -459,12 +462,16 @@ namespace EvoVulkan::Complexes {
     }
 
     void EvoVulkan::Complexes::FrameBuffer::SetSampleCount(uint8_t sampleCount) {
+        uint8_t oldSampleCount = m_sampleCount;
+
         if (sampleCount == 0) {
             m_sampleCount = m_device->GetMSAASamplesCount();
         }
         else {
             m_sampleCount = EVK_MIN(sampleCount, m_device->GetMSAASamplesCount());
         }
+
+        m_dirtyRenderPass |= (oldSampleCount != m_sampleCount);
     }
 
     void FrameBuffer::DeInitialize() {
@@ -478,10 +485,12 @@ namespace EvoVulkan::Complexes {
     }
 
     void FrameBuffer::SetLayersCount(uint32_t layersCount) {
+        m_dirtyRenderPass |= (m_layersCount != layersCount);
         m_layersCount = layersCount;
     }
 
     void FrameBuffer::SetDepthAspect(VkImageAspectFlags depthAspect) {
+        m_dirtyRenderPass |= (m_depthAspect != depthAspect);
         m_depthAspect = depthAspect;
     }
 
@@ -490,6 +499,7 @@ namespace EvoVulkan::Complexes {
             VK_HALT("FrameBuffer::SetDepthFormat() : format is in not a range!");
             return;
         }
+        m_dirtyRenderPass |= (m_depthFormat != depthFormat);
         m_depthFormat = depthFormat;
     }
 
@@ -515,5 +525,10 @@ namespace EvoVulkan::Complexes {
             }
         }
         return attachments;
+    }
+
+    void FrameBuffer::SetFeatures(const FrameBufferFeatures& features) {
+        m_dirtyRenderPass |= (m_features != features);
+        m_features = features;
     }
 }

@@ -27,7 +27,10 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD Attachment& GetDepthAttachment() { return m_depthAttachment; }
         EVK_NODISCARD Attachments& GetColorAttachments() { return m_colorAttachments; }
         EVK_NODISCARD Attachments& GetResolveAttachments() { return m_resolveAttachments; }
-        EVK_NODISCARD VkFramebuffer& GetFramebuffer() { return m_vkFrameBuffer; }
+        EVK_NODISCARD const VkFramebuffer& GetFramebuffer() { return m_vkFrameBuffer; }
+        EVK_NODISCARD const VkRenderPass GetRenderPass() const;
+
+        void SetFrameBuffer(VkFramebuffer vkFrameBuffer) { m_vkFrameBuffer = vkFrameBuffer; }
 
     private:
         FrameBufferAttachment* m_depthArray = nullptr;

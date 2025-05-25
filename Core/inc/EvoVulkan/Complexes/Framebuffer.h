@@ -27,6 +27,9 @@ namespace EvoVulkan::Complexes {
         bool colorTransferDst = false;
         bool depthShaderRead = false;
         bool colorShaderRead = true;
+
+        bool operator==(const FrameBufferFeatures& other) const = default;
+
     };
 
     class DLL_EVK_EXPORT FrameBuffer : private Tools::NonCopyable {
@@ -65,7 +68,7 @@ namespace EvoVulkan::Complexes {
         void SetLayersCount(uint32_t layersCount);
         void SetDepthFormat(VkFormat depthFormat);
         void SetDepthAspect(VkImageAspectFlags depthAspect);
-        void SetFeatures(const FrameBufferFeatures& features) { m_features = features; }
+        void SetFeatures(const FrameBufferFeatures& features);
 
         void ClearWaitSemaphores() { m_waitSemaphores.clear(); }
         void ClearSignalSemaphores();
@@ -105,7 +108,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_waitSemaphores; }
         EVK_NODISCARD std::vector<VkSemaphore>& GetSignalSemaphores() { return m_signalSemaphores; }
 
-        EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls, uint32_t layer) const;
+        /// EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls, uint32_t layer) const;
 
     private:
         void DeInitialize();
@@ -117,6 +120,8 @@ namespace EvoVulkan::Complexes {
 
     private:
         FrameBufferFeatures m_features;
+
+        bool m_dirtyRenderPass = false;
 
         Attachment                m_depthAttachment;
         VkImageAspectFlags        m_depthAspect        = EvoVulkan::Tools::Initializers::EVK_IMAGE_ASPECT_NONE;
