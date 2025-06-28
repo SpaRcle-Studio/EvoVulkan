@@ -23,7 +23,7 @@ namespace EvoVulkan::Types {
         buffer->m_buffer = allocator->AllocBuffer(bufferCreateInfo, memoryUsage);
 
         if (data) {
-            buffer->CopyToDevice(data, memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY);
+            buffer->CopyToDevice(data, 0, memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY);
         }
 
         buffer->SetupDescriptor();
@@ -50,7 +50,7 @@ namespace EvoVulkan::Types {
         buffer->m_buffer = allocator->AllocBuffer(bufferCreateInfo, memoryUsage, allocateFlags);
 
         if (data) {
-            buffer->CopyToDevice(data, memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY);
+            buffer->CopyToDevice(data, 0, memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY);
         }
 
         buffer->SetupDescriptor();
@@ -67,10 +67,19 @@ namespace EvoVulkan::Types {
         , m_size(size)
     { }
 
-    void EvoVulkan::Types::VmaBuffer::CopyToDevice(const void *data, bool flush) {
+    void EvoVulkan::Types::VmaBuffer::CopyToDevice(const void *data, uint64_t size, bool flush) {
         Map();
 
-        memcpy(m_mapped, data, m_size);
+        if (size == 0) {
+            memcpy(m_mapped, data, m_size);
+        }
+        else {
+            if (size > m_size) {
+                VK_ERROR("Buffer::CopyToDevice() : size is greater than buffer size!");
+                return;
+            }
+            memcpy(m_mapped, data, size);
+        }
 
         if (flush) {
             Flush();

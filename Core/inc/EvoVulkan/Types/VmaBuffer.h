@@ -58,7 +58,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
 
         void SetDebugInfo(const VmaBufferDebugInfo& debugInfo) { m_debugInfo = debugInfo; }
-        void CopyToDevice(const void *data, bool flush = false);
+        void CopyToDevice(const void *data, uint64_t size = 0, bool flush = false);
         void SetupDescriptor(VkDeviceSize offset = 0);
 
         VkResult Flush();
