@@ -492,6 +492,19 @@ namespace EvoVulkan::Tools::Initializers {
         return pipelineCreateInfo;
     }
 
+    EVK_MAYBE_UNUSED static VkComputePipelineCreateInfo ComputePipelineCreateInfo(
+        VkPipelineLayout layout,
+        VkPipelineCreateFlags flags = 0)
+    {
+        VkComputePipelineCreateInfo pipelineCreateInfo {};
+        pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        pipelineCreateInfo.layout = layout;
+        pipelineCreateInfo.flags = flags;
+        pipelineCreateInfo.basePipelineIndex = -1;
+        pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+        return pipelineCreateInfo;
+    }
+
     EVK_MAYBE_UNUSED static VkGraphicsPipelineCreateInfo PipelineCreateInfo()
     {
         VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
@@ -499,17 +512,6 @@ namespace EvoVulkan::Tools::Initializers {
         pipelineCreateInfo.basePipelineIndex = -1;
         pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
         return pipelineCreateInfo;
-    }
-
-    EVK_MAYBE_UNUSED static VkComputePipelineCreateInfo ComputePipelineCreateInfo(
-            VkPipelineLayout layout,
-            VkPipelineCreateFlags flags = 0)
-    {
-        VkComputePipelineCreateInfo computePipelineCreateInfo {};
-        computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        computePipelineCreateInfo.layout = layout;
-        computePipelineCreateInfo.flags = flags;
-        return computePipelineCreateInfo;
     }
 
     EVK_MAYBE_UNUSED static VkFramebufferCreateInfo FrameBufferCI(VkRenderPass renderPass, uint32_t width, uint32_t height) {

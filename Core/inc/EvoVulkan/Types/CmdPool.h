@@ -20,7 +20,7 @@ namespace EvoVulkan::Types {
         operator VkCommandPool() const { return m_pool; }
 
     public:
-        static CmdPool* Create(Device* device);
+        static CmdPool* Create(Device* device, uint32_t queueFamilyIndex);
 
         EVK_NODISCARD bool IsReady() const override;
 

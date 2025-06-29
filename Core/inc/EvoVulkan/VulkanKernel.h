@@ -63,6 +63,7 @@ namespace EvoVulkan::Core {
         virtual FrameResult SubmitFrame();
         virtual FrameResult QueuePresent();
         virtual FrameResult WaitIdle();
+        virtual void WaitComputeIdle();
 
     public:
         EVK_NODISCARD EVK_INLINE VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
@@ -86,6 +87,9 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE VkSemaphore GetPresentCompleteSemaphore() const noexcept { return m_syncs.m_presentComplete; }
         EVK_NODISCARD EVK_INLINE VkSemaphore GetRenderCompleteSemaphore() const noexcept { return m_syncs.m_renderComplete; }
         EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_submitInfo.waitSemaphores; }
+
+        EVK_NODISCARD uint32_t GetCountComputeCmdBuffers() const { return m_countCCB; }
+        EVK_NODISCARD VkCommandBuffer* GetComputeCmdBuffers() const { return m_computeCmdBuffers; }
 
         EVK_NODISCARD uint8_t GetSampleCount() const;
         EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateSingleTimeCmd() const;
@@ -138,6 +142,9 @@ namespace EvoVulkan::Core {
         std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
 
     protected:
+        uint32_t                   m_countCCB             = 0;
+        VkCommandBuffer*           m_computeCmdBuffers    = nullptr;
+
         std::recursive_mutex       m_mutex                = std::recursive_mutex();
 
         bool                       m_hasErrors            = false;
@@ -161,6 +168,7 @@ namespace EvoVulkan::Core {
         Types::Surface*            m_surface              = nullptr;
         Types::Swapchain*          m_swapchain            = nullptr;
         Types::CmdPool*            m_cmdPool              = nullptr;
+        Types::CmdPool*            m_computeCmdPool       = nullptr;
         Types::MultisampleTarget*  m_multisample          = nullptr;
 
         Core::DescriptorManager*   m_descriptorManager    = nullptr;

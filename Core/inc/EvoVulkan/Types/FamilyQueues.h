@@ -29,6 +29,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD VkQueue GetTransferQueue() const noexcept { return m_transferQueue; }
         EVK_NODISCARD VkQueue GetGraphicsQueue() const noexcept { return m_graphicsQueue; }
         EVK_NODISCARD VkQueue GetPresentQueue() const noexcept { return m_graphicsQueue; }
+        EVK_NODISCARD VkQueue GetComputeQueue() const noexcept { return m_computeQueue; }
 
         EVK_NODISCARD uint32_t GetPresentIndex() const noexcept { return static_cast<uint32_t>(m_presentQueueFamilyIndex); }
         EVK_NODISCARD uint32_t GetGraphicsIndex() const noexcept { return static_cast<uint32_t>(m_graphicsQueueFamilyIndex); }

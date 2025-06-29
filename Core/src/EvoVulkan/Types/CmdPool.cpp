@@ -24,7 +24,7 @@ bool EvoVulkan::Types::CmdPool::IsReady() const {
     return m_device && m_pool != VK_NULL_HANDLE;
 }
 
-EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::Device *device) {
+EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::Device *device, uint32_t queueFamilyIndex) {
     VK_GRAPH("CmdPool::Create() : creating vulkan command pool...");
 
     if (!device->IsReady()) {
@@ -36,7 +36,7 @@ EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::D
 
     VkCommandPoolCreateInfo cmdPoolInfo = {};
     cmdPoolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    cmdPoolInfo.queueFamilyIndex        = device->GetQueues()->GetGraphicsIndex();
+    cmdPoolInfo.queueFamilyIndex        = queueFamilyIndex;
     cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     VkResult vkRes = vkCreateCommandPool(*device, &cmdPoolInfo, nullptr, &cmdPool);

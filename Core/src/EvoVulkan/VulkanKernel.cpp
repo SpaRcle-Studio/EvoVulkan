@@ -186,9 +186,15 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     //!===========================================[Create command pool]=================================================
 
-    m_cmdPool = Types::CmdPool::Create(m_device);
+    m_cmdPool = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetGraphicsIndex());
     if (!m_cmdPool) {
         VK_ERROR("VulkanKernel::Init() : failed to create command pool!");
+        return false;
+    }
+
+    m_computeCmdPool = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetComputeIndex());
+    if (!m_computeCmdPool) {
+        VK_ERROR("VulkanKernel::Init() : failed to create compute command pool!");
         return false;
     }
 
@@ -242,6 +248,17 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : allocate draw command buffers...");
+
+    m_countCCB = 1;
+    m_computeCmdBuffers = Tools::AllocateCommandBuffers(
+        *m_device,
+        Tools::Initializers::CommandBufferAllocateInfo(*m_computeCmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_countCCB)
+    );
+
+    if (!m_computeCmdBuffers) {
+        VK_ERROR("Vulkan::PostInit() : failed to allocate compute command buffers!");
+        return false;
+    }
 
     m_countDCB = m_swapchain ? m_swapchain->GetCountImages() : 0;
 
@@ -392,9 +409,14 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
         Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
     }
 
+    if (m_computeCmdBuffers) {
+        Tools::FreeCommandBuffers(*m_device, *m_computeCmdPool, &m_computeCmdBuffers, m_countCCB);
+    }
+
     EVSafeFreeObject(m_swapchain);
     EVSafeFreeObject(m_surface);
     EVSafeFreeObject(m_cmdPool);
+    EVSafeFreeObject(m_computeCmdPool);
     EVSafeFreeObject(m_allocator);
     EVSafeFreeObject(m_device);
 
@@ -540,6 +562,21 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
     }
 
     return EvoVulkan::Core::FrameResult::Success;
+}
+
+void EvoVulkan::Core::VulkanKernel::WaitComputeIdle() {
+    if (m_countCCB == 0) {
+        VK_WARN("VulkanKernel::WaitComputeIdle() : no compute command buffers allocated!");
+        return;
+    }
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = m_countCCB;
+    submitInfo.pCommandBuffers = m_computeCmdBuffers;
+
+    vkQueueSubmit(m_device->GetQueues()->GetComputeQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_device->GetQueues()->GetComputeQueue());
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::WaitIdle() {

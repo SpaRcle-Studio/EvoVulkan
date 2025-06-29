@@ -250,8 +250,36 @@ EvoVulkan::Complexes::Shader::~Shader() {
 }
 
 void EvoVulkan::Complexes::Shader::Bind(VkCommandBuffer const &cmd) const {
-    if (!m_pipeline) {
+    if (!m_pipeline || m_shaderStages.empty()) {
         return;
     }
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+
+    if (m_shaderStages.front().stage == VK_SHADER_STAGE_COMPUTE_BIT) {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
+    }
+    else {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    }
+}
+
+bool EvoVulkan::Complexes::Shader::CompileCompute() {
+    if (m_shaderStages.size() != 1 || m_shaderStages.front().stage != VK_SHADER_STAGE_COMPUTE_BIT || !m_shaderStages.front().module) {
+        VK_ERROR("Shader::CompileCompute() : shader stages must contain only one compute shader stage!");
+        return false;
+    }
+
+    if (!BuildLayouts()) {
+        VK_ERROR("Shader::CompileCompute() : failed to build layouts!");
+        return false;
+    }
+
+    VkComputePipelineCreateInfo computePipelineCreateInfo = Tools::Initializers::ComputePipelineCreateInfo(m_pipelineLayout, 0);
+    computePipelineCreateInfo.stage = m_shaderStages.front();
+
+    if (vkCreateComputePipelines(*m_device, m_cache, 1, &computePipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
+        VK_ERROR("Shader::CompileCompute() : failed to create vulkan graphics pipeline!");
+        return false;
+    }
+
+    return true;
 }

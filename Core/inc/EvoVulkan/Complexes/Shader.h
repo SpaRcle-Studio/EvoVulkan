@@ -71,6 +71,9 @@ namespace EvoVulkan::Complexes {
                 VkPrimitiveTopology topology,
                 VkSampleCountFlagBits rasterizationSamples);
 
+
+        bool CompileCompute();
+
     public:
         /**
          * @note Use for building descriptors

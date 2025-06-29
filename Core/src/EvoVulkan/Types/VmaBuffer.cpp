@@ -88,6 +88,23 @@ namespace EvoVulkan::Types {
         Unmap();
     }
 
+    void VmaBuffer::CopyFromDevice(void* data, uint64_t size) {
+        Map();
+
+        if (size == 0) {
+            memcpy(data, m_mapped, m_size);
+        }
+        else {
+            if (size > m_size) {
+                VK_ERROR("Buffer::CopyFromDevice() : size is greater than buffer size!");
+                return;
+            }
+            memcpy(data, m_mapped, size);
+        }
+
+        Unmap();
+    }
+
     VkResult EvoVulkan::Types::VmaBuffer::Map() {
         if (m_buffer.m_allocation == VK_NULL_HANDLE) {
             return VkResult::VK_INCOMPLETE;
