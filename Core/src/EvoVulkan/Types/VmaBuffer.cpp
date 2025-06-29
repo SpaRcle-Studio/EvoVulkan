@@ -110,6 +110,11 @@ namespace EvoVulkan::Types {
             return VkResult::VK_INCOMPLETE;
         }
 
+        if (m_mapped) {
+            VK_ERROR("Buffer::Map() : memory is already mapped!");
+            return VkResult::VK_ERROR_MEMORY_MAP_FAILED;
+        }
+
         return vmaMapMemory(*m_allocator, m_buffer.m_allocation, &m_mapped);
     }
 
