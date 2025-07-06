@@ -63,6 +63,7 @@ namespace EvoVulkan::Types {
         void SetupDescriptor(VkDeviceSize offset = 0);
 
         VkResult Flush();
+        VkResult Flush(uint64_t offset, uint64_t size);
         VkResult Bind();
         VkResult Map();
         void* MapData();

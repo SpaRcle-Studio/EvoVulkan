@@ -82,7 +82,7 @@ namespace EvoVulkan::Types {
         }
 
         if (flush) {
-            Flush();
+            Flush(0, size == 0 ? m_size : size);
         }
 
         Unmap();
@@ -140,7 +140,21 @@ namespace EvoVulkan::Types {
     }
 
     VkResult EvoVulkan::Types::VmaBuffer::Flush() {
-        return vmaFlushAllocation(*m_allocator, m_buffer.m_allocation, 0, m_size);
+        return Flush(0, m_size);
+    }
+
+    VkResult EvoVulkan::Types::VmaBuffer::Flush(uint64_t offset, uint64_t size) {
+        if (!m_mapped) {
+            VK_ERROR("Buffer::Flush() : memory is not mapped!");
+            return VkResult::VK_INCOMPLETE;
+        }
+
+        if (size + offset > m_size) {
+            VK_ERROR("Buffer::Flush() : size is greater than buffer size!");
+            return VkResult::VK_INCOMPLETE;
+        }
+
+        return vmaFlushAllocation(*m_allocator, m_buffer.m_allocation, offset, size);
     }
 
     void EvoVulkan::Types::VmaBuffer::SetupDescriptor(VkDeviceSize offset) {
