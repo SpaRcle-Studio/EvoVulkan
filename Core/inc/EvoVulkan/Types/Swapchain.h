@@ -95,6 +95,7 @@ namespace EvoVulkan::Types {
 
         //! note: images will be automatic destroyed after destroying swapchain
         VkImage* m_swapchainImages = nullptr;
+        uint32_t m_countBuffers = 0;
         uint32_t m_countImages = 0;
 
         SwapChainBuffer* m_buffers = nullptr;

@@ -200,7 +200,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
     if (m_swapchainImages) { // images data automatic destroy after destroying swapchain
         free(m_swapchainImages);
         m_countImages = 0;
-        m_swapchainImages   = nullptr;
+        m_swapchainImages = nullptr;
     }
 
     if (!CreateImages()) {
@@ -270,8 +270,8 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
 }
 
 void EvoVulkan::Types::Swapchain::DestroyBuffers() {
-    if (m_countImages > 0 && m_swapchainImages && m_device) {
-        for (uint32_t i = 0; i < m_countImages; ++i)
+    if (m_countBuffers > 0 && m_swapchainImages && m_device) {
+        for (uint32_t i = 0; i < m_countBuffers; ++i)
             vkDestroyImageView(*m_device, m_buffers[i].m_view, nullptr);
 
         if (m_buffers) {
@@ -317,6 +317,7 @@ bool EvoVulkan::Types::Swapchain::CreateImages() {
 }
 
 bool EvoVulkan::Types::Swapchain::CreateBuffers() {
+    m_countBuffers = m_countImages;
     m_buffers = (SwapChainBuffer*)malloc(sizeof(SwapChainBuffer) * m_countImages);
     if (!m_buffers) {
         VK_ERROR("Swapchain::Buffers() : failed to alloc buffers memory!");

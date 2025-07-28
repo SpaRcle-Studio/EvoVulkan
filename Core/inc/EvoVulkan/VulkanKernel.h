@@ -111,6 +111,7 @@ namespace EvoVulkan::Core {
         void SetSubmitQueue(std::vector<SubmitInfo>&& queue) { m_submitQueue = std::move(queue); }
 
         EVK_NODISCARD const std::vector<SubmitInfo>& GetSubmitQueue() const { return m_submitQueue; };
+        EVK_NODISCARD uint16_t GetSwapchainImagesCount() const noexcept { return m_swapchainImages; }
 
         void SetMultisampling(uint32_t sampleCount);
         void SetSwapchainImagesCount(uint32_t count);
@@ -132,6 +133,7 @@ namespace EvoVulkan::Core {
         virtual RenderResult Render() { return RenderResult::Fatal; }
 
     private:
+        bool ReCreateDCBuffers();
         bool ReCreateFrameBuffers();
         bool ReCreateSynchronizations();
         void DestroyFrameBuffers();

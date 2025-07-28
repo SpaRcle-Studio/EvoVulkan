@@ -260,33 +260,9 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
         return false;
     }
 
-    m_countDCB = m_swapchain ? m_swapchain->GetCountImages() : 0;
-
-    if (m_countDCB > 0) {
-        m_drawCmdBuffs = Tools::AllocateCommandBuffers(
-            *m_device,
-            Tools::Initializers::CommandBufferAllocateInfo(
-                *m_cmdPool,
-                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                m_countDCB
-            )
-        );
-
-        if (!m_drawCmdBuffs) {
-            VK_ERROR("Vulkan::PostInit() : failed to allocate draw command buffers!");
-            return false;
-        }
-    }
-
-    //!=================================================================================================================
-
-    if (m_countDCB > 0) {
-        VK_GRAPH("VulkanKernel::PostInit() : creating wait fences...");
-        m_waitFences = Tools::CreateFences(*m_device, m_countDCB);
-        if (m_waitFences.empty()) {
-            VK_ERROR("VulkanKernel::PostInit() : failed to create wait fences!");
-            return false;
-        }
+    if (!ReCreateDCBuffers()) {
+        VK_ERROR("VulkanKernel::PostInit() : failed to re-create draw command buffers!");
+        return false;
     }
 
     //!=================================================================================================================
@@ -664,6 +640,16 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
         return false;
     }
 
+    if (m_countDCB != m_swapchainImages) {
+        VK_LOG("VulkanKernel::ReCreate() : swapchain images count changed from " +
+               std::to_string(m_countDCB) + " to " + std::to_string(m_swapchainImages));
+
+        if (!ReCreateDCBuffers()) {
+            VK_ERROR("VulkanKernel::ReCreate() : failed to re-create draw command buffers!");
+            return false;
+        }
+    }
+
     if (!ReCreateFrameBuffers()) {
         VK_ERROR("VulkanKernel::ReCreate() : failed to re-create frame buffers!");
         return false;
@@ -736,6 +722,7 @@ uint32_t EvoVulkan::Core::VulkanKernel::GetCountBuildIterations() const {
 
 void EvoVulkan::Core::VulkanKernel::SetSwapchainImagesCount(uint32_t count) {
     m_swapchainImages = count;
+    m_dirty = true;
 }
 
 void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
@@ -836,4 +823,46 @@ void EvoVulkan::Core::VulkanKernel::PrintSubmitQueue() {
     log += "--------------------------------------------------";
 
     VK_LOG(log);
+}
+
+bool EvoVulkan::Core::VulkanKernel::ReCreateDCBuffers() {
+    if (!m_waitFences.empty()) {
+        Tools::DestroyFences(*m_device, m_waitFences);
+        m_waitFences.clear();
+    }
+
+    if (m_drawCmdBuffs) {
+        Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
+    }
+
+    m_countDCB = m_swapchain ? m_swapchain->GetCountImages() : 0;
+
+    if (m_countDCB > 0) {
+        m_drawCmdBuffs = Tools::AllocateCommandBuffers(
+            *m_device,
+            Tools::Initializers::CommandBufferAllocateInfo(
+                *m_cmdPool,
+                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                m_countDCB
+            )
+        );
+
+        if (!m_drawCmdBuffs) {
+            VK_ERROR("Vulkan::ReCreateDCBuffers() : failed to allocate draw command buffers!");
+            return false;
+        }
+    }
+
+    //!=================================================================================================================
+
+    if (m_countDCB > 0) {
+        VK_GRAPH("VulkanKernel::ReCreateDCBuffers() : creating wait fences...");
+        m_waitFences = Tools::CreateFences(*m_device, m_countDCB);
+        if (m_waitFences.empty()) {
+            VK_ERROR("VulkanKernel::ReCreateDCBuffers() : failed to create wait fences!");
+            return false;
+        }
+    }
+
+    return true;
 }
