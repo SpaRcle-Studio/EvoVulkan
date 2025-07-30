@@ -60,9 +60,9 @@ namespace EvoVulkan::Complexes {
     public:
         bool ReCreate(uint32_t width, uint32_t height);
 
-        void BeginCmd();
-        void End() const;
-        void SetViewportAndScissor() const;
+        //void BeginCmd();
+        //void End() const;
+        //void SetViewportAndScissor() const;
 
         void SetSampleCount(uint8_t sampleCount);
         void SetLayersCount(uint32_t layersCount);
@@ -92,8 +92,6 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE const FrameBufferLayers& GetLayers() const noexcept { return m_layers; }
         EVK_NODISCARD EVK_INLINE uint32_t GetLayersCount() const noexcept { return m_layersCount; }
         EVK_NODISCARD EVK_INLINE VkRect2D GetRenderPassArea() const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
-        EVK_NODISCARD EVK_INLINE VkCommandBuffer GetCmd() const noexcept { return *m_cmdBuff; }
-        EVK_NODISCARD EVK_INLINE VkCommandBuffer* GetCmdRef() const noexcept { return m_cmdBuff->GetCmdRef(); }
         EVK_NODISCARD EVK_INLINE Types::Device* GetDevice() const noexcept { return m_device; }
         EVK_NODISCARD EVK_INLINE VkSemaphore GetSemaphore() const noexcept { return m_semaphore; }
         EVK_NODISCARD EVK_INLINE VkSemaphore* GetSemaphoreRef() noexcept { return &m_semaphore; }
@@ -107,6 +105,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD const VkClearValue* GetClearValues() const { return m_clearValues.data(); }
         EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_waitSemaphores; }
         EVK_NODISCARD std::vector<VkSemaphore>& GetSignalSemaphores() { return m_signalSemaphores; }
+        EVK_NODISCARD VkCommandBuffer GetCommandBuffer(uint32_t frame) const;
 
         /// EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls, uint32_t layer) const;
 
@@ -120,6 +119,7 @@ namespace EvoVulkan::Complexes {
 
     private:
         FrameBufferFeatures m_features;
+        std::vector<Types::CmdBuffer*> m_cmdBuffers;
 
         bool m_dirtyRenderPass = false;
 
@@ -149,7 +149,6 @@ namespace EvoVulkan::Complexes {
         Types::Swapchain*         m_swapchain          = nullptr;
         Types::CmdPool*           m_cmdPool            = nullptr;
         Core::DescriptorManager*  m_descriptorManager  = nullptr;
-        Types::CmdBuffer*         m_cmdBuff            = nullptr;
 
         VkRect2D                  m_scissor            = { };
         VkViewport                m_viewport           = { };

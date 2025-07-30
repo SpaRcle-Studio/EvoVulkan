@@ -11,6 +11,7 @@ namespace EvoVulkan::Types {
     class Device;
     class Surface;
     class CmdBuffer;
+    class CmdPool;
 
     struct DLL_EVK_EXPORT SwapChainBuffer {
         VkImage     m_image;
@@ -28,6 +29,7 @@ namespace EvoVulkan::Types {
                 const VkInstance& instance,
                 Surface* surface,
                 Device* device,
+                CmdPool* pCmdPool,
                 bool vsync,
                 uint32_t width,
                 uint32_t height,
@@ -44,11 +46,12 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD uint32_t GetSurfaceWidth() const { return m_surfaceWidth; }
         EVK_NODISCARD uint32_t GetSurfaceHeight() const { return m_surfaceHeight; }
         EVK_NODISCARD VkFormat GetColorFormat() const { return m_colorFormat; }
-        EVK_NODISCARD uint32_t GetCountImages() const { return m_countImages; }
+        EVK_NODISCARD uint32_t GetCountImages() const { return m_swapchainImages.size(); }
         EVK_NODISCARD VkColorSpaceKHR GetColorSpace() const { return m_colorSpace; }
         EVK_NODISCARD bool IsVSyncEnabled() const { return m_vsync; }
         EVK_NODISCARD bool IsDirty() const { return m_dirty; }
         EVK_NODISCARD bool IsReady() const override;
+        EVK_NODISCARD const std::vector<VkImage>& GetSwapchainImages() const { return m_swapchainImages; }
 
     public:
         /**
@@ -85,6 +88,7 @@ namespace EvoVulkan::Types {
     private:
         VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
         Device* m_device = nullptr;
+        CmdPool* m_pool = nullptr;
         Surface* m_surface = nullptr;
         VkInstance m_instance = VK_NULL_HANDLE;
 
@@ -94,9 +98,8 @@ namespace EvoVulkan::Types {
         VkColorSpaceKHR m_colorSpace = VkColorSpaceKHR::VK_COLOR_SPACE_MAX_ENUM_KHR;
 
         //! note: images will be automatic destroyed after destroying swapchain
-        VkImage* m_swapchainImages = nullptr;
+        std::vector<VkImage> m_swapchainImages;
         uint32_t m_countBuffers = 0;
-        uint32_t m_countImages = 0;
 
         SwapChainBuffer* m_buffers = nullptr;
 

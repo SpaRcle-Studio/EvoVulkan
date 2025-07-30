@@ -214,6 +214,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
             *m_instance,
             m_surface,
             m_device,
+            m_cmdPool,
             vsync,
             m_width,
             m_height,
@@ -292,23 +293,23 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
 
     //!=================================================================================================================
 
-    if (m_swapchain) {
-        VK_GRAPH("VulkanKernel::PostInit() : creating render pass...");
-        m_renderPass = Types::CreateRenderPass(
-                m_device,
-                m_swapchain,
-                { } /** color attachments */,
-                { } /** input attachments */,
-                GetSampleCount(),
-                VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
-                m_device->GetDepthFormat()
-        );
+    //if (m_swapchain) {
+    //    VK_GRAPH("VulkanKernel::PostInit() : creating render pass...");
+    //    m_renderPass = Types::CreateRenderPass(
+    //            m_device,
+    //            m_swapchain,
+    //            { } /** color attachments */,
+    //            { } /** input attachments */,
+    //            GetSampleCount(),
+    //            VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
+    //            m_device->GetDepthFormat()
+    //    );
 
-        if (!m_renderPass.IsReady()) {
-            VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
-            return false;
-        }
-    }
+    //    if (!m_renderPass.IsReady()) {
+    //        VK_ERROR("VulkanKernel::PostInit() : failed to create render pass!");
+    //        return false;
+    //    }
+    //}
 
     //!=================================================================================================================
 
@@ -369,9 +370,12 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_pipelineCache)
         Tools::DestroyPipelineCache(*m_device, &m_pipelineCache);
 
-    if (m_syncs.IsReady()) {
-        Tools::DestroySynchronization(*m_device, &m_syncs);
+    for (auto&& sync : m_frameSyncs) {
+        if (sync.IsReady()) {
+            Tools::DestroySynchronization(*m_device, &sync);
+        }
     }
+    m_frameSyncs.clear();
 
     if (m_renderPass.IsReady())
         Types::DestroyRenderPass(m_device, &m_renderPass);
@@ -415,11 +419,6 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
 
     VK_GRAPH("VulkanKernel::ReCreateFrameBuffers() : re-creating vulkan frame buffers...");
 
-    if (!m_renderPass.IsReady()) {
-        VK_ERROR("VulkanKernel::ReCreateFrameBuffers() : render pass is nullptr!");
-        return false;
-    }
-
     const uint32_t width = m_swapchain->GetSurfaceWidth();
     const uint32_t height = m_swapchain->GetSurfaceHeight();
 
@@ -428,7 +427,9 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateFrameBuffers() {
 
     DestroyFrameBuffers();
 
-    Types::DestroyRenderPass(m_device, &m_renderPass);
+    if (m_renderPass.IsReady()) {
+        Types::DestroyRenderPass(m_device, &m_renderPass);
+    }
 
     m_renderPass = Types::CreateRenderPass(
         m_device,
@@ -496,6 +497,15 @@ EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
     return Render();
 }
 
+void EvoVulkan::Core::VulkanKernel::WaitFences() {
+    vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
+    vkResetFences(*m_device, 1, &m_waitFences[m_currentBuffer]);
+}
+
+void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
+    vkWaitForFences(*m_device, static_cast<uint32_t>(m_waitFences.size()), m_waitFences.data(), VK_TRUE, UINT64_MAX);
+}
+
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     if (m_swapchain->IsDirty()) {
         VK_LOG("VulkanKernel::PrepareFrame() : swapchain is dirty!");
@@ -503,7 +513,7 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     }
 
     /// Acquire the next image from the swap chain
-    VkResult result = m_swapchain->AcquireNextImage(m_syncs.m_presentComplete, &m_currentBuffer);
+    VkResult result = m_swapchain->AcquireNextImage(m_frameSyncs[m_currentBuffer].m_presentComplete, &m_currentImage);
     /// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         VK_LOG("VulkanKernel::PrepareFrame() : window has been resized!");
@@ -523,7 +533,7 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     return FrameResult::Success;
 }
 
-EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
+EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::WaitIdle() {
     /// TODO: здесь может зависнуть, нужно придумать способ перехвата
     VkResult result = vkQueueWaitIdle(m_device->GetQueues()->GetGraphicsQueue());
 
@@ -555,8 +565,8 @@ void EvoVulkan::Core::VulkanKernel::WaitComputeIdle() {
     vkQueueWaitIdle(m_device->GetQueues()->GetComputeQueue());
 }
 
-EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::WaitIdle() {
-    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentBuffer, m_syncs.m_renderComplete);
+EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
+    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentImage, m_frameSyncs[m_currentBuffer].m_renderComplete);
 
     if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -580,11 +590,11 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::WaitIdle() {
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
-    if (auto&& result = QueuePresent(); result != FrameResult::Success) {
-        return result;
-    }
+    //if (auto&& result = WaitIdle(); result != FrameResult::Success) {
+    //    return result;
+    //}
 
-    return WaitIdle();
+    return QueuePresent();
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
@@ -619,6 +629,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
             return false;
         }
 
+        WaitAllFences();
         vkDeviceWaitIdle(*m_device);
 
         m_width = m_newWidth;
@@ -628,6 +639,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
         m_newHeight = -1;
     }
     else {
+        WaitAllFences();
         vkDeviceWaitIdle(*m_device);
     }
 
@@ -736,14 +748,21 @@ void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations() {
-    if (m_syncs.IsReady()) {
-        Tools::DestroySynchronization(*m_device, &m_syncs);
+    for (auto&& sync : m_frameSyncs) {
+        if (sync.IsReady()) {
+            Tools::DestroySynchronization(*m_device, &sync);
+        }
     }
+    m_frameSyncs.clear();
 
-    m_syncs = Tools::CreateSynchronization(*m_device);
-    if (!m_syncs.IsReady()) {
-        VK_ERROR("VulkanKernel::ReCreateSynchronizations() : failed to create synchronizations!");
-        return false;
+    m_frameSyncs.resize(m_swapchain->GetCountImages());
+
+    for (auto& sync : m_frameSyncs) {
+        sync = Tools::CreateSynchronization(*m_device);
+        if (!sync.IsReady()) {
+            VK_ERROR("VulkanKernel::ReCreateSynchronizations() : failed to create synchronization!");
+            return false;
+        }
     }
 
     /// Set up submit info structure
@@ -771,7 +790,7 @@ void EvoVulkan::Core::VulkanKernel::ClearSubmitQueue() {
     m_submitInfo = SubmitInfo();
 
     m_submitInfo.SetWaitDstStageMask(m_submitPipelineStages);
-    m_submitInfo.signalSemaphores.emplace_back(m_syncs.m_renderComplete);
+    //m_submitInfo.signalSemaphores.emplace_back(m_syncs.m_renderComplete);
 
     m_submitQueue.clear();
 }

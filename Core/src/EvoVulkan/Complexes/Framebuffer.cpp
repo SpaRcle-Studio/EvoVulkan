@@ -16,10 +16,10 @@ namespace EvoVulkan::Complexes {
             m_semaphore = VK_NULL_HANDLE;
         }
 
-        if (m_cmdBuff) {
-            delete m_cmdBuff;
-            m_cmdBuff = nullptr;
+        for (auto&& pCmdBuffer : m_cmdBuffers) {
+            delete pCmdBuffer;
         }
+        m_cmdBuffers.clear();
 
         if (m_renderPass.IsReady()) {
             Types::DestroyRenderPass(m_device, &m_renderPass);
@@ -83,7 +83,10 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        pFBO->m_cmdBuff = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        for (uint32_t i = 0; i < swapchain->GetCountImages(); ++i) {
+            pFBO->m_cmdBuffers.emplace_back(Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
+        }
+
         pFBO->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
 
         if (!pFBO->ReCreate(width, height)) {
@@ -426,19 +429,19 @@ namespace EvoVulkan::Complexes {
         return m_layers[layer]->GetColorAttachments().at(id)->GetView();
     }
 
-    void EvoVulkan::Complexes::FrameBuffer::BeginCmd() {
-        vkBeginCommandBuffer(*m_cmdBuff, &m_cmdBufInfo);
-    }
+    //void EvoVulkan::Complexes::FrameBuffer::BeginCmd() {
+    //    vkBeginCommandBuffer(*m_cmdBuff, &m_cmdBufInfo);
+    //}
 
-    void EvoVulkan::Complexes::FrameBuffer::End() const {
-        vkCmdEndRenderPass(*m_cmdBuff);
-        vkEndCommandBuffer(*m_cmdBuff);
-    }
+    //void EvoVulkan::Complexes::FrameBuffer::End() const {
+    //    vkCmdEndRenderPass(*m_cmdBuff);
+    //    vkEndCommandBuffer(*m_cmdBuff);
+    //}
 
-    void EvoVulkan::Complexes::FrameBuffer::SetViewportAndScissor() const {
-        vkCmdSetViewport(*m_cmdBuff, 0, 1, &m_viewport);
-        vkCmdSetScissor(*m_cmdBuff, 0, 1, &m_scissor);
-    }
+    //void EvoVulkan::Complexes::FrameBuffer::SetViewportAndScissor() const {
+        //vkCmdSetViewport(*m_cmdBuff, 0, 1, &m_viewport);
+        //vkCmdSetScissor(*m_cmdBuff, 0, 1, &m_scissor);
+    //}
 
     /*VkRenderPassBeginInfo EvoVulkan::Complexes::FrameBuffer::BeginRenderPass(VkClearValue *clearValues, uint32_t countCls, uint32_t layer) const {
         VkRenderPassBeginInfo renderPassBeginInfo = Tools::Initializers::RenderPassBeginInfo();
@@ -530,5 +533,13 @@ namespace EvoVulkan::Complexes {
     void FrameBuffer::SetFeatures(const FrameBufferFeatures& features) {
         m_dirtyRenderPass |= (m_features != features);
         m_features = features;
+    }
+
+    VkCommandBuffer FrameBuffer::GetCommandBuffer(uint32_t frame) const {
+        if (frame >= m_cmdBuffers.size()) {
+            VK_HALT("Framebuffer::GetCommandBuffer() : out of range frame index!");
+            return VK_NULL_HANDLE;
+        }
+        return *m_cmdBuffers[frame];
     }
 }

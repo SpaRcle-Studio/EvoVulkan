@@ -34,6 +34,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
         VkInstance const &instance,
         EvoVulkan::Types::Surface *surface,
         EvoVulkan::Types::Device *device,
+        CmdPool* pCmdPool,
         bool vsync,
         uint32_t width,
         uint32_t height,
@@ -50,6 +51,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
     {
         pSwapchain->m_instance  = instance;
         pSwapchain->m_device    = device;
+        pSwapchain->m_pool      = pCmdPool;
         pSwapchain->m_surface   = surface;
 
         pSwapchain->m_swapchain = VK_NULL_HANDLE;
@@ -196,12 +198,11 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
 
     //!=================================================================================================================
 
-    VK_GRAPH("Swapchain::ReSetup() : creating images...");
-    if (m_swapchainImages) { // images data automatic destroy after destroying swapchain
-        free(m_swapchainImages);
-        m_countImages = 0;
-        m_swapchainImages = nullptr;
+    if (m_buffers) {
+        DestroyBuffers();
     }
+
+    VK_GRAPH("Swapchain::ReSetup() : creating images...");
 
     if (!CreateImages()) {
         VK_ERROR("Swapchain::ReSetup() : failed to create images!");
@@ -209,9 +210,6 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
     }
 
     VK_GRAPH("Swapchain::ReSetup() : creating buffers...");
-    if (m_buffers) {
-        DestroyBuffers();
-    }
 
     if (!CreateBuffers()) {
         VK_ERROR("Swapchain::ReSetup() : failed to create buffers!");
@@ -270,7 +268,7 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
 }
 
 void EvoVulkan::Types::Swapchain::DestroyBuffers() {
-    if (m_countBuffers > 0 && m_swapchainImages && m_device) {
+    if (m_countBuffers > 0 && m_device) {
         for (uint32_t i = 0; i < m_countBuffers; ++i)
             vkDestroyImageView(*m_device, m_buffers[i].m_view, nullptr);
 
@@ -285,26 +283,25 @@ void EvoVulkan::Types::Swapchain::DestroyBuffers() {
 }
 
 bool EvoVulkan::Types::Swapchain::CreateImages() {
-    VkResult result = vkGetSwapchainImagesKHR(*m_device, m_swapchain, &m_countImages, NULL);
+    m_swapchainImages.clear();
+
+    uint32_t countImages = 0;
+    VkResult result = vkGetSwapchainImagesKHR(*m_device, m_swapchain, &countImages, NULL);
     if (result != VK_SUCCESS) {
         VK_ERROR("Swapchain::CreateImages() : failed to get swapchain images count!");
         return false;
     }
 
-    if (m_countImages == 0) {
+    if (countImages == 0) {
         VK_ERROR("Swapchain::CreateImages() : swapchain image count is zero!");
         return false;
     }
 
-    VK_LOG("Swapchain::CreateImages() : using " + std::to_string(m_countImages) + " images");
+    VK_LOG("Swapchain::CreateImages() : using " + std::to_string(countImages) + " images");
 
-    m_swapchainImages = (VkImage*)malloc(m_countImages * sizeof(VkImage));
-    if (!m_swapchainImages) {
-        VK_ERROR("Swapchain::CreateImages() : failed to alloc images memory!");
-        return false;
-    }
+    m_swapchainImages.resize(countImages);
 
-    result = vkGetSwapchainImagesKHR(*m_device, m_swapchain, &m_countImages, m_swapchainImages);
+    result = vkGetSwapchainImagesKHR(*m_device, m_swapchain, &countImages, m_swapchainImages.data());
     if (result != VK_SUCCESS) {
         VK_ERROR("Swapchain::CreateImages() : failed to get swapchain images!"
                  "\n\tReason: " + Tools::Convert::result_to_string(result) +
@@ -313,18 +310,48 @@ bool EvoVulkan::Types::Swapchain::CreateImages() {
         return false;
     }
 
+    for (VkImage image : m_swapchainImages) {
+        auto&& pCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = 0;
+
+        vkCmdPipelineBarrier(
+                *pCmd,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+        );
+
+        delete pCmd;
+    }
+
     return true;
 }
 
 bool EvoVulkan::Types::Swapchain::CreateBuffers() {
-    m_countBuffers = m_countImages;
-    m_buffers = (SwapChainBuffer*)malloc(sizeof(SwapChainBuffer) * m_countImages);
+    m_countBuffers = m_swapchainImages.size();
+    m_buffers = (SwapChainBuffer*)malloc(sizeof(SwapChainBuffer) * m_swapchainImages.size());
     if (!m_buffers) {
         VK_ERROR("Swapchain::Buffers() : failed to alloc buffers memory!");
         return false;
     }
 
-    for (uint32_t i = 0; i < m_countImages; i++)
+    for (uint32_t i = 0; i < m_swapchainImages.size(); i++)
     {
         VkImageViewCreateInfo colorAttachmentView = {};
         colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

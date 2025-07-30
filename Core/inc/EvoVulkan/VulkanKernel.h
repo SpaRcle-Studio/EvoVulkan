@@ -58,11 +58,13 @@ namespace EvoVulkan::Core {
 
         virtual bool PostInit();
 
+        virtual void WaitAllFences();
+        virtual void WaitFences();
         virtual FrameResult PrepareFrame();
         virtual RenderResult NextFrame();
         virtual FrameResult SubmitFrame();
-        virtual FrameResult QueuePresent();
         virtual FrameResult WaitIdle();
+        virtual FrameResult QueuePresent();
         virtual void WaitComputeIdle();
 
     public:
@@ -84,8 +86,8 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
         EVK_NODISCARD EVK_INLINE bool IsMultisamplingEnabled() const noexcept { return m_sampleCount > 1; }
-        EVK_NODISCARD EVK_INLINE VkSemaphore GetPresentCompleteSemaphore() const noexcept { return m_syncs.m_presentComplete; }
-        EVK_NODISCARD EVK_INLINE VkSemaphore GetRenderCompleteSemaphore() const noexcept { return m_syncs.m_renderComplete; }
+        //EVK_NODISCARD EVK_INLINE VkSemaphore GetPresentCompleteSemaphore() const noexcept { return m_syncs.m_presentComplete; }
+        //EVK_NODISCARD EVK_INLINE VkSemaphore GetRenderCompleteSemaphore() const noexcept { return m_syncs.m_renderComplete; }
         EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_submitInfo.waitSemaphores; }
 
         EVK_NODISCARD uint32_t GetCountComputeCmdBuffers() const { return m_countCCB; }
@@ -175,11 +177,13 @@ namespace EvoVulkan::Core {
 
         Core::DescriptorManager*   m_descriptorManager    = nullptr;
 
-        Types::Synchronization     m_syncs                = { };
+        //Types::Synchronization     m_syncs                = { };
         SubmitInfo                 m_submitInfo           = { };
+        std::vector<Types::Synchronization> m_frameSyncs  = { };
 
         std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
         uint32_t                   m_currentBuffer        = 0;
+        uint32_t                   m_currentImage         = 0;
 
         std::vector<SubmitInfo>    m_submitQueue          = { };
 
