@@ -106,6 +106,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_waitSemaphores; }
         EVK_NODISCARD std::vector<VkSemaphore>& GetSignalSemaphores() { return m_signalSemaphores; }
         EVK_NODISCARD VkCommandBuffer GetCommandBuffer(uint32_t frame) const;
+        EVK_NODISCARD Types::CmdBuffer* GetSecondaryCommandBuffer() const { return m_secondaryCmdBuffer; }
 
         /// EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls, uint32_t layer) const;
 
@@ -120,6 +121,7 @@ namespace EvoVulkan::Complexes {
     private:
         FrameBufferFeatures m_features;
         std::vector<Types::CmdBuffer*> m_cmdBuffers;
+        Types::CmdBuffer* m_secondaryCmdBuffer = nullptr;
 
         bool m_dirtyRenderPass = false;
 

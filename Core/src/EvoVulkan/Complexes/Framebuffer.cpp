@@ -21,6 +21,11 @@ namespace EvoVulkan::Complexes {
         }
         m_cmdBuffers.clear();
 
+        if (m_secondaryCmdBuffer) {
+            delete m_secondaryCmdBuffer;
+            m_secondaryCmdBuffer = nullptr;
+        }
+
         if (m_renderPass.IsReady()) {
             Types::DestroyRenderPass(m_device, &m_renderPass);
         }
@@ -86,6 +91,7 @@ namespace EvoVulkan::Complexes {
         for (uint32_t i = 0; i < swapchain->GetCountImages(); ++i) {
             pFBO->m_cmdBuffers.emplace_back(Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
         }
+        pFBO->m_secondaryCmdBuffer = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
         pFBO->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
 

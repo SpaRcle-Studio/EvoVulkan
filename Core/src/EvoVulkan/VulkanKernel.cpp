@@ -499,7 +499,6 @@ EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
 
 void EvoVulkan::Core::VulkanKernel::WaitFences() {
     vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
-    vkResetFences(*m_device, 1, &m_waitFences[m_currentBuffer]);
 }
 
 void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
@@ -509,7 +508,6 @@ void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     if (m_swapchain->IsDirty()) {
         VK_LOG("VulkanKernel::PrepareFrame() : swapchain is dirty!");
-        return FrameResult::Dirty;
     }
 
     /// Acquire the next image from the swap chain
