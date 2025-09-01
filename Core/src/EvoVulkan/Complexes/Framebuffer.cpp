@@ -60,6 +60,11 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
+        if (colorAttachments.size() > 0 && arrayLayers > 1) {
+            VK_ERROR("Framebuffer::Create() : array layers > 1 is not supported yet for multiple color attachments!");
+            return nullptr;
+        }
+
         if (!Tools::IsFormatInRange(depthFormat)) {
             VK_HALT("FrameBuffer::Create() : format is in not a range!");
             return nullptr;
@@ -329,7 +334,7 @@ namespace EvoVulkan::Complexes {
         }
 
         for (uint32_t layerIndex = 0; layerIndex < m_layersCount; ++layerIndex) {
-            auto&& pLayer = std::make_unique<FrameBufferLayer>(this, layerIndex, m_depthAttachment.get());
+            auto&& pLayer = std::make_unique<FrameBufferLayer>(this, layerIndex, m_depthAttachment.get(), m_layersCount);
 
             if (!pLayer->Initialize()) {
                 VK_ERROR("Framebuffer::ReCreate() : failed to initialize layer!");

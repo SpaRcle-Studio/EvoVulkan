@@ -6,10 +6,11 @@
 #include <EvoVulkan/Complexes/Framebuffer.h>
 
 namespace EvoVulkan::Complexes {
-    FrameBufferLayer::FrameBufferLayer(FrameBuffer* pFrameBuffer, uint32_t index, FrameBufferAttachment* pDepth)
+    FrameBufferLayer::FrameBufferLayer(FrameBuffer* pFrameBuffer, uint32_t index, FrameBufferAttachment* pDepth, uint32_t layerCount)
         : m_frameBuffer(pFrameBuffer)
         , m_index(index)
         , m_depthArray(pDepth)
+        , m_layerCount(layerCount)
     { }
 
     FrameBufferLayer::~FrameBufferLayer() {

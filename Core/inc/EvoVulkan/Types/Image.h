@@ -107,10 +107,9 @@ namespace EvoVulkan::Types {
 }
 
 namespace EvoVulkan::Tools {
-    EVK_MAYBE_UNUSED static VkImageView CreateImageView(const Types::Image& image, VkImageViewType viewType, uint32_t layerIndex) {
+    EVK_MAYBE_UNUSED static VkImageView CreateImageView(const Types::Image& image, VkImageViewType viewType, uint32_t layerIndex, VkImageViewCreateInfo viewCI = Tools::Initializers::ImageViewCreateInfo()) {
         VkImageView view = VK_NULL_HANDLE;
 
-        VkImageViewCreateInfo viewCI = Tools::Initializers::ImageViewCreateInfo();
         viewCI.image = image;
         viewCI.viewType = viewType;
         viewCI.format = image.GetFormat();

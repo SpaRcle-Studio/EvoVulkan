@@ -18,7 +18,7 @@ namespace EvoVulkan::Complexes {
         using Attachment = std::unique_ptr<FrameBufferAttachment>;
         using Attachments = std::vector<Attachment>;
     public:
-        explicit FrameBufferLayer(FrameBuffer* pFrameBuffer, uint32_t index, FrameBufferAttachment* pDepth);
+        explicit FrameBufferLayer(FrameBuffer* pFrameBuffer, uint32_t index, FrameBufferAttachment* pDepth, uint32_t layerCount);
         ~FrameBufferLayer() override;
 
     public:
@@ -40,6 +40,7 @@ namespace EvoVulkan::Complexes {
         VkFramebuffer m_vkFrameBuffer = VK_NULL_HANDLE;
         FrameBuffer* m_frameBuffer = nullptr;
         uint32_t m_index = 0;
+        uint32_t m_layerCount = 1;
 
     };
 }

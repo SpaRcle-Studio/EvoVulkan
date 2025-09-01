@@ -60,7 +60,13 @@ namespace EvoVulkan::Complexes {
             }
         }
 
-        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer);
+        VkImageViewCreateInfo viewCI = Tools::Initializers::ImageViewCreateInfo();
+        /// viewCI.components.r = VK_COMPONENT_SWIZZLE_R;
+        /// viewCI.components.g = VK_COMPONENT_SWIZZLE_R;
+        /// viewCI.components.b = VK_COMPONENT_SWIZZLE_R;
+        /// viewCI.components.a = VK_COMPONENT_SWIZZLE_ONE;
+
+        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer, viewCI);
         if (pFBOAttachment->m_view == VK_NULL_HANDLE) {
             VK_ERROR("FrameBufferAttachment::CreateDepthAttachment() : failed to create depth image view!");
             return nullptr;
