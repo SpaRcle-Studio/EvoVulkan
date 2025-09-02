@@ -97,5 +97,6 @@
 #include <memory>
 #include <utility>
 #include <cstdio>
+#include <future>
 
 #endif //EVOVULKAN_MACROS_H

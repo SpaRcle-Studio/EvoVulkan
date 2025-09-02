@@ -5,6 +5,25 @@
 #include <EvoVulkan/Tools/VulkanTools.h>
 
 namespace EvoVulkan::Tools {
+    VkShaderModule LoadShaderModule(const std::vector<uint32_t>& spirV, VkDevice device) {
+        if (spirV.empty()) {
+            VK_ERROR("Tools::LoadShaderModule() : spirV is empty!");
+            return VK_NULL_HANDLE;
+        }
+
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = spirV.size() * sizeof(uint32_t);
+        createInfo.pCode = spirV.data();
+
+        VkShaderModule module;
+        if (vkCreateShaderModule(device, &createInfo, nullptr, &module) != VK_SUCCESS) {
+            VK_ERROR("Tools::LoadShaderModule() : failed to create vulkan shader module from spirV!");
+            return VK_NULL_HANDLE;
+        }
+        return module;
+    }
+
     VkShaderModule LoadShaderModule(const char *fileName, VkDevice device) {
         std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
 

@@ -46,6 +46,11 @@ namespace EvoVulkan::Tools {
     public:
         bool ValidationErrorAsAssert = false;
 
+        std::function<bool()> IsSupportGLSLang;
+        std::function<std::vector<uint32_t>(const std::string& path)> ReadSPIRV;
+        std::function<bool(const std::string& path, const std::vector<uint32_t>& spirv)> WriteSPIRV;
+        std::function<std::vector<uint32_t>(const std::string& input)> CompileGLSLtoSPIRV;
+        std::function<void(const std::string& command)> ExecuteCommand;
         std::function<bool(const std::string& path)> CreateFolder;
         std::function<bool(const std::string& from, const std::string& to)> Copy;
         std::function<bool(const std::string& path)> IsExists;

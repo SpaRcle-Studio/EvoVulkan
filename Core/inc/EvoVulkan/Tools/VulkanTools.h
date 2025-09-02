@@ -37,6 +37,7 @@ namespace EvoVulkan::Tools {
                                                              VkImageLayout final);
 
     DLL_EVK_EXPORT VkShaderModule LoadShaderModule(const char *fileName, VkDevice device);
+    DLL_EVK_EXPORT VkShaderModule LoadShaderModule(const std::vector<uint32_t>& spirV, VkDevice device);
 
     DLL_EVK_EXPORT VkPipelineLayout CreatePipelineLayout(const VkDevice& device, uint32_t setLayoutCount, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkPushConstantRange>& pushConstants);
 

@@ -15,6 +15,107 @@ EvoVulkan::Complexes::Shader::Shader(const EvoVulkan::Types::Device* pDevice, Ty
     , m_cache(cache)
 { }
 
+/*
+ *         if (EvoVulkan::Tools::VkFunctionsHolder::Instance().IsSupportGLSLang()) {
+            if (!EvoVulkan::Tools::VkFunctionsHolder::Instance().CompileGLSLtoSPIRV(inputFile)) {
+                VK_ERROR("Shader::Load() : failed to compile shader!\n\tPath: " + inputFile);
+                return { VK_NULL_HANDLE, {} };
+            }
+        }
+        else {
+ */
+
+std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> CompileShaderModule(
+    const std::string& path,
+    const std::string& cache,
+    VkShaderStageFlagBits stage,
+    const EvoVulkan::Types::Device* device
+) {
+    const std::string inputFile  = std::string(cache + "/").append(path);
+    const std::string hashFile   = inputFile + ".spv.hash";
+    const std::string outputFile = inputFile + ".spv";
+
+    const uint64_t hash = EvoVulkan::Tools::VkFunctionsHolder::Instance().GetFileHash(inputFile);
+
+    if (hash != EvoVulkan::Tools::VkFunctionsHolder::Instance().ReadHash(hashFile) || !EvoVulkan::Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
+        EvoVulkan::Tools::VkFunctionsHolder::Instance().WriteHash(hashFile, hash);
+
+        if (EVK_IS_EXISTS(outputFile)) {
+            EVK_DELETE_FILE(outputFile);
+        }
+
+        std::string command;
+
+#if defined(EVK_WIN32) || defined(EVK_LINUX)
+    #ifdef EVK_WIN32
+        command = std::string("\"\"" + (EvoVulkan::Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
+    #else
+        command = std::string("\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\""));
+    #endif
+
+        EvoVulkan::Tools::VkFunctionsHolder::Instance().ExecuteCommand(command);
+#else
+        VK_ERROR("CompileShaderModule() : the platform does not support shader compilation!");
+        return { VK_NULL_HANDLE, {} };
+#endif
+        if (!EvoVulkan::Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
+            VK_ERROR("CompileShaderModule() : failed to compile shader!\n\tPath: " + inputFile + "\n\tGLSL Command: " + command);
+            return { VK_NULL_HANDLE, {} };
+        }
+    }
+
+    auto shaderModule = LoadShaderModule(outputFile.c_str(), *device);
+    if (shaderModule == VK_NULL_HANDLE) {
+        VK_ERROR("CompileShaderModule() : failed to load shader module! \n\tPath: " + inputFile);
+        return { VK_NULL_HANDLE, {} };
+    }
+
+    return {
+        shaderModule,
+        EvoVulkan::Tools::Initializers::PipelineShaderStageCreateInfo(shaderModule, stage)
+    };
+}
+
+std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> GLSLLangCompileShaderModule(
+    const std::string& path,
+    const std::string& cache,
+    VkShaderStageFlagBits stage,
+    const EvoVulkan::Types::Device* device
+) {
+    const std::string inputFile  = std::string(cache + "/").append(path);
+    const std::string hashFile   = inputFile + ".spv.hash";
+    const std::string outputFile = inputFile + ".spv";
+
+    const uint64_t hash = EvoVulkan::Tools::VkFunctionsHolder::Instance().GetFileHash(inputFile);
+
+    std::vector<uint32_t> data;
+
+    if (hash != EvoVulkan::Tools::VkFunctionsHolder::Instance().ReadHash(hashFile) || !EvoVulkan::Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
+        EvoVulkan::Tools::VkFunctionsHolder::Instance().WriteHash(hashFile, hash);
+        data = EvoVulkan::Tools::VkFunctionsHolder::Instance().CompileGLSLtoSPIRV(inputFile);
+        EvoVulkan::Tools::VkFunctionsHolder::Instance().WriteSPIRV(outputFile, data);
+    }
+    else {
+        data = EvoVulkan::Tools::VkFunctionsHolder::Instance().ReadSPIRV(outputFile);
+    }
+
+    if (data.empty()) {
+        VK_ERROR("GLSLLangCompileShaderModule() : failed to compile shader!\n\tPath: " + inputFile);
+        return {VK_NULL_HANDLE, {}};
+    }
+
+    auto shaderModule = LoadShaderModule(data, *device);
+    if (shaderModule == VK_NULL_HANDLE) {
+        VK_ERROR("GLSLLangCompileShaderModule() : failed to load shader module! \n\tPath: " + inputFile);
+        return { VK_NULL_HANDLE, {} };
+    }
+
+    return {
+        shaderModule,
+        EvoVulkan::Tools::Initializers::PipelineShaderStageCreateInfo(shaderModule, stage)
+    };
+}
+
 bool EvoVulkan::Complexes::Shader::Load(
     const std::string& cache,
     const std::vector<SourceShader> &modules,
@@ -38,48 +139,49 @@ bool EvoVulkan::Complexes::Shader::Load(
     m_layoutBindings = descriptorLayoutBindings;
     m_pushConstants = pushConstants;
 
+#define EVK_USE_FUTURE_LOAD_SHADER
+
+#ifdef EVK_USE_FUTURE_LOAD_SHADER
+    std::vector<std::future<std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo>>> futures;
+
     for (const auto& [path, stage] : modules) {
-        const std::string inputFile = std::string(cache + "/").append(path);
-        const std::string hashFile = inputFile + ".spv.hash";
-        const std::string outputFile = inputFile + ".spv";
-
-        const uint64_t hash = Tools::VkFunctionsHolder::Instance().GetFileHash(inputFile);
-
-        if (hash != Tools::VkFunctionsHolder::Instance().ReadHash(hashFile) || !Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
-            Tools::VkFunctionsHolder::Instance().WriteHash(hashFile, hash);
-
-            if (EVK_IS_EXISTS(outputFile)) {
-                EVK_DELETE_FILE(outputFile);
+        futures.push_back(std::async(std::launch::async, [&, path, stage]() -> std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> {
+            if (Tools::VkFunctionsHolder::Instance().IsSupportGLSLang()) {
+                return GLSLLangCompileShaderModule(path, cache, stage, m_device);
             }
+            return CompileShaderModule(path, cache, stage, m_device);
+        }));
+    }
 
-        #if defined(EVK_WIN32) || defined(EVK_LINUX)
-        #ifdef EVK_WIN32
-            std::string command = std::string("\"\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
-        #else
-            std::string command = std::string("\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\""));
-        #endif
-            /// VK_LOG("Shader::Load() : execute command: " + command);
-            system(command.c_str());
-
-            if (!Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
-                VK_ERROR("Shader::Load() : failed to compile shader!\n\tPath: " + inputFile + "\n\tGLSL Command: " + command);
-                return false;
-            }
-        #else
-            VK_ERROR("Shader::Load() : the platform does not suppet shader compilation!");
-        #endif
-        }
-
-        auto shaderModule = Tools::LoadShaderModule(outputFile.c_str(), *m_device);
+    // собираем результаты
+    for (auto& f : futures) {
+        auto [shaderModule, stageInfo] = f.get();
         if (shaderModule == VK_NULL_HANDLE) {
-            VK_ERROR("Shader::Load() : failed to load shader module! \n\tPath: " + inputFile);
-            return false;
+            return false; // при ошибке вываливаемся
+        }
+        m_shaderModules.push_back(shaderModule);
+        m_shaderStages.push_back(stageInfo);
+    }
+#else
+    for (const auto& [path, stage] : modules) {
+        std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> result;
+
+        if (Tools::VkFunctionsHolder::Instance().IsSupportGLSLang()) {
+            result = GLSLLangCompileShaderModule(path, cache, stage, m_device);
         }
         else {
-            m_shaderModules.push_back(shaderModule);
-            m_shaderStages.push_back(Tools::Initializers::PipelineShaderStageCreateInfo(shaderModule, stage));
+            result = CompileShaderModule(path, cache, stage, m_device);
         }
+
+        if (result.first == VK_NULL_HANDLE) {
+            VK_ERROR("Shader::Load() : failed to compile shader module!\n\tPath: " + path);
+            return false;
+        }
+
+        m_shaderModules.push_back(result.first);
+        m_shaderStages.push_back(result.second);
     }
+#endif
 
     return true;
 }
