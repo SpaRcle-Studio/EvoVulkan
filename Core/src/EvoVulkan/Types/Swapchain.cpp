@@ -96,7 +96,12 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
     if (width < surfCaps.minImageExtent.width || width > surfCaps.maxImageExtent.width ||
         height < surfCaps.minImageExtent.height || height > surfCaps.maxImageExtent.height
     ) {
-        VK_ERROR("Swapchain::ReSetup() : requested size is outside of valid range!");
+        VK_ERROR("Swapchain::ReSetup() : requested size is outside of valid range!"
+           "\n\tWidth  surface: " + std::to_string(surfCaps.currentExtent.width) +
+           "\n\tHeight surface: " + std::to_string(surfCaps.currentExtent.height) +
+           "\n\tWidth   window: " + std::to_string(width) +
+           "\n\tHeight  window: " + std::to_string(height)
+        );
         return false;
     }
 
@@ -251,11 +256,25 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
     auto formatCount = m_surface->GetCountSurfFmts();
     auto surfFormats = m_surface->GetSurfaceFormats();
 
-    if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED) {
-        m_colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
+    std::vector<VkFormat> availableFormats;
+    availableFormats.resize(formatCount);
+    for (uint32_t i = 0; i < formatCount; i++) {
+        availableFormats[i] = surfFormats[i].format;
     }
-    else
-        m_colorFormat = surfFormats[0].format;
+
+    VkFormat preferredFormat = VK_FORMAT_B8G8R8A8_UNORM; /// VK_FORMAT_B8G8R8A8_UNORM
+
+    if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED) {
+        m_colorFormat = preferredFormat;
+    }
+    else {
+        if (std::ranges::find(availableFormats, preferredFormat) != availableFormats.end()) {
+            m_colorFormat = preferredFormat;
+        }
+        else {
+            m_colorFormat = surfFormats[0].format;
+        }
+    }
 
     m_colorSpace = surfFormats[0].colorSpace;
 

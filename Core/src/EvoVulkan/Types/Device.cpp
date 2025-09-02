@@ -73,6 +73,14 @@ namespace EvoVulkan::Types {
             info.extensions.emplace_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
         }
 
+        if (info.dynamicRendering && Tools::IsExtensionSupported(physicalDevice, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)) {
+            info.extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+        }
+        else if (info.dynamicRendering) {
+            VK_INFO("Device::Create() : dynamic rendering is not supported but requested!");
+            info.dynamicRendering = false;
+        }
+
         if (physicalDevice == VK_NULL_HANDLE) {
             std::string msg = std::string();
 
@@ -148,7 +156,8 @@ namespace EvoVulkan::Types {
                 physicalDevice,
                 pQueues,
                 info.extensions,
-                info.validationLayers);
+                info.validationLayers,
+                info.dynamicRendering);
 
         if (logicalDevice == VK_NULL_HANDLE) {
             VK_ERROR("Device::Create() : failed create logical device!");
@@ -164,6 +173,7 @@ namespace EvoVulkan::Types {
 
         auto&& pDevice = new Device(info.pInstance, pQueues, physicalDevice, logicalDevice);
 
+        pDevice->m_dynamicRenderingSupport = info.dynamicRendering;
         pDevice->CheckRayTracing(info.rayTracing);
 
         if (!pDevice->Initialize(info.enableSampleShading, info.multisampling, info.sampleCount)) {

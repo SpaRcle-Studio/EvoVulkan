@@ -54,6 +54,7 @@ namespace EvoVulkan::Core {
                 void* windowHandle,
                 const std::vector<const char*>& deviceExtensions,
                 bool enableSampleShading,
+                bool enableDynamicRendering,
                 bool vsync);
 
         virtual bool PostInit();

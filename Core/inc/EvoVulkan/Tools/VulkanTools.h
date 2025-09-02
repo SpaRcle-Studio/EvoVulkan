@@ -362,7 +362,8 @@ namespace EvoVulkan::Tools {
             VkPhysicalDevice physicalDevice,
             Types::FamilyQueues *pQueues,
             const std::vector<const char *> &extensions,
-            const std::vector<const char *> &validLayers)
+            const std::vector<const char *> &validLayers,
+            bool dynamicRendering)
     {
         VK_GRAPH("VulkanTools::CreateLogicalDevice() : creating vulkan logical device...");
 
@@ -437,9 +438,16 @@ namespace EvoVulkan::Tools {
 
         //!=============================================================================================================
 
+        VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeature = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+            .dynamicRendering = dynamicRendering ? VK_TRUE : VK_FALSE,
+        };
+
+        //!=============================================================================================================
+
         VkPhysicalDeviceVulkan12Features deviceVulkan12Features = { };
         deviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-        deviceVulkan12Features.pNext = nullptr;
+        deviceVulkan12Features.pNext = (void*)&dynamicRenderingFeature;
         /// deviceVulkan12Features.separateDepthStencilLayouts = VK_TRUE;
 
         //!=============================================================================================================

@@ -28,6 +28,7 @@ namespace EvoVulkan::Types {
         std::vector<const char*> extensions;
         std::vector<const char*> validationLayers;
         bool enableSampleShading = false;
+        bool dynamicRendering = false;
         bool rayTracing = false;
         bool multisampling = false;
         uint32_t sampleCount = 0;
@@ -58,6 +59,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD uint8_t GetMSAASamplesCount() const;
         EVK_NODISCARD FamilyQueues* GetQueues() const;
         EVK_NODISCARD bool IsRayTracingSupported() const noexcept { return m_rayTracingSupported; }
+        EVK_NODISCARD bool IsDynamicRenderingSupported() const noexcept { return m_dynamicRenderingSupport; }
         EVK_NODISCARD bool IsReady() const;
         EVK_NODISCARD bool IsExtensionSupported(const std::string& extension) const;
         EVK_NODISCARD bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
@@ -94,6 +96,7 @@ namespace EvoVulkan::Types {
         bool                             m_enableSampleShading     = false;
         bool                             m_multisampling           = false;
         bool                             m_rayTracingSupported     = false;
+        bool                             m_dynamicRenderingSupport = false;
 
     };
 }
