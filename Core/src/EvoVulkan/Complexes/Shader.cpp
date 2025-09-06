@@ -50,7 +50,7 @@ std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> CompileShaderModule(
     #ifdef EVK_WIN32
         command = std::string("\"\"" + (EvoVulkan::Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\"\""));
     #else
-        command = std::string("\"" + (Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\""));
+        command = std::string("\"" + (EvoVulkan::Complexes::GLSLCompiler::Instance().GetPath() + "\" -c \"").append(inputFile).append("\" -o \"" + outputFile + "\""));
     #endif
 
         EvoVulkan::Tools::VkFunctionsHolder::Instance().ExecuteCommand(command);
