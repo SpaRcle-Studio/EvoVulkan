@@ -220,13 +220,15 @@ bool EvoVulkan::Core::VulkanKernel::Init(
             vsync,
             m_width,
             m_height,
-            m_swapchainImages
+            m_requiredSwapchainImages
         );
 
         if (!m_swapchain) {
             VK_ERROR("VulkanKernel::Init() : failed to create swapchain!");
             return false;
         }
+
+        m_swapchainImages = m_swapchain->GetCountImages();
 
         if (!m_swapchain->IsReady()) {
             VK_ERROR("VulkanKernel::Init() : swapchain isn't ready!");
@@ -503,6 +505,11 @@ void EvoVulkan::Core::VulkanKernel::WaitFences() {
     vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
 }
 
+
+void EvoVulkan::Core::VulkanKernel::WaitDeviceIdle() {
+    vkDeviceWaitIdle(*m_device);
+}
+
 void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
     vkWaitForFences(*m_device, static_cast<uint32_t>(m_waitFences.size()), m_waitFences.data(), VK_TRUE, UINT64_MAX);
 }
@@ -733,7 +740,7 @@ uint32_t EvoVulkan::Core::VulkanKernel::GetCountBuildIterations() const {
 }
 
 void EvoVulkan::Core::VulkanKernel::SetSwapchainImagesCount(uint32_t count) {
-    m_swapchainImages = count;
+    m_requiredSwapchainImages = count;
     m_dirty = true;
 }
 

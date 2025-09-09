@@ -61,6 +61,7 @@ namespace EvoVulkan::Core {
 
         virtual void WaitAllFences();
         virtual void WaitFences();
+        virtual void WaitDeviceIdle();
         virtual FrameResult PrepareFrame();
         virtual RenderResult NextFrame();
         virtual FrameResult SubmitFrame();
@@ -115,6 +116,7 @@ namespace EvoVulkan::Core {
 
         EVK_NODISCARD const std::vector<SubmitInfo>& GetSubmitQueue() const { return m_submitQueue; };
         EVK_NODISCARD uint16_t GetSwapchainImagesCount() const noexcept { return m_swapchainImages; }
+        EVK_NODISCARD uint16_t GetRequiredSwapchainImagesCount() const noexcept { return m_requiredSwapchainImages; }
         EVK_NODISCARD uint8_t GetCurrentFrameIndex() const noexcept { return m_currentBuffer; }
 
         void SetMultisampling(uint32_t sampleCount);
@@ -163,6 +165,7 @@ namespace EvoVulkan::Core {
         uint32_t                   m_width                = 0;
         uint32_t                   m_height               = 0;
         uint32_t                   m_swapchainImages      = 0;
+        uint32_t                   m_requiredSwapchainImages = 0;
         uint32_t                   m_sampleCount          = 1;
 
         Types::RenderPass          m_renderPass           = { };
