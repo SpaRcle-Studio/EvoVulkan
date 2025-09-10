@@ -183,7 +183,9 @@ namespace EvoVulkan::Core {
         Core::DescriptorManager*   m_descriptorManager    = nullptr;
 
         //Types::Synchronization     m_syncs                = { };
+        VkSemaphore                m_offscreenSemaphore   = VK_NULL_HANDLE;
         SubmitInfo                 m_submitInfo           = { };
+        SubmitInfo                 m_offscreenSubmitInfo  = { };
         std::vector<Types::Synchronization> m_frameSyncs  = { };
 
         std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
@@ -192,7 +194,7 @@ namespace EvoVulkan::Core {
 
         std::vector<SubmitInfo>    m_submitQueue          = { };
 
-        VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkPipelineStageFlags       m_submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; ///VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 
         bool                       m_GUIEnabled           = false;
 

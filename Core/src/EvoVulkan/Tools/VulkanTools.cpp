@@ -155,6 +155,24 @@ namespace EvoVulkan::Tools {
         return pipelineCache;
     }
 
+    VkSemaphore CreateVulkanSemaphore(const VkDevice& device) {
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+        VkSemaphoreCreateInfo semaphoreCreateInfo = Initializers::SemaphoreCreateInfo();
+        auto result = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphore);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateVulkanSemaphore() : failed to create vulkan semaphore!");
+            return VK_NULL_HANDLE;
+        }
+        return semaphore;
+    }
+
+    void DestroyVulkanSemaphore(const VkDevice& device, VkSemaphore* semaphore) {
+        if (semaphore && *semaphore != VK_NULL_HANDLE) {
+            vkDestroySemaphore(device, *semaphore, nullptr);
+            *semaphore = VK_NULL_HANDLE;
+        }
+    }
+
     void DestroySynchronization(const VkDevice& device, Types::Synchronization* sync) {
         VK_LOG("Tools::DestroySynchronization() : destroy vulkan synchronizations...");
 

@@ -93,7 +93,8 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        for (uint32_t i = 0; i < swapchain->GetCountImages(); ++i) {
+        const uint8_t maxFrames = features.offscreen ? 1 : swapchain->GetCountImages();
+        for (uint32_t i = 0; i < maxFrames; ++i) {
             pFBO->m_cmdBuffers.emplace_back(Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
         }
         pFBO->m_secondaryCmdBuffer = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_SECONDARY);
@@ -250,7 +251,7 @@ namespace EvoVulkan::Complexes {
             attachmentDesc.samples = GetSampleCount();
             attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; /// may be VK_ATTACHMENT_LOAD_OP_CLEAR?
             attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -259,8 +260,14 @@ namespace EvoVulkan::Complexes {
                 if (m_features.depthLoad) {
                     attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
                 }
-                attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, m_features.depthShaderRead, false);
-                attachmentDesc.finalLayout = attachmentDesc.initialLayout;
+                if (m_features.depthShaderRead) {
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    attachmentDesc.finalLayout = Tools::FindDepthFormatLayout(m_depthAspect, true, false);
+                }
+                else {
+                    attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, false, false);
+                    attachmentDesc.finalLayout = attachmentDesc.initialLayout;
+                }
             }
             else {
                 attachmentDesc.format = m_attachFormats[i];
@@ -547,6 +554,15 @@ namespace EvoVulkan::Complexes {
     }
 
     VkCommandBuffer FrameBuffer::GetCommandBuffer(uint32_t frame) const {
+        if (!m_cmdBuffers.size()) {
+            VK_HALT("Framebuffer::GetCommandBuffer() : no command buffers!");
+            return VK_NULL_HANDLE;
+        }
+
+        if (m_features.offscreen) {
+            return *m_cmdBuffers[0];
+        }
+
         if (frame >= m_cmdBuffers.size()) {
             VK_HALT("Framebuffer::GetCommandBuffer() : out of range frame index!");
             return VK_NULL_HANDLE;

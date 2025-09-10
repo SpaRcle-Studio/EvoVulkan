@@ -265,6 +265,14 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
         return false;
     }
 
+    if (!m_offscreenSemaphore) {
+        m_offscreenSemaphore = Tools::CreateVulkanSemaphore(*m_device);
+        if (!m_offscreenSemaphore) {
+            VK_ERROR("VulkanKernel::PostInit() : failed to create offscreen semaphore!");
+            return false;
+        }
+    }
+
     if (!ReCreateDCBuffers()) {
         VK_ERROR("VulkanKernel::PostInit() : failed to re-create draw command buffers!");
         return false;
@@ -384,10 +392,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_renderPass.IsReady())
         Types::DestroyRenderPass(m_device, &m_renderPass);
 
-    if (!m_waitFences.empty()) {
-        Tools::DestroyFences(*m_device, m_waitFences);
-        m_waitFences.clear();
-    }
+    Tools::DestroyFences(*m_device, m_waitFences);
 
     if (m_drawCmdBuffs) {
         Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
@@ -396,6 +401,8 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_computeCmdBuffers) {
         Tools::FreeCommandBuffers(*m_device, *m_computeCmdPool, &m_computeCmdBuffers, m_countCCB);
     }
+
+    Tools::DestroyVulkanSemaphore(*m_device, &m_offscreenSemaphore);
 
     EVSafeFreeObject(m_swapchain);
     EVSafeFreeObject(m_surface);
@@ -852,10 +859,7 @@ void EvoVulkan::Core::VulkanKernel::PrintSubmitQueue() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreateDCBuffers() {
-    if (!m_waitFences.empty()) {
-        Tools::DestroyFences(*m_device, m_waitFences);
-        m_waitFences.clear();
-    }
+    Tools::DestroyFences(*m_device, m_waitFences);
 
     if (m_drawCmdBuffs) {
         Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);

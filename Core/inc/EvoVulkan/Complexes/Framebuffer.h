@@ -27,6 +27,7 @@ namespace EvoVulkan::Complexes {
         bool colorTransferDst = false;
         bool depthShaderRead = false;
         bool colorShaderRead = true;
+        bool offscreen = false;
 
         bool operator==(const FrameBufferFeatures& other) const = default;
 

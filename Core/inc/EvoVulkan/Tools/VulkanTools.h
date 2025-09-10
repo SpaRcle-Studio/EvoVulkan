@@ -314,8 +314,10 @@ namespace EvoVulkan::Tools {
     EVK_MAYBE_UNUSED VkPipelineCache CreatePipelineCache(const VkDevice& device);
 
     EVK_MAYBE_UNUSED void DestroySynchronization(const VkDevice& device, Types::Synchronization* sync);
-
     EVK_MAYBE_UNUSED Types::Synchronization CreateSynchronization(const VkDevice& device);
+
+    EVK_MAYBE_UNUSED VkSemaphore CreateVulkanSemaphore(const VkDevice& device);
+    EVK_MAYBE_UNUSED void DestroyVulkanSemaphore(const VkDevice& device, VkSemaphore* semaphore);
 
     EVK_MAYBE_UNUSED static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");

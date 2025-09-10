@@ -21,9 +21,10 @@ namespace EvoVulkan::Tools {
         return format >= VK_FORMAT_UNDEFINED && format <= VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT;
     }
 
-    EVK_MAYBE_UNUSED static void DestroyFences(const VkDevice& device, const std::vector<VkFence>& fences) {
+    EVK_MAYBE_UNUSED static void DestroyFences(const VkDevice& device, std::vector<VkFence>& fences) {
         for (auto& fence : fences)
             vkDestroyFence(device, fence, nullptr);
+        fences.clear();
     }
 
     EVK_MAYBE_UNUSED static std::vector<VkFence> CreateFences(const VkDevice& device, uint32_t count) {

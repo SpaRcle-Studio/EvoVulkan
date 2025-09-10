@@ -14,6 +14,14 @@ namespace EvoVulkan {
         std::vector<VkSemaphore> waitSemaphores;
         std::vector<VkSemaphore> signalSemaphores;
 
+        void Clear() {
+            commandBuffers.clear();
+            waitSemaphores.clear();
+            signalSemaphores.clear();
+            waitDstStageMask = 0;
+            waitDstStageMasks.clear();
+        }
+
         void AddWaitSemaphore(VkSemaphore semaphore) {
             if (std::find(waitSemaphores.begin(), waitSemaphores.end(), semaphore) != waitSemaphores.end()) {
                 return;
