@@ -81,7 +81,7 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
                 return false;
             }
 
-            m_resolves[i].m_view = Tools::CreateImageView(m_resolves[i].m_image, m_layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, 0);
+            m_resolves[i].m_view = Tools::CreateImageView(m_resolves[i].m_image, m_resolves[i].m_image.GetAspect(), m_layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, 0);
             if (m_resolves[i].m_view == VK_NULL_HANDLE) {
                 VK_ERROR("MultisampleTarget::ReCreate() : failed to create resolve image view!");
                 return false;
@@ -101,7 +101,7 @@ bool EvoVulkan::Types::MultisampleTarget::ReCreate(uint32_t width, uint32_t heig
             return false;
         }
 
-        m_depth.m_view = Tools::CreateImageView(m_depth.m_image,m_layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, 0);
+        m_depth.m_view = Tools::CreateImageView(m_depth.m_image, m_depth.m_image.GetAspect(), m_layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, 0);
         if (m_depth.m_view == VK_NULL_HANDLE) {
             VK_ERROR("MultisampleTarget::ReCreate() : failed to create depth image view!");
             return false;

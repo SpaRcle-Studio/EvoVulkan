@@ -82,7 +82,7 @@ namespace EvoVulkan::Complexes {
                 m_index /** layer index */
             );
 
-            if (!m_depthAttachment->Ready()) {
+            if (!m_depthAttachment || !m_depthAttachment->Ready()) {
                 VK_ERROR("FrameBufferLayer::Initialize() : failed to create depth attachment!");
                 return false;
             }

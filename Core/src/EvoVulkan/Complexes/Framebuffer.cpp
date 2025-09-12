@@ -189,10 +189,12 @@ namespace EvoVulkan::Complexes {
 
             for (uint32_t colorAttachIndex = 0; colorAttachIndex < m_attachFormats.size(); ++colorAttachIndex) {
                 if (IsMultisampleEnabled()) {
+                    attachments.push_back(m_layers[layerIndex]->GetColorAttachments()[colorAttachIndex]->GetView());
                     attachments.push_back(m_layers[layerIndex]->GetResolveAttachments()[colorAttachIndex]->GetView());
                 }
-
-                attachments.push_back(m_layers[layerIndex]->GetColorAttachments()[colorAttachIndex]->GetView());
+                else {
+                    attachments.push_back(m_layers[layerIndex]->GetColorAttachments()[colorAttachIndex]->GetView());
+                }
             }
 
             if (IsDepthEnabled()) {
@@ -243,11 +245,13 @@ namespace EvoVulkan::Complexes {
 
         m_dirtyRenderPass = false;
 
-        std::vector<VkAttachmentDescription> attachmentDescriptions;
-        VkAttachmentDescription attachmentDesc = { };
+        std::vector<VkAttachmentDescription2> attachmentDescriptions;
+        VkAttachmentDescription2 attachmentDesc = { };
 
         /// Init attachment properties
         for (uint32_t i = 0; i < m_attachFormats.size() + (IsDepthEnabled() ? 1 : 0); ++i) {
+            attachmentDesc.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+            attachmentDesc.pNext = nullptr;
             attachmentDesc.samples = GetSampleCount();
             attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -260,14 +264,15 @@ namespace EvoVulkan::Complexes {
                 if (m_features.depthLoad) {
                     attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
                 }
-                if (m_features.depthShaderRead) {
-                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                    attachmentDesc.finalLayout = Tools::FindDepthFormatLayout(m_depthAspect, true, false);
-                }
-                else {
-                    attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, false, false);
+                //if (m_features.depthShaderRead) {
+                //    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                //    attachmentDesc.finalLayout = Tools::FindDepthFormatLayout(m_depthAspect, true, false);
+                //}
+                //else {
+                    //attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, false, false);
+                    attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, m_features.depthShaderRead, false);
                     attachmentDesc.finalLayout = attachmentDesc.initialLayout;
-                }
+                //}
             }
             else {
                 attachmentDesc.format = m_attachFormats[i];
@@ -288,7 +293,7 @@ namespace EvoVulkan::Complexes {
             attachmentDescriptions.push_back(attachmentDesc);
         }
 
-        std::vector<VkAttachmentReference> inputAttachments;
+        std::vector<VkAttachmentReference2> inputAttachments;
 
         m_renderPass = Types::CreateRenderPass(
             m_device,
@@ -399,6 +404,41 @@ namespace EvoVulkan::Complexes {
         return texture;
     }
 
+    std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::AllocateResolveTextureReferences() {
+        if (!IsMultisampleEnabled()) {
+            return AllocateColorTextureReferences();
+        }
+        auto&& references = std::vector<EvoVulkan::Types::Texture*>();
+        for (uint32_t layerIndex = 0; layerIndex < m_layersCount; ++layerIndex) {
+            for (uint32_t attachmentIndex = 0; attachmentIndex < m_attachFormats.size(); ++attachmentIndex) {
+                auto&& pTexture = new EvoVulkan::Types::Texture();
+
+                pTexture->m_view              = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetView();
+                pTexture->m_image             = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetImage().Copy();
+                pTexture->m_format            = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetFormat();
+                pTexture->m_descriptorManager = m_descriptorManager;
+                pTexture->m_sampler           = m_colorSampler;
+                pTexture->m_device            = m_device;
+                pTexture->m_pool              = m_cmdPool;
+                pTexture->m_allocator         = m_allocator;
+                pTexture->m_width             = m_width;
+                pTexture->m_height            = m_height;
+                pTexture->m_canBeDestroyed    = false;
+                pTexture->m_mipLevels         = 1;
+
+                //! make a texture descriptor
+                pTexture->m_descriptor = {
+                    pTexture->m_sampler,
+                    pTexture->m_view,
+                    pTexture->m_image.GetLayout()
+                };
+
+                references.emplace_back(pTexture);
+            }
+        }
+        return references;
+    }
+
     std::vector<EvoVulkan::Types::Texture*> EvoVulkan::Complexes::FrameBuffer::AllocateColorTextureReferences() {
         auto&& references = std::vector<EvoVulkan::Types::Texture*>();
 
@@ -475,10 +515,16 @@ namespace EvoVulkan::Complexes {
     }*/
 
     bool EvoVulkan::Complexes::FrameBuffer::IsMultisampleEnabled() const {
+        if (m_currentSampleCount != m_sampleCount) {
+            VK_HALT("FrameBuffer::IsMultisampleEnabled() : current sample count is not equal to the specified one!");
+        }
         return m_device->IsMultiSamplingEnabled() && m_currentSampleCount > 1;
     }
 
     VkSampleCountFlagBits EvoVulkan::Complexes::FrameBuffer::GetSampleCount() const noexcept {
+        if (m_currentSampleCount != m_sampleCount) {
+            VK_HALT("FrameBuffer::GetSampleCount() : current sample count is not equal to the specified one!");
+        }
         return IsMultisampleEnabled() ? Tools::Convert::IntToSampleCount(m_currentSampleCount) : VK_SAMPLE_COUNT_1_BIT;
     }
 

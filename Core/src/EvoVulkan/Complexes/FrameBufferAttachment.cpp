@@ -66,7 +66,7 @@ namespace EvoVulkan::Complexes {
         /// viewCI.components.b = VK_COMPONENT_SWIZZLE_R;
         /// viewCI.components.a = VK_COMPONENT_SWIZZLE_ONE;
 
-        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer, viewCI);
+        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, VK_IMAGE_ASPECT_DEPTH_BIT, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer, viewCI);
         if (pFBOAttachment->m_view == VK_NULL_HANDLE) {
             VK_ERROR("FrameBufferAttachment::CreateDepthAttachment() : failed to create depth image view!");
             return nullptr;
@@ -87,7 +87,8 @@ namespace EvoVulkan::Complexes {
         pFBOAttachment->m_allocator = pFrameBuffer->GetAllocator();
 
         auto&& imageSize = pFrameBuffer->GetExtent2D();
-        auto&& samplesCount = pFrameBuffer->GetSampleCount();
+        ///auto&& samplesCount = pFrameBuffer->GetSampleCount();
+        auto&& samplesCount = Tools::Convert::IntToSampleCount(1);
 
         auto&& imageCI = Types::ImageCreateInfo(
             pFrameBuffer->GetAllocator(), pFrameBuffer->GetCmdPool(), imageSize.width, imageSize.height, VK_IMAGE_ASPECT_COLOR_BIT, 1,
@@ -110,7 +111,7 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer);
+        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, pFBOAttachment->m_image.GetAspect(), layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer);
         if (pFBOAttachment->m_view == VK_NULL_HANDLE) {
             VK_ERROR("FrameBufferAttachment::CreateResolveAttachment() : failed to create resolve image view!");
             return nullptr;
@@ -148,7 +149,7 @@ namespace EvoVulkan::Complexes {
         }
 
         auto&& imageSize = pFrameBuffer->GetExtent2D();
-        const uint8_t samplesCount = 1;
+        const uint8_t samplesCount = pFrameBuffer->GetSampleCount();
 
         auto&& imageCI = EvoVulkan::Types::ImageCreateInfo(
             pFrameBuffer->GetAllocator(),
@@ -172,7 +173,7 @@ namespace EvoVulkan::Complexes {
         /// ставим барьер памяти, чтобы можно было использовать в шейдерах
         pFBOAttachment->m_image.TransitionImageLayout(layout);
 
-        pFBOAttachment->m_view = EvoVulkan::Tools::CreateImageView(pFBOAttachment->m_image, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer);
+        pFBOAttachment->m_view = EvoVulkan::Tools::CreateImageView(pFBOAttachment->m_image, pFBOAttachment->m_image.GetAspect(), layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer);
 
         return std::move(pFBOAttachment);
     }

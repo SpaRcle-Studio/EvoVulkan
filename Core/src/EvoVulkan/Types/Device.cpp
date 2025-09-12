@@ -176,7 +176,7 @@ namespace EvoVulkan::Types {
         pDevice->m_dynamicRenderingSupport = info.dynamicRendering;
         pDevice->CheckRayTracing(info.rayTracing);
 
-        if (!pDevice->Initialize(info.enableSampleShading, info.multisampling, info.sampleCount)) {
+        if (!pDevice->Initialize(info.enableSampleShading, info.multisampling, 64)) {
             VK_ERROR("Device::Create() : failed to initialize device!");
             delete pDevice;
             return nullptr;
@@ -214,11 +214,6 @@ namespace EvoVulkan::Types {
                 m_maxCountMSAASamples = Tools::GetMaxUsableSampleCount(m_physicalDevice);
             }
             else {
-                if (sampleCount == 1) {
-                    VK_ERROR("Device::Initialize() : sample count is 1, but multisampling is disabled!");
-                    return false;
-                }
-
                 auto&& maxSampleCount = Tools::Convert::SampleCountToInt(Tools::GetMaxUsableSampleCount(m_physicalDevice));
                 if (sampleCount > maxSampleCount) {
                     m_maxCountMSAASamples = Tools::Convert::IntToSampleCount(maxSampleCount);

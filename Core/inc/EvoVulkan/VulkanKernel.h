@@ -55,6 +55,7 @@ namespace EvoVulkan::Core {
                 const std::vector<const char*>& deviceExtensions,
                 bool enableSampleShading,
                 bool enableDynamicRendering,
+                bool enableMultisampling,
                 bool vsync);
 
         virtual bool PostInit();

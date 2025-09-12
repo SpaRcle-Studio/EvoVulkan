@@ -107,23 +107,23 @@ namespace EvoVulkan::Types {
 }
 
 namespace EvoVulkan::Tools {
-    EVK_MAYBE_UNUSED static VkImageView CreateImageView(const Types::Image& image, VkImageViewType viewType, uint32_t layerIndex, VkImageViewCreateInfo viewCI = Tools::Initializers::ImageViewCreateInfo()) {
+    EVK_MAYBE_UNUSED static VkImageView CreateImageView(const Types::Image& image, VkImageAspectFlags aspect, VkImageViewType viewType, uint32_t layerIndex, VkImageViewCreateInfo viewCI = Tools::Initializers::ImageViewCreateInfo()) {
         VkImageView view = VK_NULL_HANDLE;
 
         viewCI.image = image;
         viewCI.viewType = viewType;
         viewCI.format = image.GetFormat();
 
-        if (image.GetAspect() != VK_IMAGE_ASPECT_COLOR_BIT) {
+        if (aspect != VK_IMAGE_ASPECT_COLOR_BIT) {
             viewCI.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
         }
 
-        if (viewCI.format == VK_FORMAT_D32_SFLOAT_S8_UINT && image.GetAspect() == VK_IMAGE_ASPECT_COLOR_BIT) {
+        if (viewCI.format == VK_FORMAT_D32_SFLOAT_S8_UINT && aspect == VK_IMAGE_ASPECT_COLOR_BIT) {
             VK_HALT("Tools::CreateImageView() : invalid format for color image view!");
             return VK_NULL_HANDLE;
         }
 
-        viewCI.subresourceRange.aspectMask = image.GetAspect();
+        viewCI.subresourceRange.aspectMask = aspect;
         viewCI.subresourceRange.baseMipLevel = 0;
         viewCI.subresourceRange.baseArrayLayer = layerIndex;
 

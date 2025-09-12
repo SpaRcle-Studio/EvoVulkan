@@ -213,23 +213,25 @@ namespace EvoVulkan::Tools {
         return sync;
     }
 
-    VkAttachmentDescription CreateColorAttachmentDescription(
+    VkAttachmentDescription2 CreateColorAttachmentDescription(
             VkFormat format,
             VkSampleCountFlagBits samples,
             VkImageLayout init,
             VkImageLayout final)
     {
-        return {
-            .flags          = 0,
-            .format         = format,
-            .samples        = samples,
-            .loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD, //! clear or load?
-            .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout  = init,
-            .finalLayout    = final
-        };
+        VkAttachmentDescription2 attachmentDescription = {};
+        attachmentDescription.sType          = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+        attachmentDescription.pNext          = nullptr;
+        attachmentDescription.flags          = 0;
+        attachmentDescription.format         = format;
+        attachmentDescription.samples        = samples;
+        attachmentDescription.loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD, //! clear or load?
+        attachmentDescription.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+        attachmentDescription.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachmentDescription.initialLayout  = init;
+        attachmentDescription.finalLayout    = final;
+        return attachmentDescription;
     }
 
     VkDescriptorSetLayout CreateDescriptorLayout(VkDevice const &device, const std::vector<VkDescriptorSetLayoutBinding> &setLayoutBindings) {

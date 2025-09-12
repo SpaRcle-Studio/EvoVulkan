@@ -101,7 +101,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD EVK_INLINE VkSampler GetSampler() const { return m_sampler; }
         EVK_NODISCARD EVK_INLINE VkImageLayout GetLayout() const { return m_image.GetLayout(); }
         EVK_NODISCARD EVK_INLINE VkImageView GetImageView() const { return m_view; }
-        EVK_NODISCARD EVK_INLINE VkImage GetImage() const { return m_image; }
+        EVK_NODISCARD EVK_INLINE const Types::Image& GetImage() const { return m_image; }
         EVK_NODISCARD EVK_INLINE uint32_t GetWidth() const { return m_width; }
         EVK_NODISCARD EVK_INLINE uint32_t GetHeight() const { return m_height; }
         Types::DescriptorSet GetDescriptorSet(VkDescriptorSetLayout layout);

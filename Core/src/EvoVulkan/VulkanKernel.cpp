@@ -111,6 +111,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         const std::vector<const char*>& deviceExtensions,
         bool enableSampleShading,
         bool enableDynamicRendering,
+        bool enableMultisampling,
         bool vsync)
 {
     VK_GRAPH("VulkanKernel::Init() : initializing Evo Vulkan kernel...");
@@ -135,7 +136,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     deviceCreateInfo.pSurface = m_surface;
     deviceCreateInfo.enableSampleShading = enableSampleShading;
     deviceCreateInfo.sampleCount = m_sampleCount;
-    deviceCreateInfo.multisampling = m_sampleCount > 1;
+    deviceCreateInfo.multisampling = enableMultisampling;
     deviceCreateInfo.rayTracing = IsRayTracingRequired();
     deviceCreateInfo.extensions = deviceExtensions;
     deviceCreateInfo.dynamicRendering = enableDynamicRendering;

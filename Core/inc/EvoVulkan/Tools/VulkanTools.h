@@ -31,7 +31,7 @@ namespace EvoVulkan::Tools {
         uint32_t size;
     };
 	
-    DLL_EVK_EXPORT VkAttachmentDescription CreateColorAttachmentDescription(VkFormat format,
+    DLL_EVK_EXPORT VkAttachmentDescription2 CreateColorAttachmentDescription(VkFormat format,
                                                              VkSampleCountFlagBits samples,
                                                              VkImageLayout init,
                                                              VkImageLayout final);

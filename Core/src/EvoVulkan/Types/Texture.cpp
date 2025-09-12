@@ -182,7 +182,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     //!=================================================================================================================
 
-    texture->m_view = Tools::CreateImageView(texture->m_image, VK_IMAGE_VIEW_TYPE_CUBE, 0);
+    texture->m_view = Tools::CreateImageView(texture->m_image, texture->m_image.GetAspect(), VK_IMAGE_VIEW_TYPE_CUBE, 0);
 
     if (texture->m_view == VK_NULL_HANDLE) {
         VK_ERROR("Texture::LoadCubeMap() : failed to create image view!");
@@ -315,7 +315,7 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
 
     //!=================================================================================================================
 
-    m_view = Tools::CreateImageView(m_image, m_cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D, 0);
+    m_view = Tools::CreateImageView(m_image, m_image.GetAspect(), m_cubeMap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D, 0);
 
     if (m_view == VK_NULL_HANDLE) {
         VK_ERROR("Texture::Create() : failed to create image view!");

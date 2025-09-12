@@ -77,6 +77,7 @@ namespace EvoVulkan::Complexes {
     public:
         EVK_NODISCARD VkImageView GetAttachment(uint32_t layer, uint32_t id) const;
 
+        EVK_NODISCARD std::vector<Types::Texture*> AllocateResolveTextureReferences();
         EVK_NODISCARD std::vector<Types::Texture*> AllocateColorTextureReferences();
         EVK_NODISCARD std::vector<Types::Texture*> AllocateDepthTextureReferences();
         EVK_NODISCARD Types::Texture* AllocateDepthTextureReference(int32_t index);
@@ -164,8 +165,8 @@ namespace EvoVulkan::Complexes {
         std::vector<VkClearValue> m_clearValues        = { };
         uint32_t                  m_countClearValues   = 0;
 
-        uint8_t                   m_sampleCount        = 0;
-        uint8_t                   m_currentSampleCount = 0;
+        uint8_t                   m_sampleCount        = -1;
+        uint8_t                   m_currentSampleCount = -2;
 
     };
 }

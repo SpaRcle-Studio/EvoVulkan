@@ -142,8 +142,8 @@ namespace EvoVulkan::Tools::Convert {
             case VK_SAMPLE_COUNT_32_BIT: return 32;
             case VK_SAMPLE_COUNT_64_BIT: return 64;
             default:
-                EVK_MAKE_ASSERT("Unknown sample count!");
-                return 0;
+                VK_HALT("Unknown sample count!");
+                return 1;
         }
     }
 
@@ -157,8 +157,8 @@ namespace EvoVulkan::Tools::Convert {
             case 32: return VK_SAMPLE_COUNT_32_BIT;
             case 64: return VK_SAMPLE_COUNT_64_BIT;
             default:
-                EVK_MAKE_ASSERT("Unknown sample count!");
-                return VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
+                VK_HALT("Unknown sample count!");
+                return VK_SAMPLE_COUNT_1_BIT;
         }
     }
 

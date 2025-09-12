@@ -38,17 +38,17 @@ namespace EvoVulkan::Types {
     static RenderPass CreateRenderPass(
             const EvoVulkan::Types::Device* device,
             const Types::Swapchain *swapchain,
-            std::vector<VkAttachmentDescription> attachments,
-            std::vector<VkAttachmentReference> inputAttachments,
+            std::vector<VkAttachmentDescription2> attachments,
+            std::vector<VkAttachmentReference2> inputAttachments,
             uint8_t sampleCount,
             VkImageAspectFlags depthAspect,
             VkFormat depthFormat
     ) {
         VK_GRAPH("Types::CreateRenderPass() : create vulkan render pass...");
 
-        std::vector<VkAttachmentReference> colorReferences = {};
-        std::vector<VkAttachmentReference> resolveReferences = {};
-        VkAttachmentReference depthReference = {};
+        std::vector<VkAttachmentReference2> colorReferences = {};
+        std::vector<VkAttachmentReference2> resolveReferences = {};
+        VkAttachmentReference2 depthReference = {};
         /// Resolve attachment reference for the color attachment
 
         const bool multisampling = sampleCount > 1;
@@ -67,10 +67,13 @@ namespace EvoVulkan::Types {
         /// }
         VkImageLayout depthLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        if (attachments.empty()) {
+        const bool isEmpty = attachments.empty();
+        if (isEmpty) {
             attachments.resize(multisampling ? (depth ? 3 : 2) : (depth ? 2 : 1));
 
             /// Color attachment
+            attachments[0].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+            attachments[0].pNext = nullptr;
             attachments[0].format = swapchain->GetColorFormat();
             attachments[0].samples = Tools::Convert::IntToSampleCount(sampleCount);
             attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -83,6 +86,8 @@ namespace EvoVulkan::Types {
             if (multisampling) {
                 /// This is the frame buffer attachment to where the multisampled image
                 /// will be resolved to and which will be presented to the swapchain
+                attachments[1].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+                attachments[1].pNext = nullptr;
                 attachments[1].format = swapchain->GetColorFormat();
                 attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
                 attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -94,6 +99,8 @@ namespace EvoVulkan::Types {
 
                 /// Multisampled depth attachment we render to
                 if (depth) {
+                    attachments[2].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+                    attachments[2].pNext = nullptr;
                     attachments[2].format = depthFormat;
                     attachments[2].samples = Tools::Convert::IntToSampleCount(sampleCount);
                     attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -104,10 +111,16 @@ namespace EvoVulkan::Types {
                     attachments[2].finalLayout = depthLayout;
                 }
 
-                resolveReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+                auto& ref = resolveReferences.emplace_back();
+                ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                ref.pNext = nullptr;
+                ref.attachment = 1;
+                ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             }
             else if (depth) {
                 /// Depth attachment
+                attachments[1].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+                attachments[1].pNext = nullptr;
                 attachments[1].format = depthFormat;
                 attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
                 attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -118,42 +131,80 @@ namespace EvoVulkan::Types {
                 attachments[1].finalLayout = depthLayout;
             }
 
-            colorReferences.push_back({0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
-            depthReference = { multisampling ? 2u : 1u, depthLayout};
+            auto& ref = colorReferences.emplace_back();
+            ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            ref.pNext = nullptr;
+            ref.attachment = 0;
+            ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+            depthReference = VkAttachmentReference2();
+            depthReference.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            depthReference.pNext = nullptr;
+            depthReference.layout = depthLayout;
+            depthReference.attachment = multisampling ? 2u : 1u;
         }
         else {
             ///uint32_t bind = 0;
             for (uint32_t i = 0; i < attachments.size() - (depth ? 1 : 0); i++) {
-                colorReferences.push_back({i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+                {
+                    auto &ref = colorReferences.emplace_back();
+                    ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                    ref.pNext = nullptr;
+                    ref.attachment = i;
+                    ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
                 if (multisampling) {
-                    VkAttachmentDescription attachmentDescription = {
-                            .flags = 0,
-                            .format = attachments[i].format,
-                            .samples = VK_SAMPLE_COUNT_1_BIT,
-                            .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                            .initialLayout = attachments[i].initialLayout, //VK_IMAGE_LAYOUT_UNDEFINED,
-                            .finalLayout = attachments[i].finalLayout //VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    VkAttachmentDescription2 attachmentDescription = {
+                        .sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
+                        .pNext = nullptr,
+                        .flags = 0,
+                        .format = attachments[i].format,
+                        .samples = VK_SAMPLE_COUNT_1_BIT,
+                        //.samples = Tools::Convert::IntToSampleCount(sampleCount),
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                        .initialLayout = attachments[i].initialLayout, //VK_IMAGE_LAYOUT_UNDEFINED,
+                        .finalLayout = attachments[i].finalLayout //VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     };
 
                     attachments.insert(attachments.begin() + i + 1, attachmentDescription);
                     i++;
-                    resolveReferences.push_back(VkAttachmentReference{ i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+
+                    auto& ref = resolveReferences.emplace_back();
+                    ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                    ref.pNext = nullptr;
+                    ref.attachment = i;
+                    ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 }
             }
 
             if (depth) {
-                depthReference = VkAttachmentReference{
-                    static_cast<uint32_t>(colorReferences.size() + resolveReferences.size()),
-                    depthLayout
-                };
+                depthReference = VkAttachmentReference2();
+                depthReference.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+                depthReference.pNext = nullptr;
+                depthReference.attachment = static_cast<uint32_t>(colorReferences.size() + resolveReferences.size());
+                depthReference.layout = depthLayout;
             }
         }
 
-        VkSubpassDescription subpassDescription = { };
+        VkAttachmentReference2 depthResolveAttachment{};
+        depthResolveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+        depthResolveAttachment.attachment = depthReference.attachment;
+        depthResolveAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescriptionDepthStencilResolve depthResolve{};
+        depthResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
+        depthResolve.depthResolveMode = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;// VK_RESOLVE_MODE_AVERAGE_BIT;   // или SAMPLE_ZERO_BIT
+        depthResolve.stencilResolveMode = VK_RESOLVE_MODE_NONE;
+        depthResolve.pDepthStencilResolveAttachment = &depthResolveAttachment;
+
+        VkSubpassDescription2KHR subpassDescription = { };
         {
+            subpassDescription.sType                   = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR;
+            subpassDescription.pNext                   = nullptr;
+            //subpassDescription.pNext                   = (depth && !isEmpty && sampleCount > 1) ? &depthResolve : nullptr;
             subpassDescription.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpassDescription.colorAttachmentCount    = static_cast<uint32_t>(colorReferences.size());
             subpassDescription.pColorAttachments       = colorReferences.data();
@@ -166,12 +217,14 @@ namespace EvoVulkan::Types {
         }
 
         /// Subpass dependencies for layout transitions
-        std::vector<VkSubpassDependency> dependencies;
+        std::vector<VkSubpassDependency2> dependencies;
 
         /// цвет с мультисемплингом
         if (multisampling) {
             dependencies.resize(2);
 
+            dependencies[0].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+            dependencies[0].pNext = nullptr;
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[0].dstSubpass = 0;
             dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -180,6 +233,8 @@ namespace EvoVulkan::Types {
             dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
+            dependencies[1].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+            dependencies[1].pNext = nullptr;
             dependencies[1].srcSubpass = 0;
             dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -192,6 +247,8 @@ namespace EvoVulkan::Types {
         else if (attachments.size() > 1 || !depth) {
             dependencies.resize(1);
 
+            dependencies[0].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+            dependencies[0].pNext = nullptr;
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[0].dstSubpass = 0;
             dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -203,6 +260,8 @@ namespace EvoVulkan::Types {
         else {
             dependencies.resize(2);
 
+            dependencies[0].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+            dependencies[0].pNext = nullptr;
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[0].dstSubpass = 0;
             dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -211,6 +270,8 @@ namespace EvoVulkan::Types {
             dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
             dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
+            dependencies[1].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+            dependencies[1].pNext = nullptr;
             dependencies[1].srcSubpass = 0;
             dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
@@ -228,8 +289,11 @@ namespace EvoVulkan::Types {
             }
         }
 
-        VkRenderPassCreateInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+
+        VkRenderPassCreateInfo2KHR renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR;
+        renderPassInfo.pNext = nullptr;
         renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         renderPassInfo.pAttachments = attachments.data();
         renderPassInfo.subpassCount = 1;
@@ -237,8 +301,17 @@ namespace EvoVulkan::Types {
         renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
         renderPassInfo.pDependencies = dependencies.data();
 
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        auto result = vkCreateRenderPass(*device, &renderPassInfo, nullptr, &renderPass);
+        auto pVkCreateRenderPass2KHR = (PFN_vkCreateRenderPass2KHR) vkGetDeviceProcAddr(*device, "vkCreateRenderPass2KHR");
+        if (!pVkCreateRenderPass2KHR) {
+            pVkCreateRenderPass2KHR = (PFN_vkCreateRenderPass2KHR) vkGetDeviceProcAddr(*device, "vkCreateRenderPass2");
+        }
+
+        if (!pVkCreateRenderPass2KHR) {
+            VK_ERROR("Types::CreateRenderPass() : failed to get vkCreateRenderPass2KHR function pointer!");
+            return RenderPass(); /// NOLINT
+        }
+
+        auto result = pVkCreateRenderPass2KHR(*device, &renderPassInfo, nullptr, &renderPass);
         if (result != VK_SUCCESS) {
             VK_ERROR("Types::CreateRenderPass() : failed to create vulkan render pass! Reason: " +
                      Tools::Convert::result_to_description(result));
