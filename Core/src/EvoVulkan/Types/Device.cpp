@@ -67,6 +67,14 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
+        if (Tools::IsExtensionSupported(physicalDevice, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
+            info.extensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+            VK_LOG("Device::Create() : enabled extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME));
+        }
+        else {
+            VK_LOG("Device::Create() : extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) + " is not supported!");
+        }
+
         if (Tools::IsExtensionSupported(physicalDevice, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)) {
             info.extensions.emplace_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
             info.extensions.emplace_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);

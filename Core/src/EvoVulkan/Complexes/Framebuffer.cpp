@@ -44,6 +44,7 @@ namespace EvoVulkan::Complexes {
         FrameBufferFeatures features,
         const std::vector<VkFormat>& colorAttachments,
         uint32_t width, uint32_t height,
+        uint32_t layersCount,
         uint32_t arrayLayers,
         float_t scale,
         uint8_t samplesCount,
@@ -55,8 +56,18 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
+        if (layersCount <= 0 || layersCount > 256) {
+            VK_ERROR("Framebuffer::Create() : invalid layers!");
+            return nullptr;
+        }
+
         if (arrayLayers <= 0 || arrayLayers > 256) {
             VK_ERROR("Framebuffer::Create() : invalid array layers!");
+            return nullptr;
+        }
+
+        if (colorAttachments.size() > 0 && layersCount > 1) {
+            VK_ERROR("Framebuffer::Create() : layers > 1 is not supported yet for multiple color attachments!");
             return nullptr;
         }
 
@@ -72,7 +83,8 @@ namespace EvoVulkan::Complexes {
 
         auto&& pFBO = new FrameBuffer();
         {
-            pFBO->m_layersCount        = arrayLayers;
+            pFBO->m_layersCount        = layersCount;
+            pFBO->m_arrayLayersCount   = arrayLayers;
             pFBO->m_scale              = scale;
             pFBO->m_cmdPool            = pool;
             pFBO->m_device             = device;
@@ -216,7 +228,7 @@ namespace EvoVulkan::Complexes {
             FBO_CI.attachmentCount         = static_cast<uint32_t>(attachments.size());
             FBO_CI.width                   = m_width;
             FBO_CI.height                  = m_height;
-            FBO_CI.layers                  = 1;
+            FBO_CI.layers                  = m_arrayLayersCount;
 
             VkFramebuffer vkFramebuffer = VK_NULL_HANDLE;
             const bool isSuccess = vkCreateFramebuffer(*m_device, &FBO_CI, nullptr, &vkFramebuffer) == VK_SUCCESS;
@@ -554,6 +566,11 @@ namespace EvoVulkan::Complexes {
     void FrameBuffer::SetLayersCount(uint32_t layersCount) {
         m_dirtyRenderPass |= (m_layersCount != layersCount);
         m_layersCount = layersCount;
+    }
+
+    void FrameBuffer::SetArrayLayersCount(uint32_t arrayLayersCount) {
+        m_dirtyRenderPass |= (m_arrayLayersCount != arrayLayersCount);
+        m_arrayLayersCount = arrayLayersCount;
     }
 
     void FrameBuffer::SetDepthAspect(VkImageAspectFlags depthAspect) {

@@ -30,6 +30,15 @@ namespace EvoVulkan::Tools {
         uint32_t offset;
         uint32_t size;
     };
+
+    EVK_MAYBE_UNUSED static bool IsExtensionEnabled(const std::vector<const char*>& extensions, const char* extension) {
+        for (const auto& ext : extensions) {
+            if (strcmp(ext, extension) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 	
     DLL_EVK_EXPORT VkAttachmentDescription2 CreateColorAttachmentDescription(VkFormat format,
                                                              VkSampleCountFlagBits samples,
@@ -450,6 +459,16 @@ namespace EvoVulkan::Tools {
         VkPhysicalDeviceVulkan12Features deviceVulkan12Features = { };
         deviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
         deviceVulkan12Features.pNext = (void*)&dynamicRenderingFeature;
+
+        if (Tools::IsExtensionEnabled(extensions, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
+            deviceVulkan12Features.shaderOutputViewportIndex = VK_TRUE;
+            deviceVulkan12Features.shaderOutputLayer = VK_TRUE;
+        }
+        else {
+            deviceVulkan12Features.shaderOutputViewportIndex = VK_FALSE;
+            deviceVulkan12Features.shaderOutputLayer = VK_FALSE;
+        }
+
         /// deviceVulkan12Features.separateDepthStencilLayouts = VK_TRUE;
 
         //!=============================================================================================================

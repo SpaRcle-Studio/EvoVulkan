@@ -52,6 +52,7 @@ namespace EvoVulkan::Complexes {
                 FrameBufferFeatures features,
                 const std::vector<VkFormat>& colorAttachments,
                 uint32_t width, uint32_t height,
+                uint32_t layersCount,
                 uint32_t arrayLayers,
                 float_t scale,
                 uint8_t samplesCount,
@@ -67,6 +68,7 @@ namespace EvoVulkan::Complexes {
 
         void SetSampleCount(uint8_t sampleCount);
         void SetLayersCount(uint32_t layersCount);
+        void SetArrayLayersCount(uint32_t layersCount);
         void SetDepthFormat(VkFormat depthFormat);
         void SetDepthAspect(VkImageAspectFlags depthAspect);
         void SetFeatures(const FrameBufferFeatures& features);
@@ -93,6 +95,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE const FrameBufferLayers& GetLayers() const noexcept { return m_layers; }
         EVK_NODISCARD EVK_INLINE uint32_t GetLayersCount() const noexcept { return m_layersCount; }
+        EVK_NODISCARD EVK_INLINE uint32_t GetArrayLayersCount() const noexcept { return m_arrayLayersCount; }
         EVK_NODISCARD EVK_INLINE VkRect2D GetRenderPassArea() const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
         EVK_NODISCARD EVK_INLINE Types::Device* GetDevice() const noexcept { return m_device; }
         EVK_NODISCARD EVK_INLINE VkSemaphore GetSemaphore() const noexcept { return m_semaphore; }
@@ -133,6 +136,7 @@ namespace EvoVulkan::Complexes {
 
         FrameBufferLayers         m_layers             = { };
         uint32_t                  m_layersCount        = 0;
+        uint32_t                  m_arrayLayersCount   = 1;
         std::vector<VkFormat>     m_attachFormats      = { };
 
         VkSemaphore               m_semaphore          = VK_NULL_HANDLE;

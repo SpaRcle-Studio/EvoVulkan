@@ -39,7 +39,7 @@ namespace EvoVulkan::Complexes {
                 m_frameBuffer,
                 colorFormats[i],
                 usageFlags,
-                1 /** layers count */,
+                m_frameBuffer->GetArrayLayersCount(),
                 m_index /** layer index */
             );
 
@@ -56,7 +56,7 @@ namespace EvoVulkan::Complexes {
                 m_resolveAttachments[i] = FrameBufferAttachment::CreateResolveAttachment(
                     m_frameBuffer,
                     colorFormats[i],
-                    1 /** layers count */,
+                    m_frameBuffer->GetArrayLayersCount(),
                     m_index /** layer index */
                 );
 
@@ -78,7 +78,7 @@ namespace EvoVulkan::Complexes {
                 m_depthArray,
                 depthFormat,
                 depthAspect,
-                1 /** layers count */,
+                m_frameBuffer->GetArrayLayersCount(),
                 m_index /** layer index */
             );
 
