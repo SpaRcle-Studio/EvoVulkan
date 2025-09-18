@@ -102,7 +102,7 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD Core::DescriptorManager* GetDescriptorManager() const;
         EVK_NODISCARD uint32_t GetCountBuildIterations() const;
         EVK_NODISCARD bool IsGUIEnabled() const { return m_GUIEnabled; }
-        EVK_NODISCARD bool IsValidationLayersEnabled() const { return m_validationEnabled; }
+        EVK_NODISCARD bool IsValidationLayersEnabled() const { return m_validationLayersEnabled; }
         EVK_NODISCARD bool IsSurfaceCollapsed() const { return m_paused; }
         EVK_NODISCARD VkPipelineStageFlags GetSubmitPipelineStages() const { return m_submitPipelineStages; }
 
@@ -127,6 +127,7 @@ namespace EvoVulkan::Core {
         virtual bool IsRayTracingRequired() const noexcept { return false; }
 
         bool SetValidationLayersEnabled(bool value);
+        bool SetValidationDebugEnabled(bool value);
         void SetSize(uint32_t width, uint32_t height);
         bool ReCreate(FrameResult reason);
 
@@ -208,7 +209,8 @@ namespace EvoVulkan::Core {
 
         VkDebugUtilsMessengerEXT   m_debugMessenger       = VK_NULL_HANDLE;
 
-        bool                       m_validationEnabled    = false;
+        bool                       m_validationLayersEnabled = false;
+        bool                       m_validationDebugEnabled  = false;
 
         bool                       m_isPreInitialized     = false;
         bool                       m_isInitialized        = false;

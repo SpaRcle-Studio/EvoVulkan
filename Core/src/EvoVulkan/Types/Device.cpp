@@ -61,9 +61,42 @@ namespace EvoVulkan::Types {
         }
 
         physicalDevice = Tools::SelectBetterDevice(deviceInfos);
+        if (physicalDevice == VK_NULL_HANDLE) {
+            std::string msg = std::string();
 
-        if (!physicalDevice) {
-            VK_ERROR("Device::Create() : suitable device is not found!");
+            for (auto extension : info.extensions) {
+                msg += "\n\t";
+                msg += extension;
+            }
+
+            VK_ERROR("Device::Create() : not found suitable device! \nExtensions: " + msg);
+
+            return nullptr;
+        }
+        else {
+            VK_LOG("Device::Create() : choosing \"" + Tools::GetDeviceName(physicalDevice) + "\" device.");
+        }
+
+        if (Tools::GetDeviceName(physicalDevice).find("llvmpipe") != std::string::npos) {
+            VK_WARN("Device::Create() : llvmpipe is chosen!"
+                    "\n\tMake sure you have proper video drivers installed and that your GPU supports Vulkan!"
+            );
+        }
+
+        auto&& supportedExtensions = Tools::GetSupportedDeviceExtensions(physicalDevice);
+        VK_LOG("Device::Create() : supported device extensions count: " + std::to_string(supportedExtensions.size()));
+
+        std::string supportedExtMsg = "Device::Create() : supported device extensions:";
+        for (auto&& extension : supportedExtensions) {
+            supportedExtMsg.append("\n\t").append(extension);
+        }
+        VK_LOG(supportedExtMsg);
+
+        if (Tools::IsExtensionSupported(physicalDevice, VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
+            info.extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        }
+        else {
+            VK_ERROR("Device::Create() : device not support's extension \"" + std::string(VK_KHR_SWAPCHAIN_EXTENSION_NAME) + "\", rendering impossible!");
             return nullptr;
         }
 
@@ -89,28 +122,6 @@ namespace EvoVulkan::Types {
             info.dynamicRendering = false;
         }
 
-        if (physicalDevice == VK_NULL_HANDLE) {
-            std::string msg = std::string();
-
-            for (auto extension : info.extensions) {
-                msg += "\n\t";
-                msg += extension;
-            }
-
-            VK_ERROR("Device::Create() : not found suitable device! \nExtensions: " + msg);
-
-            return nullptr;
-        }
-        else {
-            VK_LOG("Device::Create() : choosing \"" + Tools::GetDeviceName(physicalDevice) + "\" device.");
-        }
-
-        if (Tools::GetDeviceName(physicalDevice).find("llvmpipe") != std::string::npos) {
-            VK_WARN("Device::Create() : llvmpipe is chosen!"
-                    "\n\tMake sure you have proper video drivers installed and that your GPU supports Vulkan!"
-            );
-        }
-
         FamilyQueues* pQueues = FamilyQueues::Find(physicalDevice, info.pSurface);
 
         if (!pQueues) {
@@ -125,13 +136,6 @@ namespace EvoVulkan::Types {
         }
 
         //!=============================================================================================================
-
-        std::string supportedExtMsg = "Device::Create() : supported device extensions:";
-        auto&& supportedExtensions = Tools::GetSupportedDeviceExtensions(physicalDevice);
-        for (auto&& extension : supportedExtensions) {
-            supportedExtMsg.append("\n\t").append(extension);
-        }
-        VK_LOG(supportedExtMsg);
 
         VkPhysicalDeviceLineRasterizationFeaturesEXT lineRasterizationFeaturesExt = {};
         lineRasterizationFeaturesExt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT;
@@ -182,6 +186,7 @@ namespace EvoVulkan::Types {
         auto&& pDevice = new Device(info.pInstance, pQueues, physicalDevice, logicalDevice);
 
         pDevice->m_dynamicRenderingSupport = info.dynamicRendering;
+        pDevice->m_deviceFeatures2 = deviceFeatures2;
         pDevice->CheckRayTracing(info.rayTracing);
 
         if (!pDevice->Initialize(info.enableSampleShading, info.multisampling, 64)) {
@@ -202,14 +207,7 @@ namespace EvoVulkan::Types {
         /// Gather physical device memory properties
         vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &m_memoryProperties);
 
-        VkPhysicalDeviceFeatures2 deviceFeatures = {};
-        deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-        deviceFeatures.pNext = nullptr;
-
-        vkGetPhysicalDeviceFeatures2(m_physicalDevice, &deviceFeatures);
-        {
-            m_enableSamplerAnisotropy = deviceFeatures.features.samplerAnisotropy;
-        }
+        m_enableSamplerAnisotropy = m_deviceFeatures2.features.samplerAnisotropy;
 
         m_maxSamplerAnisotropy = Tools::GetMaxSamplerAnisotropy(m_physicalDevice);
         m_deviceName = Tools::GetDeviceName(m_physicalDevice);
@@ -295,7 +293,7 @@ namespace EvoVulkan::Types {
                 VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
                 nullptr,
                 flagBits,
-                GetQueues()->GetGraphicsIndex()
+                static_cast<uint32_t>(GetQueues()->GetGraphicsIndex())
             };
 
         VkCommandPool cmdPool = VK_NULL_HANDLE;

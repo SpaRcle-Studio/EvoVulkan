@@ -397,9 +397,45 @@ namespace EvoVulkan::Tools {
             deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
         }
 
-        if (pQueues->GetTransferIndex() != pQueues->GetGraphicsIndex() && pQueues->GetTransferIndex() != pQueues->GetComputeIndex()) {
-            deviceQueueCreateInfo.queueFamilyIndex = pQueues->GetTransferIndex();
-            deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
+        if (pQueues->GetTransferIndex() >= 0) {
+            if (pQueues->GetTransferIndex() != pQueues->GetGraphicsIndex() && pQueues->GetTransferIndex() != pQueues->GetComputeIndex()) {
+                deviceQueueCreateInfo.queueFamilyIndex = pQueues->GetTransferIndex();
+                deviceQueueCreateInfos.push_back(deviceQueueCreateInfo);
+            }
+        }
+
+        if (deviceQueueCreateInfo.queueFamilyIndex < 0) {
+            VK_ERROR("VulkanTools::CreateLogicalDevice() : invalid queue family index!");
+            return VK_NULL_HANDLE;
+        }
+
+        for (const auto& q : deviceQueueCreateInfos) {
+            std::string queueType;
+
+            if (q.queueFamilyIndex == pQueues->GetGraphicsIndex()) {
+                queueType = "graphics";
+            }
+            else if (q.queueFamilyIndex == pQueues->GetComputeIndex()) {
+                queueType = "compute";
+            }
+            else if (q.queueFamilyIndex == pQueues->GetTransferIndex()) {
+                queueType = "transfer";
+            }
+            else if (q.queueFamilyIndex == pQueues->GetPresentIndex()) {
+                queueType = "present";
+            }
+            else {
+                queueType = "unknown";
+            }
+
+            VK_LOG("VulkanTools::CreateLogicalDevice() : queue family index = " + std::to_string(q.queueFamilyIndex) + " (" + queueType + ")");
+        }
+
+        for (const auto& q : deviceQueueCreateInfos) {
+            if (static_cast<int32_t>(q.queueFamilyIndex) < 0) {
+                VK_ERROR("VulkanTools::CreateLogicalDevice() : queue family contains invalid index!");
+                return VK_NULL_HANDLE;
+            }
         }
 
         //!=============================================================================================================
@@ -492,7 +528,7 @@ namespace EvoVulkan::Tools {
         createInfo.queueCreateInfoCount    = static_cast<uint32_t>(deviceQueueCreateInfos.size());
         createInfo.pQueueCreateInfos       = deviceQueueCreateInfos.data();
 
-        createInfo.pEnabledFeatures        = VK_FALSE; /// &deviceFeatures;
+        createInfo.pEnabledFeatures        = nullptr; /// &deviceFeatures;
 
         createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();

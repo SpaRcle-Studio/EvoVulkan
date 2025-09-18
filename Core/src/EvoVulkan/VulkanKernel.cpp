@@ -76,8 +76,8 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
         }
     }
 
-    if (m_validationLayers.empty() && m_validationEnabled) {
-        m_validationEnabled = false;
+    if (m_validationLayers.empty() && m_validationLayersEnabled) {
+        m_validationLayersEnabled = false;
         VK_WARN("VulkanKernel::PreInit() : validation is disabled!");
     }
 
@@ -86,14 +86,15 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
             m_engineName,
             m_instExtensions,
             m_validationLayers,
-            m_validationEnabled);
+            m_validationLayersEnabled,
+            m_validationDebugEnabled);
 
     if (m_instance == VK_NULL_HANDLE) {
         VK_ERROR("VulkanKernel::PreInit() : failed to create vulkan instance!");
         return false;
     }
 
-    if (m_validationEnabled) {
+    if (m_validationDebugEnabled) {
         m_debugMessenger = Tools::SetupDebugMessenger(*m_instance);
         if (m_debugMessenger == VK_NULL_HANDLE) {
             VK_ERROR("VulkanKernel::PreInit() : failed to setup debug messenger! Trying to continue...");
@@ -126,6 +127,9 @@ bool EvoVulkan::Core::VulkanKernel::Init(
             return false;
         }
     }
+    else {
+        VK_WARN("VulkanKernel::Init() : window handle is not set! Can't create a surface.");
+    }
 
     //!==========================================[Create logical device]================================================
 
@@ -140,7 +144,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     deviceCreateInfo.rayTracing = IsRayTracingRequired();
     deviceCreateInfo.extensions = deviceExtensions;
     deviceCreateInfo.dynamicRendering = enableDynamicRendering;
-    deviceCreateInfo.validationLayers = m_validationEnabled ? m_validationLayers : std::vector<const char*>();
+    deviceCreateInfo.validationLayers = m_validationLayersEnabled ? m_validationLayers : std::vector<const char*>();
 
     m_device = Types::Device::Create(std::move(deviceCreateInfo));
     if (!m_device) {
@@ -393,7 +397,9 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_renderPass.IsReady())
         Types::DestroyRenderPass(m_device, &m_renderPass);
 
-    Tools::DestroyFences(*m_device, m_waitFences);
+    if (m_device) {
+        Tools::DestroyFences(*m_device, m_waitFences);
+    }
 
     if (m_drawCmdBuffs) {
         Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
@@ -403,7 +409,9 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
         Tools::FreeCommandBuffers(*m_device, *m_computeCmdPool, &m_computeCmdBuffers, m_countCCB);
     }
 
-    Tools::DestroyVulkanSemaphore(*m_device, &m_offscreenSemaphore);
+    if (m_device) {
+        Tools::DestroyVulkanSemaphore(*m_device, &m_offscreenSemaphore);
+    }
 
     EVSafeFreeObject(m_swapchain);
     EVSafeFreeObject(m_surface);
@@ -412,7 +420,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     EVSafeFreeObject(m_allocator);
     EVSafeFreeObject(m_device);
 
-    if (m_validationEnabled && m_instance) {
+    if (m_validationLayersEnabled && m_instance) {
         Tools::DestroyDebugUtilsMessengerEXT(*m_instance, m_debugMessenger, nullptr);
         m_debugMessenger = VK_NULL_HANDLE;
     }
@@ -510,16 +518,22 @@ EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
 }
 
 void EvoVulkan::Core::VulkanKernel::WaitFences() {
-    vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
+    if (m_device && !m_waitFences.empty()) {
+        vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
+    }
 }
 
 
 void EvoVulkan::Core::VulkanKernel::WaitDeviceIdle() {
-    vkDeviceWaitIdle(*m_device);
+    if (m_device) {
+        vkDeviceWaitIdle(*m_device);
+    }
 }
 
 void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
-    vkWaitForFences(*m_device, static_cast<uint32_t>(m_waitFences.size()), m_waitFences.data(), VK_TRUE, UINT64_MAX);
+    if (m_device && !m_waitFences.empty()) {
+        vkWaitForFences(*m_device, static_cast<uint32_t>(m_waitFences.size()), m_waitFences.data(), VK_TRUE, UINT64_MAX);
+    }
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
@@ -770,7 +784,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations() {
     }
     m_frameSyncs.clear();
 
-    m_frameSyncs.resize(m_swapchain->GetCountImages());
+    m_frameSyncs.resize(m_swapchain ? m_swapchain->GetCountImages() : 0);
 
     for (auto& sync : m_frameSyncs) {
         sync = Tools::CreateSynchronization(*m_device);
@@ -796,7 +810,18 @@ bool EvoVulkan::Core::VulkanKernel::SetValidationLayersEnabled(bool value) {
         return false;
     }
 
-    m_validationEnabled = value;
+    m_validationLayersEnabled = value;
+
+    return true;
+}
+
+bool EvoVulkan::Core::VulkanKernel::SetValidationDebugEnabled(bool value) {
+    if (m_isPreInitialized) {
+        VK_ERROR("VulkanKernel::SetValidationDebugEnabled() : at this stage it is not possible to set this parameter!");
+        return false;
+    }
+
+    m_validationDebugEnabled = value;
 
     return true;
 }

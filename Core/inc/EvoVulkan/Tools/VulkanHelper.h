@@ -251,30 +251,6 @@ namespace EvoVulkan::Tools {
         createInfo.pfnUserCallback = DebugReportCallback;
     }
 
-    EVK_MAYBE_UNUSED static bool IsExtensionSupported(const VkPhysicalDevice& device, const std::string& requiredExtension) {
-        if (!device) {
-            VK_ERROR("IsExtensionSupported() : device is nullptr!");
-            return false;
-        }
-
-        uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-
-        std::vector<std::string> extensions;
-        extensions.reserve(extensionCount);
-
-        for (auto&& extension : availableExtensions) {
-            if (requiredExtension == extension.extensionName) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     EVK_MAYBE_UNUSED static std::vector<std::string> GetSupportedDeviceExtensions(const VkPhysicalDevice& device) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -290,6 +266,23 @@ namespace EvoVulkan::Tools {
         }
 
         return extensions;
+    }
+
+    EVK_MAYBE_UNUSED static bool IsExtensionSupported(const VkPhysicalDevice& device, const std::string& requiredExtension) {
+        if (!device) {
+            VK_ERROR("IsExtensionSupported() : device is nullptr!");
+            return false;
+        }
+
+        std::vector<std::string> availableExtensions = GetSupportedDeviceExtensions(device);
+
+        for (auto&& extension : availableExtensions) {
+            if (requiredExtension == extension) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     EVK_MAYBE_UNUSED static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& extensions) {

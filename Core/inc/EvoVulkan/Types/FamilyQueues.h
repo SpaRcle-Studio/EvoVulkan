@@ -31,10 +31,10 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD VkQueue GetPresentQueue() const noexcept { return m_graphicsQueue; }
         EVK_NODISCARD VkQueue GetComputeQueue() const noexcept { return m_computeQueue; }
 
-        EVK_NODISCARD uint32_t GetPresentIndex() const noexcept { return static_cast<uint32_t>(m_presentQueueFamilyIndex); }
-        EVK_NODISCARD uint32_t GetGraphicsIndex() const noexcept { return static_cast<uint32_t>(m_graphicsQueueFamilyIndex); }
-        EVK_NODISCARD uint32_t GetComputeIndex() const noexcept { return static_cast<uint32_t>(m_computeQueueFamilyIndex); }
-        EVK_NODISCARD uint32_t GetTransferIndex() const noexcept { return static_cast<uint32_t>(m_transferQueueFamilyIndex); }
+        EVK_NODISCARD int32_t GetPresentIndex() const noexcept { return m_presentQueueFamilyIndex; }
+        EVK_NODISCARD int32_t GetGraphicsIndex() const noexcept { return m_graphicsQueueFamilyIndex; }
+        EVK_NODISCARD int32_t GetComputeIndex() const noexcept { return m_computeQueueFamilyIndex; }
+        EVK_NODISCARD int32_t GetTransferIndex() const noexcept { return m_transferQueueFamilyIndex; }
 
     private:
         bool FindIndices();

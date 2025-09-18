@@ -92,6 +92,8 @@ namespace EvoVulkan::Types {
         /// for multisampling.rasterizationSamples and images
         VkSampleCountFlagBits            m_maxCountMSAASamples     = VK_SAMPLE_COUNT_1_BIT;
 
+        VkPhysicalDeviceFeatures2        m_deviceFeatures2 = {};
+
         /// for deviceFeatures and multisampling
         bool                             m_enableSampleShading     = false;
         bool                             m_multisampling           = false;

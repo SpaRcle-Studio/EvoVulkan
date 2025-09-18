@@ -28,7 +28,8 @@ namespace EvoVulkan::Types {
                 const std::string& engineName,
                 StringVector extensions,
                 const StringVector& layers,
-                bool validationEnabled);
+                bool validationLayersEnabled,
+                bool validationReportEnabled);
 
         operator VkInstance() const { return m_instance; }
 

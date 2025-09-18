@@ -22,8 +22,9 @@ namespace EvoVulkan::Types {
         return
             (!m_surface || m_presentQueueFamilyIndex >= 0) &&
             m_graphicsQueueFamilyIndex >= 0 &&
-            m_computeQueueFamilyIndex >= 0 &&
-            m_transferQueueFamilyIndex >= 0;
+            m_computeQueueFamilyIndex >= 0;
+
+        /// m_transferQueueFamilyIndex есть далеко не на всех девайсах, не учитываем ее, опциональное.
     }
 
     bool FamilyQueues::IsReady() const {
@@ -31,8 +32,9 @@ namespace EvoVulkan::Types {
             IsComplete() &&
             (!m_surface ||m_presentQueue != VK_NULL_HANDLE) &&
             m_graphicsQueue != VK_NULL_HANDLE &&
-            m_transferQueue != VK_NULL_HANDLE &&
             m_computeQueue  != VK_NULL_HANDLE;
+
+        /// m_transferQueue есть далеко не на всех девайсах, не учитываем ее, опциональное.
     }
 
     FamilyQueues* FamilyQueues::Find(VkPhysicalDevice physicalDevice, const Surface* pSurface) {
@@ -56,13 +58,21 @@ namespace EvoVulkan::Types {
            "\n\tCompute queue index: " + std::to_string(m_computeQueueFamilyIndex) +
            "\n\tTransfer queue index: " + std::to_string(m_transferQueueFamilyIndex) +
            "\n\tPresent queue index: " + std::to_string(m_presentQueueFamilyIndex)
-       );
+        );
 
-        vkGetDeviceQueue(m_logicalDevice, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
-        vkGetDeviceQueue(m_logicalDevice, m_computeQueueFamilyIndex, 0, &m_computeQueue);
-        vkGetDeviceQueue(m_logicalDevice, m_transferQueueFamilyIndex, 0, &m_transferQueue);
+        if (m_graphicsQueueFamilyIndex >= 0) {
+            vkGetDeviceQueue(m_logicalDevice, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
+        }
 
-        if (m_surface) {
+        if (m_computeQueueFamilyIndex >= 0) {
+            vkGetDeviceQueue(m_logicalDevice, m_computeQueueFamilyIndex, 0, &m_computeQueue);
+        }
+
+        if (m_transferQueueFamilyIndex >= 0) {
+            vkGetDeviceQueue(m_logicalDevice, m_transferQueueFamilyIndex, 0, &m_transferQueue);
+        }
+
+        if (m_surface && m_presentQueueFamilyIndex >= 0) {
             vkGetDeviceQueue(m_logicalDevice, m_presentQueueFamilyIndex, 0, &m_presentQueue);
         }
 
@@ -73,11 +83,6 @@ namespace EvoVulkan::Types {
 
         if (!m_computeQueue || m_computeQueueFamilyIndex < 0) {
             VK_ERROR("FamilyQueues::Initialize() : compute queue is not supported!");
-            return false;
-        }
-
-        if (!m_transferQueue || m_transferQueueFamilyIndex < 0) {
-            VK_ERROR("FamilyQueues::Initialize() : transfer queue is not supported!");
             return false;
         }
 
@@ -97,59 +102,74 @@ namespace EvoVulkan::Types {
         m_queueFamilyProperties.resize(m_queueFamilyPropertyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &m_queueFamilyPropertyCount, m_queueFamilyProperties.data());
 
-        for (const VkQueueFamilyProperties& queueFamily : m_queueFamilyProperties) {
-            VK_LOG("FamilyQueues::FindIndices() : found queue family: "
-                   "\n\tCount queues: " + std::to_string(queueFamily.queueCount) +
-                   "\n\tTimestamp valid bits: " + std::to_string(queueFamily.timestampValidBits) +
-                   "\n\tGraphics: " + std::string(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT ? "True" : "False") +
-                   "\n\tCompute: " + std::string(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT ? "True" : "False") +
-                   "\n\tTransfer: " + std::string(queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT ? "True" : "False") +
-                   "\n\tProtected: " + std::string(queueFamily.queueFlags & VK_QUEUE_PROTECTED_BIT ? "True" : "False") +
-                   "\n\tMin image transfer granularity: width: " + std::to_string(queueFamily.minImageTransferGranularity.width) +
-                        ", Height: " + std::to_string(queueFamily.minImageTransferGranularity.height) +
-                        ", Depth: " + std::to_string(queueFamily.minImageTransferGranularity.depth)
-            );
+        for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
+            const VkQueueFamilyProperties& qf = m_queueFamilyProperties[j];
+            VK_LOG(EVK_FORMAT("FamilyQueues::FindIndices() : queue family %u:"
+                   "\n\tCount: %u"
+                   "\n\tGraphics: %s"
+                   "\n\tCompute: %s"
+                   "\n\tTransfer: %s"
+                   "\n\tProtected: %s"
+                   "\n\tGranularity: %ux%ux%u",
+                   j,
+                   qf.queueCount,
+                   (qf.queueFlags & VK_QUEUE_GRAPHICS_BIT) ? "True" : "False",
+                   (qf.queueFlags & VK_QUEUE_COMPUTE_BIT)  ? "True" : "False",
+                   (qf.queueFlags & VK_QUEUE_TRANSFER_BIT) ? "True" : "False",
+                   (qf.queueFlags & VK_QUEUE_PROTECTED_BIT)? "True" : "False",
+                   qf.minImageTransferGranularity.width,
+                   qf.minImageTransferGranularity.height,
+                   qf.minImageTransferGranularity.depth));
         }
 
-        for (size_t i = 0; i < 3; ++i) {
-            const VkQueueFlagBits flag = askingFlags[i];
-            uint32_t& queueIdx = queuesIndices[i];
-
-            if (flag == VK_QUEUE_COMPUTE_BIT) {
-                for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
-                    if ((m_queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
-                        !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-                        queueIdx = j;
-                        break;
-                    }
-                }
+        // Graphics: просто берём первую с графикой
+        for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
+            if (m_queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                queuesIndices[0] = j;
+                break;
             }
-            else if (flag == VK_QUEUE_TRANSFER_BIT) {
-                for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
-                    if ((m_queueFamilyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
-                        !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-                        !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
-                        queueIdx = j;
-                        break;
-                    }
-                }
-            }
+        }
 
-            if (queueIdx == ~0u) {
-                for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
-                    if (m_queueFamilyProperties[j].queueFlags & flag) {
-                        queueIdx = j;
-                        break;
-                    }
+        // Compute: ищем compute-only, иначе берём любую с compute
+        for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
+            if ((m_queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
+                !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+                queuesIndices[1] = j;
+                break;
+            }
+        }
+        if (queuesIndices[1] == ~0u) {
+            for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
+                if (m_queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+                    queuesIndices[1] = j;
+                    break;
                 }
             }
         }
 
+        // Transfer: ищем transfer-only, иначе любую с transfer
+        for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
+            if ((m_queueFamilyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
+                !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+                !(m_queueFamilyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                queuesIndices[2] = j;
+                break;
+            }
+        }
+        if (queuesIndices[2] == ~0u) {
+            for (uint32_t j = 0; j < m_queueFamilyPropertyCount; ++j) {
+                if (m_queueFamilyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) {
+                    queuesIndices[2] = j;
+                    break;
+                }
+            }
+        }
+
+        // Present support
         if (m_surface) {
             for (uint32_t i = 0; i < m_queueFamilyProperties.size(); ++i) {
-                VkBool32 presentSupport = false;
+                VkBool32 presentSupport = VK_FALSE;
                 vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, *m_surface, &presentSupport);
-
                 if (presentSupport) {
                     m_presentQueueFamilyIndex = static_cast<int32_t>(i);
                     break;
@@ -158,9 +178,15 @@ namespace EvoVulkan::Types {
         }
 
         m_graphicsQueueFamilyIndex = static_cast<int32_t>(queuesIndices[0]);
-        m_computeQueueFamilyIndex = static_cast<int32_t>(queuesIndices[1]);
+        m_computeQueueFamilyIndex  = static_cast<int32_t>(queuesIndices[1]);
         m_transferQueueFamilyIndex = static_cast<int32_t>(queuesIndices[2]);
 
-        return true;
+        VK_LOG(EVK_FORMAT("FamilyQueues::FindIndices() : selected queue families: G=%i, C=%i, T=%i, Present=%i",
+               m_graphicsQueueFamilyIndex,
+               m_computeQueueFamilyIndex,
+               m_transferQueueFamilyIndex,
+               m_presentQueueFamilyIndex));
+
+        return (m_graphicsQueueFamilyIndex != -1);
     }
 }

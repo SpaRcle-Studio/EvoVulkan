@@ -18,7 +18,8 @@ namespace EvoVulkan::Types {
             const std::string& engineName,
             StringVector extensions,
             const StringVector& layers,
-            bool validationEnabled
+            bool validationLayersEnabled,
+            bool validationReportEnabled
     ) {
         const auto&& logExtensions = Tools::Combine<const char*>(extensions, [](const char* str, int32_t i, bool last) -> std::string {
             return last ? std::string(str) : std::string(str).append(", ");
@@ -29,7 +30,7 @@ namespace EvoVulkan::Types {
         });
 
         const auto log = Tools::Format("\n\tApplication name: %s\n\tEngine name: %s\n\tValidation enabled: %s\n\tExtensions: %s\n\tLayers: %s",
-            appName.c_str(), engineName.c_str(), validationEnabled ? "true" : "false", logExtensions.c_str(), logLayers.c_str()
+            appName.c_str(), engineName.c_str(), validationLayersEnabled ? "true" : "false", logExtensions.c_str(), logLayers.c_str()
         );
 
         VK_GRAPH("Instance::Create() : creating vulkan instance..." + log);
@@ -39,7 +40,7 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
-        if (validationEnabled)
+        if (validationReportEnabled)
             extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
         auto* instance = new Instance(VK_API_VERSION_1_2);
@@ -60,17 +61,22 @@ namespace EvoVulkan::Types {
         instInfo.enabledExtensionCount   = (uint32_t)extensions.size();
         instInfo.ppEnabledExtensionNames = extensions.data();
 
-        if (validationEnabled) {
+        if (validationReportEnabled) {
             static VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
             debugCreateInfo.pNext = nullptr;
 
-            if (layers.empty()) {
-                VK_ERROR("Instance::Create() : layers is empty!");
-                return nullptr;
-            }
+            if (validationLayersEnabled) {
+                if (layers.empty()) {
+                    VK_ERROR("Instance::Create() : layers is empty!");
+                    return nullptr;
+                }
 
-            instInfo.enabledLayerCount   = (uint32_t)layers.size();
-            instInfo.ppEnabledLayerNames = layers.data();
+                instInfo.enabledLayerCount = (uint32_t) layers.size();
+                instInfo.ppEnabledLayerNames = layers.data();
+            }
+            else {
+                instInfo.enabledLayerCount = 0;
+            }
 
             Tools::PopulateDebugMessengerCreateInfo(debugCreateInfo);
             instInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
