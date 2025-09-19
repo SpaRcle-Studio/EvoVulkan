@@ -145,11 +145,11 @@ bool EvoVulkan::Complexes::Shader::Load(
     std::vector<std::future<std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo>>> futures;
 
     for (const auto& [path, stage] : modules) {
-        futures.push_back(std::async(std::launch::async, [&, path, stage]() -> std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> {
+        futures.push_back(std::async(std::launch::async, [&, shaderPath = path, shaderStage = stage]() -> std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> {
             if (Tools::VkFunctionsHolder::Instance().IsSupportGLSLang()) {
-                return GLSLLangCompileShaderModule(path, cache, stage, m_device);
+                return GLSLLangCompileShaderModule(shaderPath, cache, shaderStage, m_device);
             }
-            return CompileShaderModule(path, cache, stage, m_device);
+            return CompileShaderModule(shaderPath, cache, shaderStage, m_device);
         }));
     }
 
