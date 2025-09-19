@@ -35,6 +35,103 @@ namespace EvoVulkan::Types {
         }
     }
 
+    static VkRenderPass CreateOldRenderPass(
+        const EvoVulkan::Types::Device* device,
+        std::vector<VkAttachmentDescription2> attachments,
+        std::vector<VkAttachmentReference2> inputAttachments,
+        std::vector<VkAttachmentReference2> colorReferences,
+        std::vector<VkAttachmentReference2> resolveReferences,
+        VkAttachmentReference2 depthReference,
+        std::vector<VkSubpassDependency2> dependencies,
+        bool multisampling,
+        bool depth,
+        VkSubpassDescription2 subpassDescription
+    ) {
+        std::vector<VkSubpassDependency> dependenciesOld;
+        for (auto& dep : dependencies) {
+            VkSubpassDependency depOld = {};
+            depOld.srcSubpass = dep.srcSubpass;
+            depOld.dstSubpass = dep.dstSubpass;
+            depOld.srcStageMask = dep.srcStageMask;
+            depOld.dstStageMask = dep.dstStageMask;
+            depOld.srcAccessMask = dep.srcAccessMask;
+            depOld.dstAccessMask = dep.dstAccessMask;
+            depOld.dependencyFlags = dep.dependencyFlags;
+            dependenciesOld.push_back(depOld);
+        }
+
+        std::vector<VkAttachmentReference> inputAttachmentsOld;
+        for (auto& input : inputAttachments) {
+            VkAttachmentReference inputOld = {};
+            inputOld.attachment = input.attachment;
+            inputOld.layout = input.layout;
+            inputAttachmentsOld.push_back(inputOld);
+        }
+
+        std::vector<VkAttachmentReference> colorReferencesOld;
+        for (auto& color : colorReferences) {
+            VkAttachmentReference colorOld = {};
+            colorOld.attachment = color.attachment;
+            colorOld.layout = color.layout;
+            colorReferencesOld.push_back(colorOld);
+        }
+
+        std::vector<VkAttachmentReference> resolveReferencesOld;
+        for (auto& resolve : resolveReferences) {
+            VkAttachmentReference resolveOld = {};
+            resolveOld.attachment = resolve.attachment;
+            resolveOld.layout = resolve.layout;
+            resolveReferencesOld.push_back(resolveOld);
+        }
+
+        VkAttachmentReference depthReferenceOld = {};
+        depthReferenceOld.attachment = depthReference.attachment;
+        depthReferenceOld.layout = depthReference.layout;
+
+        VkSubpassDescription subpassDescriptionOld = {};
+        subpassDescriptionOld.pipelineBindPoint = subpassDescription.pipelineBindPoint;
+        subpassDescriptionOld.colorAttachmentCount = subpassDescription.colorAttachmentCount;
+        subpassDescriptionOld.pColorAttachments = (subpassDescription.colorAttachmentCount > 0) ? colorReferencesOld.data() : nullptr;
+        subpassDescriptionOld.pDepthStencilAttachment = depth ? &depthReferenceOld : nullptr;
+        subpassDescriptionOld.inputAttachmentCount = subpassDescription.inputAttachmentCount;
+        subpassDescriptionOld.pInputAttachments = (subpassDescription.inputAttachmentCount > 0) ? inputAttachmentsOld.data() : nullptr;
+        subpassDescriptionOld.preserveAttachmentCount = 0;
+        subpassDescriptionOld.pPreserveAttachments = nullptr;
+        subpassDescriptionOld.pResolveAttachments = multisampling ? resolveReferencesOld.data() : nullptr;
+
+        std::vector<VkAttachmentDescription> attachmentsOld;
+        for (auto& att : attachments) {
+            VkAttachmentDescription attOld = {};
+            attOld.flags = att.flags;
+            attOld.format = att.format;
+            attOld.samples = att.samples;
+            attOld.loadOp = att.loadOp;
+            attOld.storeOp = att.storeOp;
+            attOld.stencilLoadOp = att.stencilLoadOp;
+            attOld.stencilStoreOp = att.stencilStoreOp;
+            attOld.initialLayout = att.initialLayout;
+            attOld.finalLayout = att.finalLayout;
+            attachmentsOld.push_back(attOld);
+        }
+
+        VkRenderPassCreateInfo renderPassInfoOld = {};
+        renderPassInfoOld.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfoOld.pNext = nullptr;
+        renderPassInfoOld.attachmentCount = static_cast<uint32_t>(attachments.size());
+        renderPassInfoOld.pAttachments = attachmentsOld.data();
+        renderPassInfoOld.subpassCount = 1;
+        renderPassInfoOld.pSubpasses = &subpassDescriptionOld;
+        renderPassInfoOld.dependencyCount = static_cast<uint32_t>(dependenciesOld.size());
+        renderPassInfoOld.pDependencies = dependenciesOld.data();
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+        auto result = vkCreateRenderPass(*device, &renderPassInfoOld, nullptr, &renderPass);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Types::CreateOldRenderPass() : failed to create vulkan render pass! Reason: " + Tools::Convert::result_to_description(result));
+            return VK_NULL_HANDLE;
+        }
+        return renderPass;
+    }
+
     static RenderPass CreateRenderPass(
             const EvoVulkan::Types::Device* device,
             const Types::Swapchain *swapchain,
@@ -289,7 +386,6 @@ namespace EvoVulkan::Types {
             }
         }
 
-        VkRenderPass renderPass = VK_NULL_HANDLE;
 
         VkRenderPassCreateInfo2KHR renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR;
@@ -306,22 +402,34 @@ namespace EvoVulkan::Types {
             pVkCreateRenderPass2KHR = (PFN_vkCreateRenderPass2KHR) vkGetDeviceProcAddr(*device, "vkCreateRenderPass2");
         }
 
-        if (!pVkCreateRenderPass2KHR) {
-            VK_ERROR("Types::CreateRenderPass() : failed to get vkCreateRenderPass2KHR function pointer!");
-            return RenderPass(); /// NOLINT
-        }
+        VkRenderPass renderPass = VK_NULL_HANDLE;
 
-        auto result = pVkCreateRenderPass2KHR(*device, &renderPassInfo, nullptr, &renderPass);
-        if (result != VK_SUCCESS) {
-            VK_ERROR("Types::CreateRenderPass() : failed to create vulkan render pass! Reason: " +
-                     Tools::Convert::result_to_description(result));
-            return RenderPass(); /// NOLINT
+        if (!pVkCreateRenderPass2KHR) {
+            static bool once = false;
+            if (!once) {
+                once = true;
+                VK_LOG("Types::CreateRenderPass() : failed to get vkCreateRenderPass2KHR function pointer! Trying to use vkCreateRenderPass...");
+            }
+
+            renderPass = CreateOldRenderPass(device, attachments, inputAttachments, colorReferences, resolveReferences, depthReference, dependencies, multisampling, depth, subpassDescription);
+            if (!renderPass) {
+                VK_ERROR("Types::CreateRenderPass() : failed to create vulkan render pass using vkCreateRenderPass!");
+                return RenderPass(); /// NOLINT
+            }
+        }
+        else {
+            auto result = pVkCreateRenderPass2KHR(*device, &renderPassInfo, nullptr, &renderPass);
+            if (result != VK_SUCCESS) {
+                VK_ERROR("Types::CreateRenderPass() : failed to create vulkan render pass! Reason: " + Tools::Convert::result_to_description(result));
+                return RenderPass(); /// NOLINT
+            }
         }
 
         VK_LOG("Types::CreateRenderPass() : vulkan render pass " + EvoVulkan::Tools::PointerToString(renderPass) + " created successfully!");
 
         return { renderPass, (uint32_t)attachments.size(), (uint32_t)colorReferences.size() };
     }
+
 }
 
 #endif //EVOVULKAN_RENDERPASS_H
