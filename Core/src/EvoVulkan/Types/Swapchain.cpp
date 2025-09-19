@@ -75,7 +75,7 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
 
 bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint32_t countImages) {
     VK_GRAPH("Swapchain::ReSetup() : re-setting up vulkan swapchain..."
-         "\n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height)
+         "\n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height) + "\n\tImages count: " + std::to_string(countImages)
      );
 
     VkSwapchainKHR oldSwapchain = m_swapchain;
@@ -141,6 +141,10 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         else
             preTransform = surfCaps.currentTransform;
     }
+
+    VK_GRAPH("Swapchain::ReSetup() : desired number of swapchain images: " + std::to_string(desiredNumberOfSwapchainImages) +
+        "\n\tMin image count: " + std::to_string(surfCaps.minImageCount) +
+        "\n\tMax image count: " + std::to_string(surfCaps.maxImageCount));
 
     // Find a supported composite alpha format (not all devices support alpha opaque)
     VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;

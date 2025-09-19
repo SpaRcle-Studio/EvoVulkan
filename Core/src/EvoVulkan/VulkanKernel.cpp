@@ -681,6 +681,8 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
         return false;
     }
 
+    m_swapchainImages = m_swapchain->GetCountImages();
+
     if (m_countDCB != m_swapchainImages) {
         VK_LOG("VulkanKernel::ReCreate() : swapchain images count changed from " +
                std::to_string(m_countDCB) + " to " + std::to_string(m_swapchainImages));
