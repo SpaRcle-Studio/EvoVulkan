@@ -100,9 +100,12 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
+        bool shaderViewportIndexLayerSupported = false;
+
         if (Tools::IsExtensionSupported(physicalDevice, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
             info.extensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
             VK_LOG("Device::Create() : enabled extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME));
+            shaderViewportIndexLayerSupported = true;
         }
         else {
             VK_LOG("Device::Create() : extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) + " is not supported!");
@@ -186,6 +189,7 @@ namespace EvoVulkan::Types {
         auto&& pDevice = new Device(info.pInstance, pQueues, physicalDevice, logicalDevice);
 
         pDevice->m_dynamicRenderingSupport = info.dynamicRendering;
+        pDevice->m_shaderViewportIndexLayerSupported = shaderViewportIndexLayerSupported;
         pDevice->m_deviceFeatures2 = deviceFeatures2;
         pDevice->CheckRayTracing(info.rayTracing);
 
