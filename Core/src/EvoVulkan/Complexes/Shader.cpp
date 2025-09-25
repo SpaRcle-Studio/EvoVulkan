@@ -91,8 +91,12 @@ std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> GLSLLangCompileShader
     std::vector<uint32_t> data;
 
     if (hash != EvoVulkan::Tools::VkFunctionsHolder::Instance().ReadHash(hashFile) || !EvoVulkan::Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
-        EvoVulkan::Tools::VkFunctionsHolder::Instance().WriteHash(hashFile, hash);
         data = EvoVulkan::Tools::VkFunctionsHolder::Instance().CompileGLSLtoSPIRV(inputFile);
+        if (data.empty()) {
+            VK_ERROR("GLSLLangCompileShaderModule() : failed to compile shader!\n\tPath: " + inputFile);
+            return {VK_NULL_HANDLE, {}};
+        }
+        EvoVulkan::Tools::VkFunctionsHolder::Instance().WriteHash(hashFile, hash);
         EvoVulkan::Tools::VkFunctionsHolder::Instance().WriteSPIRV(outputFile, data);
     }
     else {
@@ -100,7 +104,7 @@ std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> GLSLLangCompileShader
     }
 
     if (data.empty()) {
-        VK_ERROR("GLSLLangCompileShaderModule() : failed to compile shader!\n\tPath: " + inputFile);
+        VK_ERROR("GLSLLangCompileShaderModule() : shader data is empty!\n\tPath: " + inputFile);
         return {VK_NULL_HANDLE, {}};
     }
 
