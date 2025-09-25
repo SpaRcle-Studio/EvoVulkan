@@ -75,7 +75,7 @@ namespace EvoVulkan::Types {
         }
         else {
             if (size > m_size) {
-                VK_ERROR("Buffer::CopyToDevice() : size is greater than buffer size!");
+                VK_HALT("Buffer::CopyToDevice() : size is greater than buffer size!");
                 return;
             }
             memcpy(m_mapped, data, size);
@@ -111,7 +111,7 @@ namespace EvoVulkan::Types {
         }
 
         if (m_mapped) {
-            VK_ERROR("Buffer::Map() : memory is already mapped!");
+            VK_HALT("Buffer::Map() : memory is already mapped!");
             return VkResult::VK_ERROR_MEMORY_MAP_FAILED;
         }
 
