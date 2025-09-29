@@ -119,6 +119,7 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD uint16_t GetSwapchainImagesCount() const noexcept { return m_swapchainImages; }
         EVK_NODISCARD uint16_t GetRequiredSwapchainImagesCount() const noexcept { return m_requiredSwapchainImages; }
         EVK_NODISCARD uint8_t GetCurrentFrameIndex() const noexcept { return m_currentBuffer; }
+        EVK_NODISCARD uint8_t GetCurrentImageIndex() const noexcept { return m_currentImage; }
 
         void SetMultisampling(uint32_t sampleCount);
         void SetSwapchainImagesCount(uint32_t count);

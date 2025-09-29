@@ -511,8 +511,9 @@ void EvoVulkan::Core::VulkanKernel::DestroyFrameBuffers() {
 }
 
 EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
-    if (m_paused)
+    if (m_paused) {
         return EvoVulkan::Core::RenderResult::Success;
+    }
 
     return Render();
 }
