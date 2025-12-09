@@ -17,7 +17,7 @@ namespace EvoVulkan::Tools {
         Graphical = 1 << 4,
         Asserts = 1 << 5,
 
-        ErrorsOnly = Errors | Asserts,
+        ErrorsOnly = Errors | Warns | Asserts,
 
         Full = Errors | Logs | Warns | Graphical | Asserts
     };

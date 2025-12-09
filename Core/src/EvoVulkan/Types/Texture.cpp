@@ -251,6 +251,12 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
            std::to_string(height) + "\n\tMip levels: " +
            std::to_string(mipLevels) + "\n\tCPU usage: " + std::string(cpuUsage ? "True" : "False"));
 
+    const int32_t maxMip = static_cast<int32_t>(std::floor(std::log2(std::max(std::max(width, height), 1)))) + 1;
+    if (mipLevels > maxMip) {
+        VK_WARN("Texture::Load() : requested mip levels (" + std::to_string(mipLevels) + ") is greater than maximum possible (" + std::to_string(maxMip) + "). Setting mip levels to " + std::to_string(maxMip) + ".");
+        mipLevels = maxMip;
+    }
+
     auto&& pTexture = new Texture();
     {
         pTexture->m_width             = width;

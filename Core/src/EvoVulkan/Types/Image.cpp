@@ -70,6 +70,12 @@ namespace EvoVulkan::Types {
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.usage         = info.usage;
 
+        const int32_t maxMip = static_cast<int32_t>(std::floor(std::log2(std::max(std::max(imageInfo.extent.width, imageInfo.extent.height), imageInfo.extent.depth)))) + 1;
+        if (imageInfo.mipLevels > maxMip) {
+            VK_WARN("Image::Create() : requested mip levels (" + std::to_string(imageInfo.mipLevels) + ") is greater than maximum possible (" + std::to_string(maxMip) + "). Setting mip levels to " + std::to_string(maxMip) + ".");
+            imageInfo.mipLevels = maxMip;
+        }
+
         if (info.mipLevels > 1) {
             imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         }
@@ -80,7 +86,7 @@ namespace EvoVulkan::Types {
             imageInfo.samples = Tools::Convert::IntToSampleCount(info.sampleCount);
         }
 
-        imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         if (info.createFlagBits != VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM)
             imageInfo.flags = info.createFlagBits;
