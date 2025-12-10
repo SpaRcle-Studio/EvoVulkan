@@ -37,6 +37,12 @@ else()
     message("[EvoVulkan] Vulkan include directories (public): ${Vulkan_INCLUDE_DIRS}")
 endif()
 
+if (EVO_VULKAN_TRACY_PROFILER_PATH)
+    message(STATUS "Tracy profiler enabled for EvoVulkan. Profiler path: ${EVO_VULKAN_TRACY_PROFILER_PATH}")
+    add_definitions(-DEVO_VULKAN_TRACY_PROFILER)
+    target_include_directories(EvoVulkan PRIVATE ${EVO_VULKAN_TRACY_PROFILER_PATH}/tracy)
+endif()
+
 if (UNIX)
     target_compile_options(EvoVulkan PRIVATE -fPIC)
 endif()

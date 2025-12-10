@@ -8,9 +8,11 @@
 #include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/CmdPool.h>
+#include <EvoVulkan/Profile.h>
 
 namespace EvoVulkan::Types {
     EvoVulkan::Types::CmdBuffer::~CmdBuffer() {
+        EVK_TRACY_ZONE;
         End();
 
         if (m_buffer) {
@@ -29,6 +31,7 @@ namespace EvoVulkan::Types {
         const CmdPool* cmdPool,
         VkCommandBufferLevel level)
     {
+        EVK_TRACY_ZONE;
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = Tools::Initializers::CommandBufferAllocateInfo(*cmdPool, level, 1);
         return Create(device, cmdPool, cmdBufAllocateInfo);
     }
@@ -38,6 +41,7 @@ namespace EvoVulkan::Types {
             const CmdPool *cmdPool,
             VkCommandBufferAllocateInfo cmdBufAllocateInfo)
     {
+        EVK_TRACY_ZONE;
         auto buffer = new CmdBuffer();
 
         {
@@ -56,6 +60,7 @@ namespace EvoVulkan::Types {
     }
 
     bool EvoVulkan::Types::CmdBuffer::ReAlloc() {
+        EVK_TRACY_ZONE;
         if (!IsComplete()) {
             VK_ERROR("CmdBuffer::ReAlloc() : command buffer isn't complete!");
             return false;
@@ -87,6 +92,8 @@ namespace EvoVulkan::Types {
     }
 
     CmdBuffer* CmdBuffer::BeginSingleTime(const Device *device, const CmdPool *cmdPool) {
+        EVK_TRACY_ZONE;
+
         auto&& pBuffer = Create(device, cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         if (!pBuffer) {
             VK_ERROR("CmdBuffer::BeginSingleTime() : failed to create command buffer!");
@@ -103,6 +110,8 @@ namespace EvoVulkan::Types {
     }
 
     bool CmdBuffer::End() {
+        EVK_TRACY_ZONE;
+
         if (!m_isBegin) {
             return false;
         }
@@ -115,18 +124,23 @@ namespace EvoVulkan::Types {
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_buffer;
 
-        auto result = vkQueueSubmit(m_device->GetQueues()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-        if (result != VK_SUCCESS) {
-            VK_ERROR("CmdBuffer::End() : failed to queue submit!");
-            return false;
+        {
+            EVK_TRACY_ZONE_N("vkQueueSubmit");
+            auto result = vkQueueSubmit(m_device->GetQueues()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+            if (result != VK_SUCCESS) {
+                VK_ERROR("CmdBuffer::End() : failed to queue submit!");
+                return false;
+            }
         }
 
-        vkQueueWaitIdle(m_device->GetQueues()->GetGraphicsQueue());
+        m_device->WaitGraphicsQueueIdle();
 
         return true;
     }
 
     bool CmdBuffer::Begin(const VkCommandBufferUsageFlagBits &usage) {
+        EVK_TRACY_ZONE;
+
         if (!IsReady()) {
             VK_ERROR("CmdBuffer::Begin() : command buffer isn't ready!");
             return false;
@@ -152,6 +166,8 @@ namespace EvoVulkan::Types {
         const CmdPool *cmdPool,
         const std::function<bool(CmdBuffer*)> &fun
     ) {
+        EVK_TRACY_ZONE;
+
         auto&& cmdBuffer = BeginSingleTime(device, cmdPool);
         if (!cmdBuffer || !fun) {
             return false;

@@ -21,8 +21,7 @@
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
 #include <EvoVulkan/Types/VulkanBuffer.h>
-#include "DeviceTools.h"
-#include "EvoVulkan/Types/Instance.h"
+#include <EvoVulkan/Profile.h>
 
 namespace EvoVulkan::Tools {
 	struct PushConstantRange {
@@ -781,6 +780,7 @@ namespace EvoVulkan::Tools {
             uint32_t layerCount,
             bool needEnd = true
     ) {
+        EVK_TRACY_ZONE;
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -889,6 +889,7 @@ namespace EvoVulkan::Tools {
             uint32_t layerCount,
             bool needEnd = true
     ) {
+        EVK_TRACY_ZONE;
         return TransitionImageLayoutEx(copyCmd, image, oldLayout, newLayout, mipLevels, VK_IMAGE_ASPECT_COLOR_BIT, layerCount, needEnd);
     }
 }

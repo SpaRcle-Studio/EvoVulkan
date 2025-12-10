@@ -8,6 +8,7 @@
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/DescriptorManager.h>
 #include <EvoVulkan/Memory/Allocator.h>
+#include <EvoVulkan/Profile.h>
 
 uint64_t GetDataSize(uint32_t w, uint32_t h, uint8_t level) {
     uint64_t dataSize = 0;
@@ -464,6 +465,8 @@ EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDe
 }
 
 EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_t x, uint32_t y, uint32_t z) const {
+    EVK_TRACY_ZONE;
+
     const uint8_t channels = Tools::GetPixelChannelsCount(m_format);
     const uint8_t pixelTypeSize = Tools::GetPixelTypeSize(m_format);
     if (channels * pixelTypeSize == 0) {
@@ -514,14 +517,17 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
         copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     }
 
-    vkCmdCopyImageToBuffer(
-        *copyCmd,
-        m_image,
-        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        *pBuffer,
-        1,
-        &bufferCopyRegion
-    );
+    {
+        EVK_TRACY_ZONE_N("vkCmdCopyImageToBuffer");
+        vkCmdCopyImageToBuffer(
+                *copyCmd,
+                m_image,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                *pBuffer,
+                1,
+                &bufferCopyRegion
+        );
+    }
 
     m_image.TransitionImageLayout(layout, copyCmd);
 

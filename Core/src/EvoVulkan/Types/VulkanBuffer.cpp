@@ -11,6 +11,7 @@
 
 namespace EvoVulkan::Types {
     Buffer::~Buffer() {
+        EVK_TRACY_ZONE;
         if (m_buffer)
             vkDestroyBuffer(*m_device, m_buffer, nullptr);
 
@@ -29,6 +30,7 @@ namespace EvoVulkan::Types {
     * @return VkResult of the buffer mapping call
     */
     VkResult Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {
+        EVK_TRACY_ZONE;
         return vkMapMemory(*m_device, m_memory, offset, size, 0, &m_mapped);
     }
 
@@ -38,6 +40,7 @@ namespace EvoVulkan::Types {
     * @note Does not return a result as vkUnmapMemory can't fail
     */
     void Buffer::Unmap() {
+        EVK_TRACY_ZONE;
         if (m_mapped) {
             vkUnmapMemory(*m_device, m_memory);
             m_mapped = nullptr;
@@ -52,6 +55,7 @@ namespace EvoVulkan::Types {
     * @return VkResult of the bindBufferMemory call
     */
     VkResult Buffer::Bind(VkDeviceSize offset) const {
+        EVK_TRACY_ZONE;
         return vkBindBufferMemory(*m_device, m_buffer, m_memory, offset);
     }
 
@@ -76,11 +80,13 @@ namespace EvoVulkan::Types {
     *
     */
     void Buffer::CopyTo(void *data, VkDeviceSize size) {
+        EVK_TRACY_ZONE;
         assert(m_mapped);
         memcpy(m_mapped, data, size);
     }
 
     void Buffer::CopyToDevice(void *data, VkDeviceSize size) const {
+        EVK_TRACY_ZONE;
         vkMapMemory(*m_device, m_memory, 0, size, 0, (void **)&m_mapped);
         memcpy(m_mapped, data, size);
         // Unmap after data has been copied
@@ -99,6 +105,7 @@ namespace EvoVulkan::Types {
     * @return VkResult of the flush call
     */
     VkResult Buffer::Flush(VkDeviceSize size, VkDeviceSize offset) const {
+        EVK_TRACY_ZONE;
         VkMappedMemoryRange mappedRange = {};
         mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         mappedRange.memory = m_memory;
@@ -118,6 +125,7 @@ namespace EvoVulkan::Types {
     * @return VkResult of the invalidate call
     */
     VkResult Buffer::Invalidate(VkDeviceSize size, VkDeviceSize offset) const {
+        EVK_TRACY_ZONE;
         VkMappedMemoryRange mappedRange = {};
         mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         mappedRange.memory = m_memory;
@@ -133,6 +141,8 @@ namespace EvoVulkan::Types {
             VkMemoryPropertyFlags memoryPropertyFlags,
             VkDeviceSize size, void* data)
     {
+        EVK_TRACY_ZONE;
+
         if (size == 0) {
             VK_ERROR("Buffer::Create() : incorrect buffer size!");
             return nullptr;
@@ -203,10 +213,12 @@ namespace EvoVulkan::Types {
     }
 
     Buffer *Buffer::Create(Device *device, Memory::Allocator* allocator, VkDeviceSize size, void *data) {
+        EVK_TRACY_ZONE;
         return Create(device, allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, size, data);
     }
 
     void *Buffer::MapData()  {
+        EVK_TRACY_ZONE;
         //void* data = nullptr;
         if (vkMapMemory(*m_device, m_memory, 0, m_size, 0, &m_mapped) == VK_SUCCESS)
             return m_mapped;

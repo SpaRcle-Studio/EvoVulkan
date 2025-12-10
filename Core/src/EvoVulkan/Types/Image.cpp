@@ -119,10 +119,12 @@ namespace EvoVulkan::Types {
     }
 
     bool Image::TransitionImageLayout(VkImageLayout layout, CmdBuffer* pBuffer) const {
+        EVK_TRACY_ZONE;
         return TransitionImageLayout(layout, m_info.aspect, pBuffer);
     }
 
     bool Image::TransitionImageLayout(VkImageLayout layout, VkImageAspectFlags aspect, CmdBuffer *pBuffer) const {
+        EVK_TRACY_ZONE;
         auto&& copyCmd = pBuffer ? pBuffer : EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_info.pAllocator->GetDevice(), m_info.pPool);
 
         if (m_info.format == VK_FORMAT_D32_SFLOAT_S8_UINT && aspect == VK_IMAGE_ASPECT_DEPTH_BIT) {

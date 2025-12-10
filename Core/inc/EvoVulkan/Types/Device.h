@@ -68,7 +68,8 @@ namespace EvoVulkan::Types {
 
         uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;
 
-        void WaitQueuesIdle();
+        void WaitQueuesIdle() const;
+        void WaitGraphicsQueueIdle() const;
 
     private:
         bool Initialize(bool enableSampleShading, bool multisampling, uint32_t sampleCount);

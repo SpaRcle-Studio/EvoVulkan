@@ -94,6 +94,7 @@ void EvoVulkan::Memory::Allocator::FreeImage(Types::Image& image) {
 }
 
 EvoVulkan::Memory::RawMemory EvoVulkan::Memory::Allocator::AllocateMemory(VkMemoryAllocateInfo memoryAllocateInfo) {
+    EVK_TRACY_ZONE;
     auto memory = RawMemory();
     memory.m_size = memoryAllocateInfo.allocationSize;
     auto result = vkAllocateMemory(*m_device, &memoryAllocateInfo, nullptr, &memory.m_memory);

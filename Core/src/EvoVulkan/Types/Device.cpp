@@ -8,6 +8,7 @@
 #include <EvoVulkan/Tools/FileSystem.h>
 #include <EvoVulkan/Tools/VulkanConverter.h>
 #include <EvoVulkan/Tools/DeviceTools.h>
+#include <EvoVulkan/Profile.h>
 
 namespace EvoVulkan::Types {
     Device::Device(Instance *pInstance, FamilyQueues* pQueues, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
@@ -391,7 +392,19 @@ namespace EvoVulkan::Types {
         return depthFormat;
     }
 
-    void Device::WaitQueuesIdle() {
+    void Device::WaitGraphicsQueueIdle() const {
+        EVK_TRACY_ZONE;
+
+        if (auto&& pQueues = GetQueues()) {
+            if (auto&& pGraphicsQueue = pQueues->GetGraphicsQueue()) {
+                vkQueueWaitIdle(pGraphicsQueue);
+            }
+        }
+    }
+
+    void Device::WaitQueuesIdle() const {
+        EVK_TRACY_ZONE;
+
         if (!m_familyQueues) {
             return;
         }
