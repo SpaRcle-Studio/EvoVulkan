@@ -86,6 +86,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
             m_engineName,
             m_instExtensions,
             m_validationLayers,
+            m_gpuAssistEnabled,
             m_validationLayersEnabled,
             m_validationDebugEnabled);
 
@@ -825,6 +826,17 @@ bool EvoVulkan::Core::VulkanKernel::SetValidationDebugEnabled(bool value) {
     }
 
     m_validationDebugEnabled = value;
+
+    return true;
+}
+
+bool EvoVulkan::Core::VulkanKernel::SetGPUAssistEnabled(bool value) {
+    if (m_isPreInitialized) {
+        VK_ERROR("VulkanKernel::SetGPUAssistEnabled() : at this stage it is not possible to set this parameter!");
+        return false;
+    }
+
+    m_gpuAssistEnabled = value;
 
     return true;
 }

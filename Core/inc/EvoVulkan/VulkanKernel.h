@@ -129,6 +129,7 @@ namespace EvoVulkan::Core {
 
         bool SetValidationLayersEnabled(bool value);
         bool SetValidationDebugEnabled(bool value);
+        bool SetGPUAssistEnabled(bool value);
         void SetSize(uint32_t width, uint32_t height);
         bool ReCreate(FrameResult reason);
 
@@ -210,6 +211,7 @@ namespace EvoVulkan::Core {
 
         VkDebugUtilsMessengerEXT   m_debugMessenger       = VK_NULL_HANDLE;
 
+        bool                       m_gpuAssistEnabled = false;
         bool                       m_validationLayersEnabled = false;
         bool                       m_validationDebugEnabled  = false;
 

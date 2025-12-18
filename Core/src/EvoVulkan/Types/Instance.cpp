@@ -18,6 +18,7 @@ namespace EvoVulkan::Types {
             const std::string& engineName,
             StringVector extensions,
             const StringVector& layers,
+            bool gpuAssistEnabled,
             bool validationLayersEnabled,
             bool validationReportEnabled
     ) {
@@ -61,8 +62,10 @@ namespace EvoVulkan::Types {
         instInfo.enabledExtensionCount   = (uint32_t)extensions.size();
         instInfo.ppEnabledExtensionNames = extensions.data();
 
+        static VkValidationFeaturesEXT validationFeatures = {};
+        static VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
+
         if (validationReportEnabled) {
-            static VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
             debugCreateInfo.pNext = nullptr;
 
             if (validationLayersEnabled) {
@@ -79,7 +82,25 @@ namespace EvoVulkan::Types {
             }
 
             Tools::PopulateDebugMessengerCreateInfo(debugCreateInfo);
-            instInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+
+            static VkValidationFeatureEnableEXT enables[] = {
+                    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+                    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
+            };
+
+            if (validationLayersEnabled && gpuAssistEnabled) {
+                VK_LOG("Instance::Create() : GPU Assisted Validation is enabled.");
+
+                validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+                validationFeatures.pNext = &debugCreateInfo;
+                validationFeatures.enabledValidationFeatureCount = uint32_t(std::size(enables));
+                validationFeatures.pEnabledValidationFeatures = enables;
+
+                instInfo.pNext = &validationFeatures;
+            }
+            else {
+                instInfo.pNext = &debugCreateInfo;
+            }
         }
         else {
             instInfo.enabledLayerCount = 0;

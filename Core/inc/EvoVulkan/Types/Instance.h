@@ -28,6 +28,7 @@ namespace EvoVulkan::Types {
                 const std::string& engineName,
                 StringVector extensions,
                 const StringVector& layers,
+                bool gpuAssistEnabled,
                 bool validationLayersEnabled,
                 bool validationReportEnabled);
 
