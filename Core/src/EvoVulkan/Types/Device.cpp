@@ -101,16 +101,18 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
-        bool shaderViewportIndexLayerSupported = false;
+        bool shaderViewportIndexLayerSupported = true;
 
-        if (Tools::IsExtensionSupported(physicalDevice, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
-            info.extensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
-            VK_LOG("Device::Create() : enabled extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME));
-            shaderViewportIndexLayerSupported = true;
-        }
-        else {
-            VK_LOG("Device::Create() : extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) + " is not supported!");
-        }
+        /// Enabled by default in Vulkan 1.2+
+        ///if (Tools::IsExtensionSupported(physicalDevice, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
+        ///    info.extensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+        ///    VK_LOG("Device::Create() : enabled extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME));
+        ///    shaderViewportIndexLayerSupported = true;
+        ///}
+        ///else {
+        ///    VK_LOG("Device::Create() : extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) + " is not supported!");
+        ///    shaderViewportIndexLayerSupported = false;
+        ///}
 
         if (Tools::IsExtensionSupported(physicalDevice, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)) {
             info.extensions.emplace_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);

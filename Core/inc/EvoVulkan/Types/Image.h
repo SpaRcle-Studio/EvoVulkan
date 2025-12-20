@@ -78,6 +78,9 @@ namespace EvoVulkan::Types {
         bool TransitionImageLayout(VkImageLayout layout, CmdBuffer* pBuffer = nullptr) const;
         bool TransitionImageLayout(VkImageLayout layout, VkImageAspectFlags aspect, CmdBuffer* pBuffer = nullptr) const;
 
+        bool TransitionImageLayout(VkImageLayout layout, VkCommandBuffer commandBuffer) const;
+        bool TransitionImageLayout(VkImageLayout layout, VkImageAspectFlags aspect, VkCommandBuffer commandBuffer) const;
+
     public:
         static Image Create(const ImageCreateInfo& info);
 

@@ -21,11 +21,6 @@ namespace EvoVulkan::Complexes {
         }
         m_cmdBuffers.clear();
 
-        if (m_secondaryCmdBuffer) {
-            delete m_secondaryCmdBuffer;
-            m_secondaryCmdBuffer = nullptr;
-        }
-
         if (m_renderPass.IsReady()) {
             Types::DestroyRenderPass(m_device, &m_renderPass);
         }
@@ -41,6 +36,7 @@ namespace EvoVulkan::Complexes {
         Core::DescriptorManager* manager,
         Types::Swapchain* swapchain,
         Types::CmdPool* pool,
+        std::vector<Types::CmdPool*> framePools,
         FrameBufferFeatures features,
         const std::vector<VkFormat>& colorAttachments,
         uint32_t width, uint32_t height,
@@ -87,6 +83,7 @@ namespace EvoVulkan::Complexes {
             pFBO->m_arrayLayersCount   = arrayLayers;
             pFBO->m_scale              = scale;
             pFBO->m_cmdPool            = pool;
+            pFBO->m_cmdPools           = std::move(framePools);
             pFBO->m_device             = device;
             pFBO->m_allocator          = allocator;
             pFBO->m_descriptorManager  = manager;
@@ -107,11 +104,8 @@ namespace EvoVulkan::Complexes {
 
         const uint8_t maxFrames = features.offscreen ? 1 : swapchain->GetCountImages();
         for (uint32_t i = 0; i < maxFrames; ++i) {
-            pFBO->m_cmdBuffers.emplace_back(Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
+            pFBO->m_cmdBuffers.emplace_back(Types::CmdBuffer::Create(device, pFBO->m_cmdPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY));
         }
-        pFBO->m_secondaryCmdBuffer = Types::CmdBuffer::Create(device, pool, VK_COMMAND_BUFFER_LEVEL_SECONDARY);
-
-        pFBO->m_cmdBufInfo = Tools::Initializers::CommandBufferBeginInfo();
 
         if (!pFBO->ReCreate(width, height)) {
             VK_ERROR("Framebuffer::Create() : failed to re-create framebuffer!");
@@ -281,8 +275,8 @@ namespace EvoVulkan::Complexes {
                 //    attachmentDesc.finalLayout = Tools::FindDepthFormatLayout(m_depthAspect, true, false);
                 //}
                 //else {
-                    //attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, false, false);
-                    attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, m_features.depthShaderRead, false);
+                    attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, false, false);
+                    //attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, m_features.depthShaderRead, false);
                     attachmentDesc.finalLayout = attachmentDesc.initialLayout;
                 //}
             }

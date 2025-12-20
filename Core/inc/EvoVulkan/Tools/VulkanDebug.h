@@ -45,6 +45,7 @@ namespace EvoVulkan::Tools {
 
     public:
         bool ValidationErrorAsAssert = false;
+        bool ValidationMuteSmallMemoryAllocations = false;
 
         std::function<bool()> IsSupportGLSLang;
         std::function<std::vector<uint32_t>(const std::string& path)> ReadSPIRV;

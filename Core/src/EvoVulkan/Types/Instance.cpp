@@ -41,9 +41,6 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
-        if (validationReportEnabled)
-            extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-
         auto* instance = new Instance(VK_API_VERSION_1_2);
 
         VkApplicationInfo appInfo  = {};
@@ -84,8 +81,10 @@ namespace EvoVulkan::Types {
             Tools::PopulateDebugMessengerCreateInfo(debugCreateInfo);
 
             static VkValidationFeatureEnableEXT enables[] = {
-                    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-                    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
+                VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+                VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+                VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+                VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
             };
 
             if (validationLayersEnabled && gpuAssistEnabled) {

@@ -76,6 +76,18 @@ namespace EvoVulkan::Types {
     }
 
     bool DescriptorPool::Initialize(const std::vector<VkDescriptorPoolSize>& sizes) {
+        EVK_TRACY_ZONE;
+
+        /// проверим нет ли повторяющихся типов дескрипторов
+        for (size_t i = 0; i < sizes.size(); ++i) {
+            for (size_t j = i + 1; j < sizes.size(); ++j) {
+                if (sizes[i].type == sizes[j].type) {
+                    VK_HALT("DescriptorPool::Initialize() : found duplicate descriptor type in pool sizes!");
+                    return false;
+                }
+            }
+        }
+
         auto&& descriptorPoolCI = Tools::Initializers::DescriptorPoolCreateInfo(sizes.size(), sizes.data(), m_maxSets);
 
         /// этот флаг позволяет осовбождать сеты дескрипторов по отдельности
@@ -86,6 +98,16 @@ namespace EvoVulkan::Types {
             VK_ERROR("DescriptorPool::Initialize() : failed to create vulkan descriptor pool!");
             return false;
         }
+
+        char buf[64];
+        snprintf(buf, sizeof(buf), "0x%016" PRIxPTR, reinterpret_cast<uintptr_t>(m_pool));
+        std::string logDescriptorSizes;
+        logDescriptorSizes.reserve(sizes.size() * 32);
+        for (auto&& size : sizes) {
+            logDescriptorSizes += "\n\t* " + Tools::Convert::DescriptorTypeToString(size.type) + ": " + std::to_string(size.descriptorCount);
+        }
+
+        VK_LOG("DescriptorPool::Initialize() : descriptor pool " + std::string(buf) + " created successfully! Sizes:" + logDescriptorSizes);
 
         return true;
     }

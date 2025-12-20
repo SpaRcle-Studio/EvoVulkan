@@ -100,6 +100,8 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
+        pBuffer->m_singleTime = true;
+
         if (!pBuffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
             VK_ERROR("CmdBuffer::BeginSingleTime() : failed to begin command buffer!");
             delete pBuffer;
@@ -140,6 +142,17 @@ namespace EvoVulkan::Types {
 
     bool CmdBuffer::Begin(const VkCommandBufferUsageFlagBits &usage) {
         EVK_TRACY_ZONE;
+
+        if (m_isBegin) {
+            VK_HALT("CmdBuffer::Begin() : command buffer already begun!");
+            return false;
+        }
+
+        if (m_singleUsed && m_singleTime) {
+            VK_HALT("CmdBuffer::Begin() : single time command buffer can be used only once!");
+            return false;
+        }
+        m_singleUsed = true;
 
         if (!IsReady()) {
             VK_ERROR("CmdBuffer::Begin() : command buffer isn't ready!");

@@ -307,14 +307,41 @@ namespace EvoVulkan::Tools {
         return cmdBuffs;
     }
 
+    EVK_MAYBE_UNUSED static VkCommandBuffer AllocateCommandBuffer(const VkDevice& device, VkCommandBufferAllocateInfo allocInfo) {
+        if (allocInfo.commandBufferCount != 1) {
+            VK_ERROR("Tools::AllocateCommandBuffer() : command buffer count is not 1!");
+            return VK_NULL_HANDLE;
+        }
+
+        VkCommandBuffer cmdBuff = VK_NULL_HANDLE;
+        auto result = vkAllocateCommandBuffers(device, &allocInfo, &cmdBuff);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Tools::AllocateCommandBuffer() : failed to allocate vulkan command buffer!");
+            return VK_NULL_HANDLE;
+        }
+        return cmdBuff;
+    }
+
     EVK_MAYBE_UNUSED static void FreeCommandBuffers(const VkDevice& device, const VkCommandPool& cmdPool, VkCommandBuffer** cmdBuffs, uint32_t count) {
         if (cmdBuffs && *cmdBuffs) {
             vkFreeCommandBuffers(device, cmdPool, count, *cmdBuffs);
 
             free(*cmdBuffs);
             *cmdBuffs = nullptr;
-        } else
+        }
+        else {
             VK_ERROR("Tools::FreeCommandBuffers() : command buffers in nullptr!");
+        }
+    }
+
+    EVK_MAYBE_UNUSED static void FreeCommandBuffer(const VkDevice& device, const VkCommandPool& cmdPool, VkCommandBuffer* cmdBuffer) {
+        if (cmdBuffer && *cmdBuffer) {
+            vkFreeCommandBuffers(device, cmdPool, 1, cmdBuffer);
+            *cmdBuffer = VK_NULL_HANDLE;
+        }
+        else {
+            VK_ERROR("Tools::FreeCommandBuffer() : command buffer in nullptr!");
+        }
     }
 
     EVK_MAYBE_UNUSED void DestroyPipelineCache(const VkDevice& device, VkPipelineCache* cache);
@@ -554,7 +581,7 @@ namespace EvoVulkan::Tools {
         return device;
     }
 
-    EVK_MAYBE_UNUSED static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+    EVK_MAYBE_UNUSED static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, bool isNeedEnd) {
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -575,7 +602,9 @@ namespace EvoVulkan::Tools {
 
         vkCmdCopyBufferToImage(*copyCmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-        copyCmd->End();
+        if (isNeedEnd) {
+            copyCmd->End();
+        }
 
         return true;
     }
@@ -771,18 +800,19 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static bool TransitionImageLayoutEx(
-            Types::CmdBuffer* copyCmd,
-            VkImage image,
-            VkImageLayout oldLayout,
-            VkImageLayout newLayout,
-            uint32_t mipLevels,
-            VkImageAspectFlags aspectMask,
-            uint32_t layerCount,
-            bool needEnd = true
+        VkCommandBuffer cmd,
+        VkImage image,
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout,
+        uint32_t mipLevels,
+        VkImageAspectFlags aspectMask,
+        uint32_t layerCount
     ) {
         EVK_TRACY_ZONE;
-        if (!copyCmd->IsBegin())
-            copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+        if (oldLayout == newLayout) {
+            return true;
+        }
 
         VkImageMemoryBarrier barrier = { };
         barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -836,11 +866,10 @@ namespace EvoVulkan::Tools {
             destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
         else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-            barrier.srcAccessMask = 0;
-            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            /// [ UNASSIGNED-BestPractices-TransitionUndefinedToReadOnly ] | MessageID = 0x9f63e654 | vkCmdPipelineBarrier(): pImageMemoryBarriers[0]
+            /// VkImageMemoryBarrier is being submitted with oldLayout VK_IMAGE_LAYOUT_UNDEFINED and the contents may be discarded, but the newLayout is VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, which is read only.
+            return TransitionImageLayoutEx(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, mipLevels, aspectMask, layerCount) &&
+                TransitionImageLayoutEx(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels, aspectMask, layerCount);
         }
         else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
             barrier.srcAccessMask = 0;
@@ -856,6 +885,13 @@ namespace EvoVulkan::Tools {
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
+        else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
         else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = 0;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -863,21 +899,54 @@ namespace EvoVulkan::Tools {
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
+        else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
         else {
-           VK_ERROR("Tools::TransitionImageLayout() : unsupported layout transition!");
+           VK_ERROR("Tools::TransitionImageLayoutEx() : unsupported layout transition!");
            return false;
         }
 
         vkCmdPipelineBarrier(
-                *copyCmd,
-                sourceStage, destinationStage,
-                0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier
+            cmd,
+            sourceStage, destinationStage,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
         );
 
-        return !needEnd || copyCmd->End();
+        return true;
+    }
+
+    EVK_MAYBE_UNUSED static bool TransitionImageLayoutEx(
+            Types::CmdBuffer* copyCmd,
+            VkImage image,
+            VkImageLayout oldLayout,
+            VkImageLayout newLayout,
+            uint32_t mipLevels,
+            VkImageAspectFlags aspectMask,
+            uint32_t layerCount,
+            bool needEnd = true
+    ) {
+        EVK_TRACY_ZONE;
+        if (!copyCmd->IsBegin())
+            copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+        const bool result = TransitionImageLayoutEx(*copyCmd, image, oldLayout, newLayout, mipLevels, aspectMask, layerCount);
+        const bool ended = !needEnd || copyCmd->End();
+        return result && ended;
     }
 
     EVK_MAYBE_UNUSED static bool TransitionImageLayout(
@@ -891,6 +960,18 @@ namespace EvoVulkan::Tools {
     ) {
         EVK_TRACY_ZONE;
         return TransitionImageLayoutEx(copyCmd, image, oldLayout, newLayout, mipLevels, VK_IMAGE_ASPECT_COLOR_BIT, layerCount, needEnd);
+    }
+
+    EVK_MAYBE_UNUSED static bool TransitionImageLayout(
+        VkCommandBuffer cmd,
+        VkImage image,
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout,
+        uint32_t mipLevels,
+        uint32_t layerCount
+    ) {
+        EVK_TRACY_ZONE;
+        return TransitionImageLayoutEx(cmd, image, oldLayout, newLayout, mipLevels, VK_IMAGE_ASPECT_COLOR_BIT, layerCount);
     }
 }
 

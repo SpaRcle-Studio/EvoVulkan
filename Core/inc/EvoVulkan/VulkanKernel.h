@@ -72,11 +72,11 @@ namespace EvoVulkan::Core {
 
     public:
         EVK_NODISCARD EVK_INLINE VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
-        EVK_NODISCARD EVK_INLINE VkCommandBuffer* GetDrawCmdBuffs() const { return m_drawCmdBuffs; }
         EVK_NODISCARD EVK_INLINE Types::Device* GetDevice() const { return m_device; }
         EVK_NODISCARD EVK_INLINE Memory::Allocator* GetAllocator() const { return m_allocator; }
         EVK_NODISCARD EVK_INLINE Types::MultisampleTarget* GetMultisampleTarget() const { return m_multisample; }
         EVK_NODISCARD EVK_INLINE Types::CmdPool* GetCmdPool() const { return m_cmdPool; }
+        EVK_NODISCARD EVK_INLINE const std::vector<Types::CmdPool*>& GetFrameCmdPools() const { return m_frameCmdPools; }
         EVK_NODISCARD EVK_INLINE Types::Swapchain* GetSwapchain() const { return m_swapchain; }
         EVK_NODISCARD EVK_INLINE Types::Surface* GetSurface() const { return m_surface; }
         EVK_NODISCARD EVK_INLINE VkInstance GetInstance() const { return *m_instance; }
@@ -95,6 +95,8 @@ namespace EvoVulkan::Core {
 
         EVK_NODISCARD uint32_t GetCountComputeCmdBuffers() const { return m_countCCB; }
         EVK_NODISCARD VkCommandBuffer* GetComputeCmdBuffers() const { return m_computeCmdBuffers; }
+        EVK_NODISCARD Types::CmdPool* GetComputeCmdPool() const { return m_computeCmdPool; }
+        EVK_NODISCARD Types::CmdPool* GetCurrentFrameCmdPool() const { return m_frameCmdPools[m_currentBuffer]; }
 
         EVK_NODISCARD uint8_t GetSampleCount() const;
         EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateSingleTimeCmd() const;
@@ -143,6 +145,7 @@ namespace EvoVulkan::Core {
         virtual RenderResult Render() { return RenderResult::Fatal; }
 
     private:
+        bool DestroyDCBuffers();
         bool ReCreateDCBuffers();
         bool ReCreateFrameBuffers();
         bool ReCreateSynchronizations();
@@ -150,7 +153,7 @@ namespace EvoVulkan::Core {
 
     public:
         uint8_t                    m_countDCB             = 0;
-        VkCommandBuffer*           m_drawCmdBuffs         = nullptr;
+        std::vector<VkCommandBuffer> m_drawCmdBuffs       = { };
         std::vector<VkFramebuffer> m_frameBuffers         = std::vector<VkFramebuffer>();
 
     protected:
@@ -181,6 +184,7 @@ namespace EvoVulkan::Core {
         Types::Surface*            m_surface              = nullptr;
         Types::Swapchain*          m_swapchain            = nullptr;
         Types::CmdPool*            m_cmdPool              = nullptr;
+        std::vector<Types::CmdPool*> m_frameCmdPools      = { };
         Types::CmdPool*            m_computeCmdPool       = nullptr;
         Types::MultisampleTarget*  m_multisample          = nullptr;
 

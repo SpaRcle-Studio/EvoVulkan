@@ -74,6 +74,8 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
 }
 
 bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint32_t countImages) {
+    EVK_TRACY_ZONE;
+
     VK_GRAPH("Swapchain::ReSetup() : re-setting up vulkan swapchain..."
          "\n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height) + "\n\tImages count: " + std::to_string(countImages)
      );
@@ -415,6 +417,7 @@ bool EvoVulkan::Types::Swapchain::CreateBuffers() {
 }
 
 VkResult EvoVulkan::Types::Swapchain::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex) const {
+    EVK_TRACY_ZONE;
     /// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
     /// With that we don't have to handle VK_NOT_READY
     return vkAcquireNextImageKHR(*m_device, m_swapchain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
@@ -431,6 +434,8 @@ bool EvoVulkan::Types::Swapchain::SurfaceIsAvailable() {
 }
 
 VkResult EvoVulkan::Types::Swapchain::QueuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore) const {
+    EVK_TRACY_ZONE;
+
     VkPresentInfoKHR presentInfo = { };
     presentInfo.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.pNext            = NULL;
@@ -444,13 +449,7 @@ VkResult EvoVulkan::Types::Swapchain::QueuePresent(VkQueue queue, uint32_t image
         presentInfo.waitSemaphoreCount = 1;
     }
 
-    try {
-        return vkQueuePresentKHR(queue, &presentInfo);
-    }
-    catch (const std::exception& ex) {
-        VK_ERROR("Swapchain::QueuePresent() : an exception has occurred! \n\tMessage: " + std::string(ex.what()));
-        return VK_ERROR_UNKNOWN;
-    }
+    return vkQueuePresentKHR(queue, &presentInfo);
 }
 
 void EvoVulkan::Types::Swapchain::SetVSync(bool vsync) {

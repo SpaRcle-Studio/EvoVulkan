@@ -98,5 +98,6 @@
 #include <utility>
 #include <cstdio>
 #include <future>
+#include <cinttypes>
 
 #endif //EVOVULKAN_MACROS_H

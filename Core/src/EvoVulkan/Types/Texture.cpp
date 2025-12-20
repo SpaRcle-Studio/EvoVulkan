@@ -170,8 +170,6 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
                 static_cast<uint32_t>(bufferCopyRegions.size()),
                 bufferCopyRegions.data()
         );
-
-        copyCmd->End();
     }
 
     texture->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, copyCmd);
@@ -305,7 +303,7 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
 
     m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copyCmd);
 
-    Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_width, m_height);
+    Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_width, m_height, false);
 
     if (m_mipLevels == 1) {
         m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, copyCmd);
@@ -362,7 +360,7 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
     EvoVulkan::Types::Texture *texture,
     EvoVulkan::Types::CmdBuffer *singleBuffer)
 {
-    if (!singleBuffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
+    if (!singleBuffer->IsBegin() && !singleBuffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)) {
         VK_ERROR("Texture::GenerateMipmaps() : failed to begin command buffer!");
         return false;
     }
@@ -441,9 +439,15 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
 }
 
 EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDescriptorSetLayout layout) {
+    SR_TRACY_ENABLE;
+
     if (!m_descriptorManager) {
         VK_HALT("Texture::GetDescriptorSet() : texture have not descriptor manager!");
         return Types::DescriptorSet();
+    }
+
+    if (m_image.GetLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        VK_ERROR("Texture::GetDescriptorSet() : texture image layout is not VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL!");
     }
 
     if (m_descriptorSet == VK_NULL_HANDLE) {

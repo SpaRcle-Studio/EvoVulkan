@@ -9,6 +9,7 @@
 #include <EvoVulkan/Tools/VulkanConverter.h>
 #include <EvoVulkan/Tools/VulkanDebug.h>
 #include <EvoVulkan/Tools/FileSystem.h>
+#include <EvoVulkan/Profile.h>
 
 #define EVSafeFreeObject(object) \
     if (object) {                \
@@ -225,6 +226,11 @@ namespace EvoVulkan::Tools {
             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
             void* pUserData)
     {
+        EVK_TRACY_ZONE;
+
+        static const std::string_view debugExtensionWarn = "UNASSIGNED-BestPractices-vkCreateInstance-specialuse-extension-debugging";
+        static const std::string_view loaderGetJsonError = "loader_get_json: Failed to open JSON";
+
         switch (messageSeverity) {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
                 VK_LOG("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
@@ -235,11 +241,24 @@ namespace EvoVulkan::Tools {
                 break;
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
-                VK_WARN("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+                if (std::string_view(pCallbackData->pMessage).find(debugExtensionWarn) != std::string::npos) {
+                    VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
+                }
+                else if (VkFunctionsHolder::Instance().ValidationMuteSmallMemoryAllocations) {
+                    static const std::string_view debugMemoryAllocWarn = "BestPractices-vkAllocateMemory-small-allocation";
+                    static const std::string_view debugMemoryBindWarn = "BestPractices-vkBindMemory-small-dedicated-allocation";
+
+                    if (std::string_view(pCallbackData->pMessage).find(debugMemoryAllocWarn) != std::string::npos && std::string_view(pCallbackData->pMessage).find(debugMemoryBindWarn) != std::string::npos) {
+                        VK_WARN("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+                    }
+                }
+                else {
+                    VK_WARN("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+                }
                 break;
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-                if (std::string_view(pCallbackData->pMessage).find("loader_get_json: Failed to open JSON") != std::string::npos) {
+                if (std::string_view(pCallbackData->pMessage).find(loaderGetJsonError) != std::string::npos) {
                     VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
                 }
                 else if (VkFunctionsHolder::Instance().ValidationErrorAsAssert) {

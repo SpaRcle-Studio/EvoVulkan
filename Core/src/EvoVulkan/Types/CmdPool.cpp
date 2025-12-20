@@ -37,7 +37,12 @@ EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::D
     VkCommandPoolCreateInfo cmdPoolInfo = {};
     cmdPoolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     cmdPoolInfo.queueFamilyIndex        = queueFamilyIndex;
-    cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    /// Если нужно сбрасывать буферы по одному (для повторного использования)
+    /// cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    /// Если буферы короткоживущие (один кадр), то можно оптимизировать память под это
+    cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
     VkResult vkRes = vkCreateCommandPool(*device, &cmdPoolInfo, nullptr, &cmdPool);
     if (vkRes != VK_SUCCESS) {

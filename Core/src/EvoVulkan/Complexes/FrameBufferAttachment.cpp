@@ -106,7 +106,8 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
+        // if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
+        if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)) {
             VK_ERROR("FrameBufferAttachment::CreateDepthAttachment() : failed to transition depth image layout!");
             return nullptr;
         }
@@ -169,6 +170,7 @@ namespace EvoVulkan::Complexes {
         pFBOAttachment->m_image = EvoVulkan::Types::Image::Create(imageCI);
 
         const VkImageLayout layout = pFrameBuffer->GetFeatures().colorShaderRead ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        //const VkImageLayout layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         /// ставим барьер памяти, чтобы можно было использовать в шейдерах
         pFBOAttachment->m_image.TransitionImageLayout(layout);

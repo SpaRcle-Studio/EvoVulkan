@@ -60,8 +60,13 @@ namespace EvoVulkan::Complexes {
                     m_index /** layer index */
                 );
 
-                if (!m_resolveAttachments[i]->Ready()) {
+                if (!m_resolveAttachments[i]) {
                     VK_ERROR("FrameBufferLayer::Initialize() : failed to create color resolve attachment!");
+                    return false;
+                }
+
+                if (!m_resolveAttachments[i]->Ready()) {
+                    VK_ERROR("FrameBufferLayer::Initialize() : resolve attachment is not ready!");
                     return false;
                 }
             }

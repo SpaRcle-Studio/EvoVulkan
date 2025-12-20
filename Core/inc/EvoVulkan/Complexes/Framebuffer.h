@@ -49,6 +49,7 @@ namespace EvoVulkan::Complexes {
                 Core::DescriptorManager* manager,
                 Types::Swapchain* swapchain,
                 Types::CmdPool* pool,
+                std::vector<Types::CmdPool*> framePools,
                 FrameBufferFeatures features,
                 const std::vector<VkFormat>& colorAttachments,
                 uint32_t width, uint32_t height,
@@ -111,7 +112,6 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_waitSemaphores; }
         EVK_NODISCARD std::vector<VkSemaphore>& GetSignalSemaphores() { return m_signalSemaphores; }
         EVK_NODISCARD VkCommandBuffer GetCommandBuffer(uint32_t frame) const;
-        EVK_NODISCARD Types::CmdBuffer* GetSecondaryCommandBuffer() const { return m_secondaryCmdBuffer; }
 
         /// EVK_NODISCARD VkRenderPassBeginInfo BeginRenderPass(VkClearValue* clearValues, uint32_t countCls, uint32_t layer) const;
 
@@ -126,7 +126,7 @@ namespace EvoVulkan::Complexes {
     private:
         FrameBufferFeatures m_features;
         std::vector<Types::CmdBuffer*> m_cmdBuffers;
-        Types::CmdBuffer* m_secondaryCmdBuffer = nullptr;
+        std::vector<Types::CmdPool*> m_cmdPools;
 
         bool m_dirtyRenderPass = false;
 
@@ -160,8 +160,6 @@ namespace EvoVulkan::Complexes {
 
         VkRect2D                  m_scissor            = { };
         VkViewport                m_viewport           = { };
-
-        VkCommandBufferBeginInfo  m_cmdBufInfo         = { };
 
         std::vector<VkSemaphore>  m_waitSemaphores     = { };
         std::vector<VkSemaphore>  m_signalSemaphores   = { };

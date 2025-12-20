@@ -41,6 +41,8 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD VkCommandBuffer* GetCmdRef() { return &m_buffer; }
 
     private:
+        bool                        m_singleTime    = false;
+        bool                        m_singleUsed    = false;
         bool                        m_isBegin       = false;
         VkCommandBuffer             m_buffer        = VK_NULL_HANDLE;
         const Device*               m_device        = nullptr;

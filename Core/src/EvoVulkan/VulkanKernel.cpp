@@ -242,6 +242,16 @@ bool EvoVulkan::Core::VulkanKernel::Init(
         }
     }
 
+    m_frameCmdPools.resize(m_swapchainImages);
+    VK_LOG("VulkanKernel::Init() : creating " + std::to_string(m_swapchainImages) + " frame command pools...");
+    for (size_t i = 0; i < m_swapchainImages; ++i) {
+        m_frameCmdPools[i] = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetGraphicsIndex());
+        if (!m_frameCmdPools[i]) {
+            VK_ERROR("VulkanKernel::Init() : failed to create frame command pool for " + std::to_string(i + 1) + " frame!");
+            return false;
+        }
+    }
+
     VK_LOG("VulkanKernel::Init() : depth format is " + Tools::Convert::format_to_string(m_device->GetDepthFormat()));
 
     //!=================================================================================================================
@@ -402,9 +412,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
         Tools::DestroyFences(*m_device, m_waitFences);
     }
 
-    if (m_drawCmdBuffs) {
-        Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
-    }
+    DestroyDCBuffers();
 
     if (m_computeCmdBuffers) {
         Tools::FreeCommandBuffers(*m_device, *m_computeCmdPool, &m_computeCmdBuffers, m_countCCB);
@@ -418,6 +426,12 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     EVSafeFreeObject(m_surface);
     EVSafeFreeObject(m_cmdPool);
     EVSafeFreeObject(m_computeCmdPool);
+
+    for (auto& pCmdPool : m_frameCmdPools) {
+        EVSafeFreeObject(pCmdPool);
+    }
+    m_frameCmdPools.clear();
+
     EVSafeFreeObject(m_allocator);
     EVSafeFreeObject(m_device);
 
@@ -598,6 +612,10 @@ void EvoVulkan::Core::VulkanKernel::WaitComputeIdle() {
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
     VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentImage, m_frameSyncs[m_currentBuffer].m_renderComplete);
+
+    if (result == VK_SUBOPTIMAL_KHR) {
+        return FrameResult::Suboptimal;
+    }
 
     if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -902,24 +920,19 @@ void EvoVulkan::Core::VulkanKernel::PrintSubmitQueue() {
 bool EvoVulkan::Core::VulkanKernel::ReCreateDCBuffers() {
     Tools::DestroyFences(*m_device, m_waitFences);
 
-    if (m_drawCmdBuffs) {
-        Tools::FreeCommandBuffers(*m_device, *m_cmdPool, &m_drawCmdBuffs, m_countDCB);
-    }
+    DestroyDCBuffers();
 
     m_countDCB = m_swapchain ? m_swapchain->GetCountImages() : 0;
+    m_drawCmdBuffs.resize(m_countDCB);
 
-    if (m_countDCB > 0) {
-        m_drawCmdBuffs = Tools::AllocateCommandBuffers(
+    for (uint32_t i = 0; i < m_countDCB; ++i) {
+        m_drawCmdBuffs[i] = Tools::AllocateCommandBuffer(
             *m_device,
-            Tools::Initializers::CommandBufferAllocateInfo(
-                *m_cmdPool,
-                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                m_countDCB
-            )
+            Tools::Initializers::CommandBufferAllocateInfo(*m_frameCmdPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1)
         );
 
-        if (!m_drawCmdBuffs) {
-            VK_ERROR("Vulkan::ReCreateDCBuffers() : failed to allocate draw command buffers!");
+        if (!m_drawCmdBuffs[i]) {
+            VK_ERROR("VulkanKernel::ReCreateDCBuffers() : failed to allocate draw command buffer for " + std::to_string(i + 1) + " frame!");
             return false;
         }
     }
@@ -935,5 +948,15 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateDCBuffers() {
         }
     }
 
+    return true;
+}
+
+bool EvoVulkan::Core::VulkanKernel::DestroyDCBuffers() {
+    for (uint32_t i = 0; i < m_drawCmdBuffs.size(); ++i) {
+        if (m_drawCmdBuffs[i]) {
+            Tools::FreeCommandBuffer(*m_device, *m_frameCmdPools[i], &m_drawCmdBuffs[i]);
+        }
+    }
+    m_drawCmdBuffs.clear();
     return true;
 }

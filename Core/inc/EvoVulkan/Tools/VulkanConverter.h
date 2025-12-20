@@ -28,8 +28,29 @@ namespace EvoVulkan::Tools::Convert {
         }
     }
 
-    EVK_MAYBE_UNUSED static std::string DeviceTypeToString(VkFormat format) {
-
+    EVK_MAYBE_UNUSED static std::string DescriptorTypeToString(VkDescriptorType type) {
+        switch (type) {
+            case VK_DESCRIPTOR_TYPE_SAMPLER: return "SAMPLER";
+            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return "COMBINED_IMAGE_SAMPLER";
+            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: return "SAMPLED_IMAGE";
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: return "STORAGE_IMAGE";
+            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER: return "UNIFORM_TEXEL_BUFFER";
+            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: return "STORAGE_TEXEL_BUFFER";
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return "UNIFORM_BUFFER";
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: return "STORAGE_BUFFER";
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: return "UNIFORM_BUFFER_DYNAMIC";
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return "STORAGE_BUFFER_DYNAMIC";
+            case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return "INPUT_ATTACHMENT";
+            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK: return "INLINE_UNIFORM_BLOCK";
+            case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: return "ACCELERATION_STRUCTURE_KHR";
+            case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV: return "ACCELERATION_STRUCTURE_NV";
+            case VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM: return "SAMPLE_WEIGHT_IMAGE_QCOM";
+            case VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM: return "BLOCK_MATCH_IMAGE_QCOM";
+            case VK_DESCRIPTOR_TYPE_MUTABLE_EXT: return "MUTABLE_EXT";
+            case VK_DESCRIPTOR_TYPE_MAX_ENUM: return "MAX_ENUM";
+            default:
+                return "UNKNOWN_DESCRIPTIOR_TYPE";
+        }
     }
 
     EVK_MAYBE_UNUSED static VkFormat CompressedFormatToDecodedFormat(VkFormat format) {

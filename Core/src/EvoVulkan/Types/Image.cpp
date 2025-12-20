@@ -123,6 +123,25 @@ namespace EvoVulkan::Types {
         return TransitionImageLayout(layout, m_info.aspect, pBuffer);
     }
 
+    bool Image::TransitionImageLayout(VkImageLayout layout, VkCommandBuffer commandBuffer) const {
+        EVK_TRACY_ZONE;
+        return TransitionImageLayout(layout, m_info.aspect, commandBuffer);
+    }
+
+    bool Image::TransitionImageLayout(VkImageLayout layout, VkImageAspectFlags aspect, VkCommandBuffer commandBuffer) const {
+        if (m_info.format == VK_FORMAT_D32_SFLOAT_S8_UINT && aspect == VK_IMAGE_ASPECT_DEPTH_BIT) {
+            VK_ERROR("Image::TransitionImageLayout() : can't transition depth image layout!");
+            return false;
+        }
+
+        const bool result = EvoVulkan::Tools::TransitionImageLayoutEx(
+            commandBuffer, m_image, m_layout, layout, m_info.mipLevels, aspect,m_info.arrayLayers
+        );
+
+        m_layout = layout;
+        return result;
+    }
+
     bool Image::TransitionImageLayout(VkImageLayout layout, VkImageAspectFlags aspect, CmdBuffer *pBuffer) const {
         EVK_TRACY_ZONE;
         auto&& copyCmd = pBuffer ? pBuffer : EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_info.pAllocator->GetDevice(), m_info.pPool);
@@ -133,8 +152,8 @@ namespace EvoVulkan::Types {
         }
 
         const bool result = EvoVulkan::Tools::TransitionImageLayoutEx(
-                copyCmd, m_image, m_layout,layout,
-                m_info.mipLevels, aspect,m_info.arrayLayers, false
+            copyCmd, m_image, m_layout,layout,
+            m_info.mipLevels, aspect,m_info.arrayLayers, false
         );
 
         m_layout = layout;

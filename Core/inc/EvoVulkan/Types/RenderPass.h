@@ -318,15 +318,20 @@ namespace EvoVulkan::Types {
 
         /// цвет с мультисемплингом
         if (multisampling) {
-            dependencies.resize(2);
+            if (depth) {
+                dependencies.resize(4);
+            }
+            else {
+                dependencies.resize(2);
+            }
 
             dependencies[0].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
             dependencies[0].pNext = nullptr;
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[0].dstSubpass = 0;
-            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            dependencies[0].srcAccessMask = 0;
             dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -339,6 +344,28 @@ namespace EvoVulkan::Types {
             dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
             dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+            if (depth) {
+                dependencies[2].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+                dependencies[2].pNext = nullptr;
+                dependencies[2].srcSubpass = VK_SUBPASS_EXTERNAL;
+                dependencies[2].dstSubpass = 0;
+                dependencies[2].srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                dependencies[2].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+                dependencies[2].srcAccessMask = 0;
+                dependencies[2].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+                dependencies[3].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+                dependencies[3].pNext = nullptr;
+                dependencies[3].srcSubpass = 0;
+                dependencies[3].dstSubpass = VK_SUBPASS_EXTERNAL;
+                dependencies[3].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+                dependencies[3].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                dependencies[3].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                dependencies[3].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                dependencies[3].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+            }
         }
         /// просто цвет без мультисемплинга
         else if (attachments.size() > 1 || !depth) {
@@ -361,8 +388,8 @@ namespace EvoVulkan::Types {
             dependencies[0].pNext = nullptr;
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[0].dstSubpass = 0;
-            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-            dependencies[0].dstStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
             dependencies[0].srcAccessMask = 0;
             dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
             dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
