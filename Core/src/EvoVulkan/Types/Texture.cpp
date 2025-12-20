@@ -491,10 +491,10 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
 
     auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
 
-    auto&& pBuffer = EvoVulkan::Types::Buffer::Create(
-        m_device, m_allocator,
+    auto&& pBuffer = VmaBuffer::Create(
+        m_allocator,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        VMA_MEMORY_USAGE_CPU_ONLY,
         pixelTypeSize * channels
     );
 

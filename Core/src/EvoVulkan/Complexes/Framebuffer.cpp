@@ -270,15 +270,15 @@ namespace EvoVulkan::Complexes {
                 if (m_features.depthLoad) {
                     attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
                 }
-                //if (m_features.depthShaderRead) {
-                //    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                //    attachmentDesc.finalLayout = Tools::FindDepthFormatLayout(m_depthAspect, true, false);
-                //}
-                //else {
-                    attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, false, false);
-                    //attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, m_features.depthShaderRead, false);
+                if (m_features.depthShaderRead) {
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    attachmentDesc.finalLayout = Tools::FindDepthFormatLayout(m_depthAspect, true, false);
+                }
+                else {
+                    //attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, false, false);
+                    attachmentDesc.initialLayout = Tools::FindDepthFormatLayout(m_depthAspect, m_features.depthShaderRead, false);
                     attachmentDesc.finalLayout = attachmentDesc.initialLayout;
-                //}
+                }
             }
             else {
                 attachmentDesc.format = m_attachFormats[i];

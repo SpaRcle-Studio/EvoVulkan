@@ -104,15 +104,17 @@ namespace EvoVulkan::Types {
         bool shaderViewportIndexLayerSupported = true;
 
         /// Enabled by default in Vulkan 1.2+
-        ///if (Tools::IsExtensionSupported(physicalDevice, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
-        ///    info.extensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
-        ///    VK_LOG("Device::Create() : enabled extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME));
-        ///    shaderViewportIndexLayerSupported = true;
-        ///}
-        ///else {
-        ///    VK_LOG("Device::Create() : extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) + " is not supported!");
-        ///    shaderViewportIndexLayerSupported = false;
-        ///}
+        if (info.pInstance->GetVersion() < VK_API_VERSION_1_2) {
+            if (Tools::IsExtensionSupported(physicalDevice, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
+                info.extensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+                VK_LOG("Device::Create() : enabled extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME));
+                shaderViewportIndexLayerSupported = true;
+            }
+            else {
+                VK_LOG("Device::Create() : extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) + " is not supported!");
+                shaderViewportIndexLayerSupported = false;
+            }
+        }
 
         if (Tools::IsExtensionSupported(physicalDevice, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)) {
             info.extensions.emplace_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
@@ -171,11 +173,12 @@ namespace EvoVulkan::Types {
         ////deviceFeatures.textureCompressionASTC_LDR = true;
 
         logicalDevice = Tools::CreateLogicalDevice(
-                physicalDevice,
-                pQueues,
-                info.extensions,
-                info.validationLayers,
-                info.dynamicRendering);
+            info.pInstance,
+            physicalDevice,
+            pQueues,
+            info.extensions,
+            info.validationLayers,
+            info.dynamicRendering);
 
         if (logicalDevice == VK_NULL_HANDLE) {
             VK_ERROR("Device::Create() : failed create logical device!");

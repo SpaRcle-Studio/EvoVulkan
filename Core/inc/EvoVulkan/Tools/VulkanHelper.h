@@ -230,6 +230,7 @@ namespace EvoVulkan::Tools {
 
         static const std::string_view debugExtensionWarn = "UNASSIGNED-BestPractices-vkCreateInstance-specialuse-extension-debugging";
         static const std::string_view loaderGetJsonError = "loader_get_json: Failed to open JSON";
+        static const std::string_view debugSurfReturn = "vkGetPhysicalDeviceSurfaceCapabilitiesKHR():  Returned error VK_ERROR_UNKNOWN";
 
         switch (messageSeverity) {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
@@ -244,11 +245,16 @@ namespace EvoVulkan::Tools {
                 if (std::string_view(pCallbackData->pMessage).find(debugExtensionWarn) != std::string::npos) {
                     VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
                 }
+                else if (std::string_view(pCallbackData->pMessage).find(debugSurfReturn) != std::string::npos) {
+                    VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
+                }
                 else if (VkFunctionsHolder::Instance().ValidationMuteSmallMemoryAllocations) {
                     static const std::string_view debugMemoryAllocWarn = "BestPractices-vkAllocateMemory-small-allocation";
                     static const std::string_view debugMemoryBindWarn = "BestPractices-vkBindMemory-small-dedicated-allocation";
 
-                    if (std::string_view(pCallbackData->pMessage).find(debugMemoryAllocWarn) != std::string::npos && std::string_view(pCallbackData->pMessage).find(debugMemoryBindWarn) != std::string::npos) {
+                    if (std::string_view(pCallbackData->pMessage).find(debugMemoryAllocWarn) != std::string::npos &&
+                        std::string_view(pCallbackData->pMessage).find(debugMemoryBindWarn) != std::string::npos
+                    ) {
                         VK_WARN("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
                     }
                 }

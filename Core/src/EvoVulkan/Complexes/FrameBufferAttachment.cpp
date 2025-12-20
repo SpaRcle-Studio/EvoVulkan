@@ -106,8 +106,8 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        // if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
-        if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)) {
+        //if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)) {
+        if (!pFBOAttachment->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
             VK_ERROR("FrameBufferAttachment::CreateDepthAttachment() : failed to transition depth image layout!");
             return nullptr;
         }

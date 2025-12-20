@@ -396,6 +396,7 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static VkDevice CreateLogicalDevice(
+            Types::Instance* pInstance,
             VkPhysicalDevice physicalDevice,
             Types::FamilyQueues *pQueues,
             const std::vector<const char *> &extensions,
@@ -522,7 +523,10 @@ namespace EvoVulkan::Tools {
         deviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
         deviceVulkan12Features.pNext = (void*)&dynamicRenderingFeature;
 
-        if (Tools::IsExtensionEnabled(extensions, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
+        /// С версии 1.2 эти фичи включены по умолчанию
+        const bool isExtensionEnabled = Tools::IsExtensionEnabled(extensions, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) || pInstance->GetVersion() >= VK_API_VERSION_1_2;
+
+        if (isExtensionEnabled) {
             deviceVulkan12Features.shaderOutputViewportIndex = VK_TRUE;
             deviceVulkan12Features.shaderOutputLayer = VK_TRUE;
         }
@@ -871,12 +875,25 @@ namespace EvoVulkan::Tools {
             return TransitionImageLayoutEx(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, mipLevels, aspectMask, layerCount) &&
                 TransitionImageLayoutEx(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels, aspectMask, layerCount);
         }
+        else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
+            /// [ UNASSIGNED-BestPractices-TransitionUndefinedToReadOnly ] | MessageID = 0x9f63e654 | vkCmdPipelineBarrier(): pImageMemoryBarriers[0]
+            /// VkImageMemoryBarrier is being submitted with oldLayout VK_IMAGE_LAYOUT_UNDEFINED and the contents may be discarded, but the newLayout is VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, which is read only.
+            return TransitionImageLayoutEx(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, mipLevels, aspectMask, layerCount) &&
+                TransitionImageLayoutEx(cmd, image, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, mipLevels, aspectMask, layerCount);
+        }
         else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
             barrier.srcAccessMask = 0;
             barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
         else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = 0;
