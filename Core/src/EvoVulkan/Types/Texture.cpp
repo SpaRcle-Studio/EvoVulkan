@@ -446,9 +446,9 @@ EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDe
         return Types::DescriptorSet();
     }
 
-    if (m_image.GetLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-        VK_ERROR("Texture::GetDescriptorSet() : texture image layout is not VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL!");
-    }
+    //if (m_image.GetLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    //    VK_ERROR("Texture::GetDescriptorSet() : texture image layout is not VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL!");
+    //}
 
     if (m_descriptorSet == VK_NULL_HANDLE) {
         static const DescriptorPool::RequestTypes type = {
