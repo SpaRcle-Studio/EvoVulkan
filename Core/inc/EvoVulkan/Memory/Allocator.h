@@ -71,6 +71,9 @@ namespace EvoVulkan::Memory {
         EVK_NODISCARD uint64_t GetAllocatedMemorySize() const { return m_deviceMemoryAllocSize; }
         EVK_NODISCARD uint64_t GetAllocatedHeapsCount() const { return m_allocHeapsCount;       }
 
+        void OnMemoryAllocated(uint64_t size);
+        void OnMemoryFreed(uint64_t size);
+
     private:
         bool Init();
 

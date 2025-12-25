@@ -68,6 +68,8 @@ EvoVulkan::Types::Image EvoVulkan::Memory::Allocator::AllocImage(const VkImageCr
         return EvoVulkan::Types::Image();
     }
 
+    OnMemoryAllocated(image.m_allocation->GetSize());
+
     return image;
 }
 
@@ -85,6 +87,8 @@ void EvoVulkan::Memory::Allocator::FreeImage(Types::Image& image) {
         VK_ERROR("Allocator::FreeImage() : allocators is different!");
         return;
     }
+
+    OnMemoryFreed(image.m_allocation->GetSize());
 
     vmaDestroyImage(m_vmaAllocator, image.m_image, image.m_allocation);
 
@@ -104,6 +108,7 @@ EvoVulkan::Memory::RawMemory EvoVulkan::Memory::Allocator::AllocateMemory(VkMemo
         return RawMemory();
     }
     else {
+        OnMemoryAllocated(memory.m_size);
         return memory;
     }
 }
@@ -115,6 +120,7 @@ bool EvoVulkan::Memory::Allocator::FreeMemory(EvoVulkan::Memory::RawMemory *memo
     }
 
     if (memory->m_memory != VK_NULL_HANDLE) {
+        OnMemoryFreed(memory->m_size);
         vkFreeMemory(*m_device, *memory, nullptr);
         memory->m_memory = VK_NULL_HANDLE;
         memory->m_size   = 0;
@@ -171,12 +177,38 @@ EvoVulkan::Memory::Buffer EvoVulkan::Memory::Allocator::AllocBuffer(const VkBuff
         return EvoVulkan::Memory::Buffer();
     }
 
+    OnMemoryAllocated(buffer.m_allocation->GetSize());
+
     return buffer;
 }
 
 void EvoVulkan::Memory::Allocator::FreeBuffer(EvoVulkan::Memory::Buffer &info) {
+    OnMemoryFreed(info.m_allocation->GetSize());
     vmaDestroyBuffer(m_vmaAllocator, info.m_buffer, info.m_allocation);
 
     info.m_buffer = VK_NULL_HANDLE;
     info.m_allocation = VK_NULL_HANDLE;
+}
+
+void EvoVulkan::Memory::Allocator::OnMemoryAllocated(uint64_t size) {
+    ++m_allocHeapsCount;
+    m_deviceMemoryAllocSize += size;
+}
+
+void EvoVulkan::Memory::Allocator::OnMemoryFreed(uint64_t size) {
+    if (m_allocHeapsCount == 0) {
+        VK_WARN("Allocator::OnMemoryFreed() : m_allocHeapsCount is already zero!");
+        m_deviceMemoryAllocSize = 0;
+        return;
+    }
+
+    if (size > m_deviceMemoryAllocSize) {
+        VK_WARN("Allocator::OnMemoryFreed() : size to free is greater than allocated memory size!");
+        m_deviceMemoryAllocSize = 0;
+        --m_allocHeapsCount;
+        return;
+    }
+
+    --m_allocHeapsCount;
+    m_deviceMemoryAllocSize -= size;
 }

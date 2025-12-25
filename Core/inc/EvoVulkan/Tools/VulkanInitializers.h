@@ -440,6 +440,7 @@ namespace EvoVulkan::Tools::Initializers {
         pipelineMultisampleStateCreateInfo.rasterizationSamples = rasterizationSamples;
         pipelineMultisampleStateCreateInfo.flags = flags;
         pipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
+        pipelineMultisampleStateCreateInfo.alphaToCoverageEnable = rasterizationSamples > VK_SAMPLE_COUNT_1_BIT ? VK_TRUE : VK_FALSE;
         pipelineMultisampleStateCreateInfo.minSampleShading = 1.f;
         return pipelineMultisampleStateCreateInfo;
     }
