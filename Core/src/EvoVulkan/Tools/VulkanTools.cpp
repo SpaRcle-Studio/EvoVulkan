@@ -166,6 +166,24 @@ namespace EvoVulkan::Tools {
         return semaphore;
     }
 
+    VkFence CreateVulkanFence(const VkDevice& device, VkFenceCreateFlags flags) {
+        VkFence fence = VK_NULL_HANDLE;
+        VkFenceCreateInfo fenceCreateInfo = Initializers::FenceCreateInfo(flags);
+        auto result = vkCreateFence(device, &fenceCreateInfo, nullptr, &fence);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Tools::CreateVulkanFence() : failed to create vulkan fence!");
+            return VK_NULL_HANDLE;
+        }
+        return fence;
+    }
+
+    void DestroyVulkanFence(const VkDevice& device, VkFence* fence) {
+        if (fence && *fence != VK_NULL_HANDLE) {
+            vkDestroyFence(device, *fence, nullptr);
+            *fence = VK_NULL_HANDLE;
+        }
+    }
+
     void DestroyVulkanSemaphore(const VkDevice& device, VkSemaphore* semaphore) {
         if (semaphore && *semaphore != VK_NULL_HANDLE) {
             vkDestroySemaphore(device, *semaphore, nullptr);
