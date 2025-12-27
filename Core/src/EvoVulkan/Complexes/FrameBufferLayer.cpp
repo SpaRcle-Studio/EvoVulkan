@@ -91,6 +91,29 @@ namespace EvoVulkan::Complexes {
                 VK_ERROR("FrameBufferLayer::Initialize() : failed to create depth attachment!");
                 return false;
             }
+
+            /// ========================================== depth resolve target ==========================================
+            /// Create resolve attachment for depth when multisampling is enabled and depthShaderRead is true
+            /// This is needed because multisampled depth images cannot be read directly in shaders with sampler2DArray
+            if (m_frameBuffer->IsMultisampleEnabled() && m_frameBuffer->GetFeatures().depthShaderRead) {
+                m_depthResolveAttachment = FrameBufferAttachment::CreateDepthResolveAttachment(
+                    m_frameBuffer,
+                    depthFormat,
+                    depthAspect,
+                    m_frameBuffer->GetArrayLayersCount(),
+                    m_index /** layer index */
+                );
+
+                if (!m_depthResolveAttachment) {
+                    VK_ERROR("FrameBufferLayer::Initialize() : failed to create depth resolve attachment!");
+                    return false;
+                }
+
+                if (!m_depthResolveAttachment->Ready()) {
+                    VK_ERROR("FrameBufferLayer::Initialize() : depth resolve attachment is not ready!");
+                    return false;
+                }
+            }
         }
 
         return true;

@@ -107,24 +107,24 @@ namespace EvoVulkan::Tools {
             std::vector<VkVertexInputAttributeDescription> vertexInputAttributes,
             VkPipelineCache pipelineCache)
     {
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-                Initializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_POINT_LIST, 0, VK_FALSE);
-        VkPipelineRasterizationStateCreateInfo rasterizationState =
-                Initializers::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
-        VkPipelineColorBlendAttachmentState    blendAttachmentState =
-                Initializers::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
-        VkPipelineColorBlendStateCreateInfo    colorBlendState =
-                Initializers::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-        VkPipelineDepthStencilStateCreateInfo  depthStencilState =
-                Initializers::PipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-        VkPipelineViewportStateCreateInfo      viewportState =
-                Initializers::PipelineViewportStateCreateInfo(1, 1, 0);
-        VkPipelineMultisampleStateCreateInfo   multisampleState =
-                Initializers::PipelineMultisampleStateCreateInfo(device->GetMSAASamples(), 0);
-        VkPipelineDynamicStateCreateInfo       dynamicState =
-                Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables);
+       //VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
+       //        Initializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_POINT_LIST, 0, VK_FALSE);
+       //VkPipelineRasterizationStateCreateInfo rasterizationState =
+       //        Initializers::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+       //VkPipelineColorBlendAttachmentState    blendAttachmentState =
+       //        Initializers::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
+       //VkPipelineColorBlendStateCreateInfo    colorBlendState =
+       //        Initializers::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+       //VkPipelineDepthStencilStateCreateInfo  depthStencilState =
+       //        Initializers::PipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+       //VkPipelineViewportStateCreateInfo      viewportState =
+       //        Initializers::PipelineViewportStateCreateInfo(1, 1, 0);
+       //VkPipelineMultisampleStateCreateInfo   multisampleState =
+       //        Initializers::PipelineMultisampleStateCreateInfo(device->GetMSAASamples(), 0);
+       //VkPipelineDynamicStateCreateInfo       dynamicState =
+       //        Initializers::PipelineDynamicStateCreateInfo(dynamicStateEnables);
 
-        VkGraphicsPipelineCreateInfo pipelineCI = Initializers::PipelineCreateInfo(pipelineLayout, renderPass, 0);
+       //VkGraphicsPipelineCreateInfo pipelineCI = Initializers::PipelineCreateInfo(pipelineLayout, renderPass, 0);
 
         return VK_NULL_HANDLE;
     }

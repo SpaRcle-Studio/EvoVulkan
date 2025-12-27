@@ -432,15 +432,17 @@ namespace EvoVulkan::Tools::Initializers {
     }
 
     EVK_MAYBE_UNUSED static VkPipelineMultisampleStateCreateInfo PipelineMultisampleStateCreateInfo(
-            VkSampleCountFlagBits rasterizationSamples,
-            VkPipelineMultisampleStateCreateFlags flags = 0)
+        VkSampleCountFlagBits rasterizationSamples,
+        VkBool32 alphaToCoverageEnable,
+        VkPipelineMultisampleStateCreateFlags flags = 0)
     {
         VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
         pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         pipelineMultisampleStateCreateInfo.rasterizationSamples = rasterizationSamples;
         pipelineMultisampleStateCreateInfo.flags = flags;
         pipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
-        pipelineMultisampleStateCreateInfo.alphaToCoverageEnable = rasterizationSamples > VK_SAMPLE_COUNT_1_BIT ? VK_TRUE : VK_FALSE;
+        //pipelineMultisampleStateCreateInfo.alphaToCoverageEnable = rasterizationSamples > VK_SAMPLE_COUNT_1_BIT ? VK_TRUE : VK_FALSE;
+        pipelineMultisampleStateCreateInfo.alphaToCoverageEnable = alphaToCoverageEnable;
         pipelineMultisampleStateCreateInfo.minSampleShading = 1.f;
         return pipelineMultisampleStateCreateInfo;
     }

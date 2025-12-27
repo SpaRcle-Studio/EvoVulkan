@@ -281,6 +281,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
     VkBool32 blendEnable,
     VkBool32 depthWrite,
     VkBool32 depthTest,
+    VkBool32 alphaCoverage,
     VkPrimitiveTopology topology,
     VkSampleCountFlagBits rasterizationSamples
 ) {
@@ -302,7 +303,9 @@ bool EvoVulkan::Complexes::Shader::Compile(
 
     m_depthStencilState = Tools::Initializers::PipelineDepthStencilStateCreateInfo(depthTest, depthWrite, depthCompare);
     m_viewportState = Tools::Initializers::PipelineViewportStateCreateInfo(1, 1, 0);
-    m_multisampleState = Tools::Initializers::PipelineMultisampleStateCreateInfo(rasterizationSamples, 0);
+
+    const VkBool32 alphaCoverageEnabled = alphaCoverage && rasterizationSamples > VK_SAMPLE_COUNT_1_BIT ? VK_TRUE : VK_FALSE;
+    m_multisampleState = Tools::Initializers::PipelineMultisampleStateCreateInfo(rasterizationSamples, alphaCoverageEnabled, 0);
 
     if (!m_hasVertices)
         m_vertices.m_inputState = Tools::Initializers::PipelineVertexInputStateCreateInfo();

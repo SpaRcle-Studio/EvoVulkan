@@ -205,6 +205,10 @@ namespace EvoVulkan::Complexes {
 
             if (IsDepthEnabled()) {
                 attachments.push_back(m_layers[layerIndex]->GetDepthAttachment()->GetView());
+                // Add depth resolve attachment if multisampling is enabled and depthShaderRead is true
+                if (IsMultisampleEnabled() && m_features.depthShaderRead && m_layers[layerIndex]->GetDepthResolveAttachment()) {
+                    attachments.push_back(m_layers[layerIndex]->GetDepthResolveAttachment()->GetView());
+                }
             }
 
             if (m_renderPass.m_countAttachments != attachments.size()) {
@@ -255,7 +259,12 @@ namespace EvoVulkan::Complexes {
         VkAttachmentDescription2 attachmentDesc = { };
 
         /// Init attachment properties
-        for (uint32_t i = 0; i < m_attachFormats.size() + (IsDepthEnabled() ? 1 : 0); ++i) {
+        // Calculate total attachments: color + resolve + depth + depth resolve (if needed)
+        uint32_t totalAttachments = m_attachFormats.size() * (IsMultisampleEnabled() ? 2 : 1) + 
+                                    (IsDepthEnabled() ? 1 : 0) + 
+                                    (IsDepthEnabled() && IsMultisampleEnabled() && m_features.depthShaderRead ? 1 : 0);
+        
+        for (uint32_t i = 0; i < totalAttachments; ++i) {
             attachmentDesc.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
             attachmentDesc.pNext = nullptr;
             attachmentDesc.samples = GetSampleCount();
@@ -265,7 +274,22 @@ namespace EvoVulkan::Complexes {
             attachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-            if (i == m_attachFormats.size()) {
+            // Determine attachment type
+            uint32_t colorResolveCount = m_attachFormats.size() * (IsMultisampleEnabled() ? 2 : 1);
+            uint32_t depthIndex = colorResolveCount;
+            uint32_t depthResolveIndex = depthIndex + (IsDepthEnabled() ? 1 : 0);
+
+            if (i >= depthResolveIndex && IsDepthEnabled() && IsMultisampleEnabled() && m_features.depthShaderRead) {
+                // Depth resolve attachment
+                attachmentDesc.format = m_depthFormat;
+                attachmentDesc.samples = Tools::Convert::IntToSampleCount(1);
+                attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                attachmentDesc.finalLayout = Tools::FindDepthFormatLayout(m_depthAspect, true, false);
+            }
+            else if (i == depthIndex && IsDepthEnabled()) {
+                // Depth attachment
                 attachmentDesc.format = m_depthFormat;
                 if (m_features.depthLoad) {
                     attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -281,18 +305,39 @@ namespace EvoVulkan::Complexes {
                 }
             }
             else {
-                attachmentDesc.format = m_attachFormats[i];
-                if (m_features.colorLoad) {
-                    attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-                }
-
-                if (m_features.colorShaderRead) {
-                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                // Color attachments (multisampled) and resolve attachments
+                uint32_t colorIndex = i;
+                if (IsMultisampleEnabled() && (i % 2 == 1)) {
+                    // This is a resolve attachment
+                    colorIndex = (i - 1) / 2;
+                    attachmentDesc.samples = Tools::Convert::IntToSampleCount(1);
+                    attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                    attachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                     attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 }
-                else {
-                    attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                    attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                else if (IsMultisampleEnabled()) {
+                    // This is a multisampled color attachment
+                    colorIndex = i / 2;
+                }
+                
+                if (colorIndex < m_attachFormats.size()) {
+                    attachmentDesc.format = m_attachFormats[colorIndex];
+                    if (!IsMultisampleEnabled() || (i % 2 == 0)) {
+                        // Only set these for non-resolve attachments
+                        if (m_features.colorLoad) {
+                            attachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+                        }
+
+                        if (m_features.colorShaderRead) {
+                            attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                            attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                        }
+                        else {
+                            attachmentDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                            attachmentDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                        }
+                    }
                 }
             }
 
@@ -377,16 +422,31 @@ namespace EvoVulkan::Complexes {
                 VK_ASSERT(false);
                 return nullptr;
             }
-            texture->m_view = m_layers.at(index)->GetDepthAttachment()->GetView();
-            texture->m_image = m_layers.at(index)->GetDepthAttachment()->GetImage().Copy();
+            // Use resolve attachment if multisampling is enabled and depthShaderRead is true
+            // This is needed because multisampled depth images cannot be read directly in shaders with sampler2DArray
+            if (IsMultisampleEnabled() && m_features.depthShaderRead && m_layers.at(index)->GetDepthResolveAttachment()) {
+                texture->m_view = m_layers.at(index)->GetDepthResolveAttachment()->GetView();
+                texture->m_image = m_layers.at(index)->GetDepthResolveAttachment()->GetImage().Copy();
+            }
+            else {
+                texture->m_view = m_layers.at(index)->GetDepthAttachment()->GetView();
+                texture->m_image = m_layers.at(index)->GetDepthAttachment()->GetImage().Copy();
+            }
         }
         else if (m_layersCount > 1) {
             texture->m_view = m_depthAttachment->GetView();
             texture->m_image = m_depthAttachment->GetImage().Copy();
         }
         else if (m_layersCount > 0) {
-            texture->m_view = m_layers.at(0)->GetDepthAttachment()->GetView();
-            texture->m_image = m_layers.at(0)->GetDepthAttachment()->GetImage().Copy();
+            // Use resolve attachment if multisampling is enabled and depthShaderRead is true
+            if (IsMultisampleEnabled() && m_features.depthShaderRead && m_layers.at(0)->GetDepthResolveAttachment()) {
+                texture->m_view = m_layers.at(0)->GetDepthResolveAttachment()->GetView();
+                texture->m_image = m_layers.at(0)->GetDepthResolveAttachment()->GetImage().Copy();
+            }
+            else {
+                texture->m_view = m_layers.at(0)->GetDepthAttachment()->GetView();
+                texture->m_image = m_layers.at(0)->GetDepthAttachment()->GetImage().Copy();
+            }
         }
 
         texture->m_format            = m_depthFormat;

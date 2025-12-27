@@ -121,6 +121,58 @@ namespace EvoVulkan::Complexes {
         return std::move(pFBOAttachment);
     }
 
+    std::unique_ptr<FrameBufferAttachment> FrameBufferAttachment::CreateDepthResolveAttachment(
+        EvoVulkan::Complexes::FrameBuffer* pFrameBuffer,
+        VkFormat format,
+        VkImageAspectFlags aspect,
+        uint32_t layersCount,
+        uint32_t layer
+    ) {
+        auto&& pFBOAttachment = std::make_unique<FrameBufferAttachment>();
+
+        pFBOAttachment->m_device = pFrameBuffer->GetDevice();
+        pFBOAttachment->m_allocator = pFrameBuffer->GetAllocator();
+
+        auto&& imageSize = pFrameBuffer->GetExtent2D();
+        auto&& samplesCount = Tools::Convert::IntToSampleCount(1);
+
+        const VkImageUsageFlags usage =
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+            VK_IMAGE_USAGE_SAMPLED_BIT |
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        auto&& imageCI = Types::ImageCreateInfo(
+            pFrameBuffer->GetAllocator(), pFrameBuffer->GetCmdPool(), imageSize.width, imageSize.height, 1,
+            aspect, format, usage, samplesCount,
+            false /** cpu usage */,
+            1 /** mip levels */,
+            layersCount,
+            VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM
+        );
+
+        if (!(pFBOAttachment->m_image = Types::Image::Create(imageCI)).Valid()) {
+            VK_ERROR("FrameBufferAttachment::CreateDepthResolveAttachment() : failed to create depth resolve image!");
+            return nullptr;
+        }
+
+        const VkImageLayout layout = Tools::FindDepthFormatLayout(pFrameBuffer->GetDepthAspect(), true, false);
+
+        if (!pFBOAttachment->m_image.TransitionImageLayout(layout, VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT)) {
+            VK_ERROR("FrameBufferAttachment::CreateDepthResolveAttachment() : failed to transition depth resolve image layout!");
+            return nullptr;
+        }
+
+        VkImageViewCreateInfo viewCI = Tools::Initializers::ImageViewCreateInfo();
+
+        pFBOAttachment->m_view = Tools::CreateImageView(pFBOAttachment->m_image, VK_IMAGE_ASPECT_DEPTH_BIT, layersCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, layer, viewCI);
+        if (pFBOAttachment->m_view == VK_NULL_HANDLE) {
+            VK_ERROR("FrameBufferAttachment::CreateDepthResolveAttachment() : failed to create depth resolve image view!");
+            return nullptr;
+        }
+
+        return std::move(pFBOAttachment);
+    }
+
     std::unique_ptr<FrameBufferAttachment> FrameBufferAttachment::CreateColorAttachment(
         EvoVulkan::Complexes::FrameBuffer* pFrameBuffer,
         VkFormat format,

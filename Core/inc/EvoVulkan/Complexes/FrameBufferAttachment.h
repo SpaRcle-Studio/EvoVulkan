@@ -56,6 +56,14 @@ namespace EvoVulkan::Complexes {
             uint32_t layer
         );
 
+        static std::unique_ptr<FrameBufferAttachment> CreateDepthResolveAttachment(
+            EvoVulkan::Complexes::FrameBuffer* pFrameBuffer,
+            VkFormat format,
+            VkImageAspectFlags aspect,
+            uint32_t layersCount,
+            uint32_t layer
+        );
+
         EVK_NODISCARD bool Ready() const;
         EVK_NODISCARD VkFormat GetFormat() const noexcept { return m_image.GetFormat(); }
         EVK_NODISCARD Types::Image& GetImage() noexcept { return m_image; }

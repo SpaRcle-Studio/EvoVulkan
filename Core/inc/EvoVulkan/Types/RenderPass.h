@@ -241,8 +241,35 @@ namespace EvoVulkan::Types {
             depthReference.attachment = multisampling ? 2u : 1u;
         }
         else {
+            // Check if depth resolve attachment exists before processing
+            // We need to count color attachments first to find where depth attachment starts
+            bool hasDepthResolveInAttachments = false;
+            if (depth && multisampling) {
+                // Count how many color attachments we have (including their resolve attachments)
+                // Color attachments come in pairs when multisampling: color, resolve, color, resolve, ...
+                // So we need to find the first depth format attachment
+                uint32_t depthAttachmentIndex = UINT32_MAX;
+                for (uint32_t j = 0; j < attachments.size(); ++j) {
+                    if (attachments[j].format == depthFormat && 
+                        attachments[j].samples != VK_SAMPLE_COUNT_1_BIT) {
+                        depthAttachmentIndex = j;
+                        break;
+                    }
+                }
+                
+                // Check if there's a depth resolve attachment after the depth attachment
+                if (depthAttachmentIndex != UINT32_MAX && depthAttachmentIndex + 1 < attachments.size()) {
+                    const auto& potentialResolve = attachments[depthAttachmentIndex + 1];
+                    if (potentialResolve.format == depthFormat && 
+                        potentialResolve.samples == VK_SAMPLE_COUNT_1_BIT) {
+                        hasDepthResolveInAttachments = true;
+                    }
+                }
+            }
+            
             ///uint32_t bind = 0;
-            for (uint32_t i = 0; i < attachments.size() - (depth ? 1 : 0); i++) {
+            uint32_t attachmentsToProcess = attachments.size() - (depth ? (hasDepthResolveInAttachments ? 2 : 1) : 0);
+            for (uint32_t i = 0; i < attachmentsToProcess; i++) {
                 {
                     auto &ref = colorReferences.emplace_back();
                     ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
@@ -251,23 +278,41 @@ namespace EvoVulkan::Types {
                     ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 }
                 if (multisampling) {
-                    VkAttachmentDescription2 attachmentDescription = {
-                        .sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
-                        .pNext = nullptr,
-                        .flags = 0,
-                        .format = attachments[i].format,
-                        .samples = VK_SAMPLE_COUNT_1_BIT,
-                        //.samples = Tools::Convert::IntToSampleCount(sampleCount),
-                        .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                        .initialLayout = attachments[i].initialLayout, //VK_IMAGE_LAYOUT_UNDEFINED,
-                        .finalLayout = attachments[i].finalLayout //VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    };
+                    // Check if resolve attachment already exists (next attachment with same format and VK_SAMPLE_COUNT_1_BIT)
+                    // Also check that it's not a depth attachment (depth format is different)
+                    bool resolveExists = false;
+                    if (i + 1 < attachments.size()) {
+                        const auto& nextAtt = attachments[i + 1];
+                        // Check if it's a color resolve attachment (same format as current, VK_SAMPLE_COUNT_1_BIT, and not a depth format)
+                        if (nextAtt.format == attachments[i].format && 
+                            nextAtt.samples == VK_SAMPLE_COUNT_1_BIT &&
+                            attachments[i].samples != VK_SAMPLE_COUNT_1_BIT &&
+                            nextAtt.format != depthFormat) { // Make sure it's not a depth resolve attachment
+                            resolveExists = true;
+                        }
+                    }
+                    
+                    if (!resolveExists) {
+                        VkAttachmentDescription2 attachmentDescription = {
+                            .sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
+                            .pNext = nullptr,
+                            .flags = 0,
+                            .format = attachments[i].format,
+                            .samples = VK_SAMPLE_COUNT_1_BIT,
+                            .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                            .initialLayout = attachments[i].initialLayout,
+                            .finalLayout = attachments[i].finalLayout
+                        };
 
-                    attachments.insert(attachments.begin() + i + 1, attachmentDescription);
-                    i++;
+                        attachments.insert(attachments.begin() + i + 1, attachmentDescription);
+                        i++;
+                    }
+                    else {
+                        i++; // Skip the existing resolve attachment
+                    }
 
                     auto& ref = resolveReferences.emplace_back();
                     ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
@@ -286,22 +331,43 @@ namespace EvoVulkan::Types {
             }
         }
 
-        VkAttachmentReference2 depthResolveAttachment{};
-        depthResolveAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
-        depthResolveAttachment.attachment = depthReference.attachment;
-        depthResolveAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        // Check if depth resolve attachment exists (it should be the attachment after depth with same format and VK_SAMPLE_COUNT_1_BIT)
+        bool hasDepthResolve = false;
+        uint32_t depthResolveAttachmentIndex = 0;
+        if (depth && multisampling && !isEmpty) {
+            uint32_t depthAttachmentIndex = static_cast<uint32_t>(colorReferences.size() + resolveReferences.size());
+            if (depthAttachmentIndex + 1 < attachments.size()) {
+                const auto& potentialResolve = attachments[depthAttachmentIndex + 1];
+                if (potentialResolve.format == depthFormat && 
+                    potentialResolve.samples == VK_SAMPLE_COUNT_1_BIT) {
+                    hasDepthResolve = true;
+                    depthResolveAttachmentIndex = depthAttachmentIndex + 1;
+                }
+            }
+        }
+        else if (depth && multisampling && isEmpty) {
+            // For swapchain case, depth resolve would be at index 3 if depth is at index 2
+            // But this case is not currently supported in the swapchain path
+        }
 
+        VkAttachmentReference2 depthResolveAttachmentRef{};
         VkSubpassDescriptionDepthStencilResolve depthResolve{};
-        depthResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
-        depthResolve.depthResolveMode = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;// VK_RESOLVE_MODE_AVERAGE_BIT;   // или SAMPLE_ZERO_BIT
-        depthResolve.stencilResolveMode = VK_RESOLVE_MODE_NONE;
-        depthResolve.pDepthStencilResolveAttachment = &depthResolveAttachment;
+        if (hasDepthResolve) {
+            depthResolveAttachmentRef.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            depthResolveAttachmentRef.pNext = nullptr;
+            depthResolveAttachmentRef.attachment = depthResolveAttachmentIndex;
+            depthResolveAttachmentRef.layout = Tools::FindDepthFormatLayout(depthAspect, true, false);
+
+            depthResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
+            depthResolve.depthResolveMode = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
+            depthResolve.stencilResolveMode = VK_RESOLVE_MODE_NONE;
+            depthResolve.pDepthStencilResolveAttachment = &depthResolveAttachmentRef;
+        }
 
         VkSubpassDescription2KHR subpassDescription = { };
         {
             subpassDescription.sType                   = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR;
-            subpassDescription.pNext                   = nullptr;
-            //subpassDescription.pNext                   = (depth && !isEmpty && sampleCount > 1) ? &depthResolve : nullptr;
+            subpassDescription.pNext                   = hasDepthResolve ? &depthResolve : nullptr;
             subpassDescription.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpassDescription.colorAttachmentCount    = static_cast<uint32_t>(colorReferences.size());
             subpassDescription.pColorAttachments       = colorReferences.data();
