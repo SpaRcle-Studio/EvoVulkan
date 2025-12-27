@@ -138,7 +138,7 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD uint16_t GetRequiredSwapchainImagesCount() const noexcept { return m_requiredSwapchainImages; }
         //EVK_NODISCARD uint8_t GetCurrentFrameIndex() const noexcept { return m_currentImage; }
         EVK_NODISCARD uint8_t GetCurrentFrameIndex() const noexcept { return m_frameIndex; }
-        EVK_NODISCARD uint8_t GetMaxFramesInFlight() const noexcept { return 3; }
+        EVK_NODISCARD uint8_t GetMaxFramesInFlight() const noexcept;
         EVK_NODISCARD uint8_t GetCurrentImageIndex() const noexcept { return m_imageIndex; }
 
         void SetMultisampling(uint32_t sampleCount);
@@ -166,8 +166,8 @@ namespace EvoVulkan::Core {
         bool DestroyDCBuffers();
         bool ReCreateDCBuffers();
         bool ReCreateFrameBuffers();
-        void DestroySynchronizations();
-        bool ReCreateSynchronizations();
+        void DestroySynchronizations(FrameResult reason);
+        bool ReCreateSynchronizations(FrameResult reason);
         void DestroyFrameBuffers();
 
     public:
@@ -214,7 +214,7 @@ namespace EvoVulkan::Core {
         VkSemaphore                m_offscreenSemaphore   = VK_NULL_HANDLE;
         SubmitInfo                 m_submitInfo           = { };
         SubmitInfo                 m_offscreenSubmitInfo  = { };
-        std::vector<Types::Synchronization> m_frameSyncs  = { };
+        //std::vector<Types::Synchronization> m_frameSyncs  = { };
 
         std::vector<FrameSync>     m_frames;                 // size = MAX_FRAMES_IN_FLIGHT
         std::vector<VkFence>       m_imagesInFlight;         // size = swapchainImageCount
