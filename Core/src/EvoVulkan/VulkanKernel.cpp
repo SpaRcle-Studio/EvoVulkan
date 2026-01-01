@@ -562,19 +562,6 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
         VK_LOG("VulkanKernel::PrepareFrame() : swapchain is dirty!");
     }
 
-    /// Note: PrepareFrame() may be called multiple times per frame (e.g., from RenderScene and VulkanKernel)
-    /// We need to ensure we only acquire a new image once per frame to prevent command buffer mismatches
-    /// The image should be acquired in the first call, and subsequent calls should use the same image index
-    //if (m_imageAcquiredThisFrame) {
-    //    m_currentBuffer = m_currentImage;
-    //    return FrameResult::Success;
-    //}
-
-    //uint32_t previousImage = m_currentImage;
-    //if (m_waitFences.size() > previousImage && previousImage < GetSwapchainImagesCount()) {
-    //    vkWaitForFences(*m_device, 1, &m_waitFences[previousImage], VK_TRUE, UINT64_MAX);
-    //}
-
     FrameSync& frame = m_frames[m_frameIndex];
 
     // 1. Ждём, пока этот sync-slot освободится
@@ -594,36 +581,19 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
         VK_LOG("VulkanKernel::PrepareFrame() : window has been suboptimal!");
     }
     else if (result != VK_SUCCESS) {
-        VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " +
-            Tools::Convert::result_to_description(result));
+        VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " + Tools::Convert::result_to_description(result));
         return FrameResult::Error;
     }
 
     // 3. Если image уже используется — ждём fence
-    if (m_imagesInFlight[m_imageIndex] != VK_NULL_HANDLE)
-    {
+    if (m_imagesInFlight[m_imageIndex] != VK_NULL_HANDLE) {
         EVK_TRACY_ZONE_N("Wait for image in-flight fence");
         EVK_TRACY_ZONE_COLOR(0xff4500);
-        vkWaitForFences(
-                *m_device,
-                1,
-                &m_imagesInFlight[m_imageIndex],
-                VK_TRUE,
-                UINT64_MAX
-        );
+        vkWaitForFences(*m_device, 1, &m_imagesInFlight[m_imageIndex], VK_TRUE, UINT64_MAX);
     }
 
     // 4. Привязываем image к текущему frame fence
     m_imagesInFlight[m_imageIndex] = frame.inFlightFence;
-
-    ///m_currentImage = acquiredImageIndex;
-    ///
-    ///if (m_waitFences.size() > m_currentImage && m_currentImage < GetSwapchainImagesCount()) {
-        ///vkWaitForFences(*m_device, 1, &m_waitFences[m_currentImage], VK_TRUE, UINT64_MAX);
-    ///}
-    ///
-    ///m_currentBuffer = previousImage;
-    ///m_imageAcquiredThisFrame = true;
 
     return result == VK_SUBOPTIMAL_KHR ? FrameResult::Suboptimal : FrameResult::Success;
 }
