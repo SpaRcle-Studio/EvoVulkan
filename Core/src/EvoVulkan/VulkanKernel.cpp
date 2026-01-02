@@ -342,7 +342,7 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     //!=================================================================================================================
 
     VK_GRAPH("VulkanKernel::PostInit() : creating synchronizations...");
-    if (!ReCreateSynchronizations()) {
+    if (!ReCreateSynchronizations(FrameResult::None)) {
         VK_ERROR("VulkanKernel::PostInit() : failed to create synchronizations!");
         return false;
     }
@@ -398,12 +398,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     if (m_pipelineCache)
         Tools::DestroyPipelineCache(*m_device, &m_pipelineCache);
 
-    for (auto&& sync : m_frameSyncs) {
-        if (sync.IsReady()) {
-            Tools::DestroySynchronization(*m_device, &sync);
-        }
-    }
-    m_frameSyncs.clear();
+    DestroySynchronizations(FrameResult::None);
 
     if (m_renderPass.IsReady())
         Types::DestroyRenderPass(m_device, &m_renderPass);
@@ -534,9 +529,9 @@ EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
 }
 
 void EvoVulkan::Core::VulkanKernel::WaitFences() {
-    if (m_device && !m_waitFences.empty()) {
-        vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
-    }
+    //if (m_device && !m_waitFences.empty()) {
+    //    vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
+    //}
 }
 
 
@@ -547,35 +542,60 @@ void EvoVulkan::Core::VulkanKernel::WaitDeviceIdle() {
 }
 
 void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
-    if (m_device && !m_waitFences.empty()) {
-        vkWaitForFences(*m_device, static_cast<uint32_t>(m_waitFences.size()), m_waitFences.data(), VK_TRUE, UINT64_MAX);
+    //if (m_device && !m_waitFences.empty()) {
+    //    vkWaitForFences(*m_device, static_cast<uint32_t>(m_waitFences.size()), m_waitFences.data(), VK_TRUE, UINT64_MAX);
+    //}
+
+    for (auto& frame : m_frames) {
+        vkWaitForFences(*m_device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX);
     }
+
+    //if (!GetInFlightFences().empty()) {
+    //    vkWaitForFences(*GetDevice(), GetInFlightFences().size(), GetInFlightFences().data(), VK_TRUE, UINT64_MAX);
+    //}
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
+    EVK_TRACY_ZONE;
+
     if (m_swapchain->IsDirty()) {
         VK_LOG("VulkanKernel::PrepareFrame() : swapchain is dirty!");
     }
 
-    /// Acquire the next image from the swap chain
-    VkResult result = m_swapchain->AcquireNextImage(m_frameSyncs[m_currentBuffer].m_presentComplete, &m_currentImage);
-    /// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+    FrameSync& frame = m_frames[m_frameIndex];
+
+    // 1. Ждём, пока этот sync-slot освободится
+    {
+        EVK_TRACY_ZONE_N("Wait for in-flight fence");
+        EVK_TRACY_ZONE_COLOR(0xffa500);
+        vkWaitForFences(*m_device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX);
+    }
+
+    // 2. Получаем image от swapchain
+    VkResult result = m_swapchain->AcquireNextImage(frame.imageAvailable, &m_imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         VK_LOG("VulkanKernel::PrepareFrame() : window has been resized!");
         return FrameResult::OutOfDate;
     }
     else if (result == VK_SUBOPTIMAL_KHR) {
         VK_LOG("VulkanKernel::PrepareFrame() : window has been suboptimal!");
-        return FrameResult::Suboptimal;
     }
     else if (result != VK_SUCCESS) {
-        VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " +
-            Tools::Convert::result_to_description(result));
-
+        VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " + Tools::Convert::result_to_description(result));
         return FrameResult::Error;
     }
 
-    return FrameResult::Success;
+    // 3. Если image уже используется — ждём fence
+    if (m_imagesInFlight[m_imageIndex] != VK_NULL_HANDLE) {
+        EVK_TRACY_ZONE_N("Wait for image in-flight fence");
+        EVK_TRACY_ZONE_COLOR(0xff4500);
+        vkWaitForFences(*m_device, 1, &m_imagesInFlight[m_imageIndex], VK_TRUE, UINT64_MAX);
+    }
+
+    // 4. Привязываем image к текущему frame fence
+    m_imagesInFlight[m_imageIndex] = frame.inFlightFence;
+
+    return result == VK_SUBOPTIMAL_KHR ? FrameResult::Suboptimal : FrameResult::Success;
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::WaitIdle() {
@@ -611,9 +631,15 @@ void EvoVulkan::Core::VulkanKernel::WaitComputeIdle() {
 }
 
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
-    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentImage, m_frameSyncs[m_currentBuffer].m_renderComplete);
+    /// Use m_currentImage for semaphore to match the acquired image index
+    //VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentImage, m_frameSyncs[m_currentImage].m_renderComplete);
+
+    FrameSync& frame = m_frames[m_frameIndex];
+    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_imageIndex, frame.renderFinished);
 
     if (result == VK_SUBOPTIMAL_KHR) {
+        /// Reset the flag for the next frame
+       // m_imageAcquiredThisFrame = false;
         return FrameResult::Suboptimal;
     }
 
@@ -621,6 +647,8 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             /// Swap chain is no longer compatible with the surface and needs to be recreated
             VK_LOG("VulkanKernel::WaitIdle() : window has been resized!");
+            /// Reset the flag for the next frame
+            //m_imageAcquiredThisFrame = false;
             return FrameResult::OutOfDate;
         }
         else {
@@ -628,12 +656,19 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
                      Tools::Convert::result_to_description(result));
 
             if (result == VK_ERROR_DEVICE_LOST) {
+                /// Reset the flag for the next frame
+               // m_imageAcquiredThisFrame = false;
                 return FrameResult::DeviceLost;
             }
 
+            /// Reset the flag for the next frame
+            //m_imageAcquiredThisFrame = false;
             return FrameResult::Error;
         }
     }
+
+    /// Reset the flag for the next frame after successful present
+   // m_imageAcquiredThisFrame = false;
 
     return EvoVulkan::Core::FrameResult::Success;
 }
@@ -647,6 +682,8 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
+    /// Reset the flag when recreating swapchain
+  //  m_imageAcquiredThisFrame = false;
     VK_LOG("VulkanKernel::ReCreate() : re-creating vulkan kernel...");
 
     if (reason == FrameResult::OutOfDate || reason == FrameResult::Suboptimal) {
@@ -725,10 +762,14 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
     }
 
     VK_GRAPH("VulkanKernel::ReCreate() : re-creating synchronizations...");
-    if (!ReCreateSynchronizations()) {
+    if (!ReCreateSynchronizations(reason)) {
         VK_ERROR("VulkanKernel::ReCreate() : failed to re-create synchronizations!");
+       // m_imageAcquiredThisFrame = false;  ///< Reset flag on error
         return false;
     }
+
+    /// Reset the flag after recreating swapchain
+  //  m_imageAcquiredThisFrame = false;
 
     if (!BuildCmdBuffers()) {
         VK_ERROR("VulkanKernel::ReCreate() : failed to build command buffer!");
@@ -798,23 +839,56 @@ void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
     }
 }
 
-bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations() {
-    for (auto&& sync : m_frameSyncs) {
-        if (sync.IsReady()) {
-            Tools::DestroySynchronization(*m_device, &sync);
+void EvoVulkan::Core::VulkanKernel::DestroySynchronizations(FrameResult reason) {
+    for (auto&& frame : m_frames) {
+        Tools::DestroyVulkanSemaphore(*GetDevice(), &frame.imageAvailable);
+        Tools::DestroyVulkanSemaphore(*GetDevice(), &frame.renderFinished);
+        if (reason != FrameResult::OutOfDate && reason != FrameResult::Suboptimal) {
+            Tools::DestroyVulkanFence(*GetDevice(), &frame.inFlightFence);
         }
     }
-    m_frameSyncs.clear();
 
-    m_frameSyncs.resize(m_swapchain ? m_swapchain->GetCountImages() : 0);
+    if (reason != FrameResult::OutOfDate && reason != FrameResult::Suboptimal) {
+        m_frames.clear();
+    }
 
-    for (auto& sync : m_frameSyncs) {
-        sync = Tools::CreateSynchronization(*m_device);
-        if (!sync.IsReady()) {
-            VK_ERROR("VulkanKernel::ReCreateSynchronizations() : failed to create synchronization!");
+    //for (auto&& sync : m_frameSyncs) {
+    //    if (sync.IsReady()) {
+    //        Tools::DestroySynchronization(*m_device, &sync);
+    //    }
+    //}
+    //m_frameSyncs.clear();
+
+    //for (auto&& imageFence : m_imagesInFlight) {
+    //    Tools::DestroyVulkanFence(*GetDevice(), &imageFence);
+    //}
+    //m_imagesInFlight.clear();
+}
+
+bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations(FrameResult reason) {
+    DestroySynchronizations(reason);
+
+    m_frames.resize(GetMaxFramesInFlight());
+    for (auto& frame : m_frames) {
+        frame.imageAvailable = Tools::CreateVulkanSemaphore(*m_device);
+        frame.renderFinished = Tools::CreateVulkanSemaphore(*m_device);
+
+        if (reason != FrameResult::OutOfDate && reason != FrameResult::Suboptimal || frame.inFlightFence == VK_NULL_HANDLE) {
+            frame.inFlightFence = Tools::CreateVulkanFence(*m_device, VK_FENCE_CREATE_SIGNALED_BIT);
+        }
+
+        if (!frame.imageAvailable || !frame.renderFinished || !frame.inFlightFence) {
+            VK_ERROR("VulkanKernel::ReCreateSynchronizations() : failed to create frame synchronization objects!");
             return false;
         }
     }
+
+
+    m_imagesInFlight.resize(m_swapchain ? m_swapchain->GetCountImages() : 0, VK_NULL_HANDLE);
+    //for (auto& imageFence : m_imagesInFlight) {
+    //    imageFence = Tools::CreateVulkanFence(*m_device, VK_FENCE_CREATE_SIGNALED_BIT);
+    //}
+
 
     /// Set up submit info structure
     /// Semaphores will stay the same during application lifetime
@@ -959,4 +1033,8 @@ bool EvoVulkan::Core::VulkanKernel::DestroyDCBuffers() {
     }
     m_drawCmdBuffs.clear();
     return true;
+}
+
+uint8_t EvoVulkan::Core::VulkanKernel::GetMaxFramesInFlight() const noexcept {
+    return 3;
 }

@@ -22,19 +22,31 @@
 
 namespace EvoVulkan::Core {
     enum class FrameResult : uint8_t {
-        Error,
+        None,
         Success,
-        OutOfDate,
+        Error,
+        Fatal,
         DeviceLost,
+        OutOfDate,
         Dirty,
         Suboptimal
     };
 
     enum class RenderResult : uint8_t {
-        None, Success, Fatal, Error, DeviceLost
+        None,
+        Success,
+        Error,
+        Fatal,
+        DeviceLost
     };
 
     class DLL_EVK_EXPORT VulkanKernel : public Tools::NonCopyable {
+    protected:
+        struct FrameSync {
+            VkSemaphore imageAvailable; // signal: acquire
+            VkSemaphore renderFinished; // signal: submit
+            VkFence     inFlightFence;  // signal: submit done
+        };
     protected:
         VulkanKernel() = default;
 
@@ -89,6 +101,8 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
         EVK_NODISCARD EVK_INLINE bool IsMultisamplingEnabled() const noexcept { return m_sampleCount > 1; }
+        EVK_NODISCARD EVK_INLINE const std::vector<FrameSync>& GetFrameSyncs() const noexcept { return m_frames; }
+        EVK_NODISCARD EVK_INLINE const std::vector<VkFence>& GetInFlightFences() const noexcept { return m_imagesInFlight; }
         //EVK_NODISCARD EVK_INLINE VkSemaphore GetPresentCompleteSemaphore() const noexcept { return m_syncs.m_presentComplete; }
         //EVK_NODISCARD EVK_INLINE VkSemaphore GetRenderCompleteSemaphore() const noexcept { return m_syncs.m_renderComplete; }
         EVK_NODISCARD std::vector<VkSemaphore>& GetWaitSemaphores() { return m_submitInfo.waitSemaphores; }
@@ -96,7 +110,9 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD uint32_t GetCountComputeCmdBuffers() const { return m_countCCB; }
         EVK_NODISCARD VkCommandBuffer* GetComputeCmdBuffers() const { return m_computeCmdBuffers; }
         EVK_NODISCARD Types::CmdPool* GetComputeCmdPool() const { return m_computeCmdPool; }
-        EVK_NODISCARD Types::CmdPool* GetCurrentFrameCmdPool() const { return m_frameCmdPools[m_currentBuffer]; }
+        //EVK_NODISCARD Types::CmdPool* GetCurrentFrameCmdPool() const { return m_frameCmdPools[m_currentImage]; }
+        //EVK_NODISCARD Types::CmdPool* GetCurrentFrameCmdPool() const { return m_frameCmdPools[m_frameIndex]; }
+        EVK_NODISCARD Types::CmdPool* GetCurrentFrameCmdPool() const { return m_frameCmdPools[m_imageIndex]; }
 
         EVK_NODISCARD uint8_t GetSampleCount() const;
         EVK_NODISCARD EvoVulkan::Types::CmdBuffer* CreateSingleTimeCmd() const;
@@ -120,8 +136,10 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD const std::vector<SubmitInfo>& GetSubmitQueue() const { return m_submitQueue; };
         EVK_NODISCARD uint16_t GetSwapchainImagesCount() const noexcept { return m_swapchainImages; }
         EVK_NODISCARD uint16_t GetRequiredSwapchainImagesCount() const noexcept { return m_requiredSwapchainImages; }
-        EVK_NODISCARD uint8_t GetCurrentFrameIndex() const noexcept { return m_currentBuffer; }
-        EVK_NODISCARD uint8_t GetCurrentImageIndex() const noexcept { return m_currentImage; }
+        //EVK_NODISCARD uint8_t GetCurrentFrameIndex() const noexcept { return m_currentImage; }
+        EVK_NODISCARD uint8_t GetCurrentFrameIndex() const noexcept { return m_frameIndex; }
+        EVK_NODISCARD uint8_t GetMaxFramesInFlight() const noexcept;
+        EVK_NODISCARD uint8_t GetCurrentImageIndex() const noexcept { return m_imageIndex; }
 
         void SetMultisampling(uint32_t sampleCount);
         void SetSwapchainImagesCount(uint32_t count);
@@ -148,7 +166,8 @@ namespace EvoVulkan::Core {
         bool DestroyDCBuffers();
         bool ReCreateDCBuffers();
         bool ReCreateFrameBuffers();
-        bool ReCreateSynchronizations();
+        void DestroySynchronizations(FrameResult reason);
+        bool ReCreateSynchronizations(FrameResult reason);
         void DestroyFrameBuffers();
 
     public:
@@ -165,6 +184,7 @@ namespace EvoVulkan::Core {
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
         bool                       m_dirty                = false;
+        //bool                       m_imageAcquiredThisFrame                = false;
 
         int32_t                    m_newWidth             = -1;
         int32_t                    m_newHeight            = -1;
@@ -194,11 +214,16 @@ namespace EvoVulkan::Core {
         VkSemaphore                m_offscreenSemaphore   = VK_NULL_HANDLE;
         SubmitInfo                 m_submitInfo           = { };
         SubmitInfo                 m_offscreenSubmitInfo  = { };
-        std::vector<Types::Synchronization> m_frameSyncs  = { };
+        //std::vector<Types::Synchronization> m_frameSyncs  = { };
+
+        std::vector<FrameSync>     m_frames;                 // size = MAX_FRAMES_IN_FLIGHT
+        std::vector<VkFence>       m_imagesInFlight;         // size = swapchainImageCount
 
         std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
-        uint32_t                   m_currentBuffer        = 0;
-        uint32_t                   m_currentImage         = 0;
+        //uint32_t                   m_currentBuffer        = 0;
+
+        uint32_t                   m_frameIndex         = 0;
+        uint32_t                   m_imageIndex         = 0;
 
         std::vector<SubmitInfo>    m_submitQueue          = { };
 

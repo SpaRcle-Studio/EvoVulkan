@@ -351,6 +351,9 @@ namespace EvoVulkan::Tools {
     EVK_MAYBE_UNUSED void DestroySynchronization(const VkDevice& device, Types::Synchronization* sync);
     EVK_MAYBE_UNUSED Types::Synchronization CreateSynchronization(const VkDevice& device);
 
+    EVK_MAYBE_UNUSED VkFence CreateVulkanFence(const VkDevice& device, VkFenceCreateFlags flags);
+    EVK_MAYBE_UNUSED void DestroyVulkanFence(const VkDevice& device, VkFence* fence);
+
     EVK_MAYBE_UNUSED VkSemaphore CreateVulkanSemaphore(const VkDevice& device);
     EVK_MAYBE_UNUSED void DestroyVulkanSemaphore(const VkDevice& device, VkSemaphore* semaphore);
 
