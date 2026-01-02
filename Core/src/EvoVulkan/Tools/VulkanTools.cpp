@@ -155,6 +155,12 @@ namespace EvoVulkan::Tools {
         return pipelineCache;
     }
 
+    /**
+     * @brief Create a Vulkan semaphore on the given device.
+     *
+     * @param device Vulkan logical device to create the semaphore on.
+     * @return VkSemaphore Handle to the created semaphore, or `VK_NULL_HANDLE` if creation failed.
+     */
     VkSemaphore CreateVulkanSemaphore(const VkDevice& device) {
         VkSemaphore semaphore = VK_NULL_HANDLE;
         VkSemaphoreCreateInfo semaphoreCreateInfo = Initializers::SemaphoreCreateInfo();
@@ -166,6 +172,13 @@ namespace EvoVulkan::Tools {
         return semaphore;
     }
 
+    /**
+     * @brief Create a Vulkan fence with the specified creation flags.
+     *
+     * @param device Logical Vulkan device used to create the fence.
+     * @param flags Bitmask of VkFenceCreateFlags that control fence behavior.
+     * @return VkFence A newly created fence handle, or `VK_NULL_HANDLE` if creation failed.
+     */
     VkFence CreateVulkanFence(const VkDevice& device, VkFenceCreateFlags flags) {
         VkFence fence = VK_NULL_HANDLE;
         VkFenceCreateInfo fenceCreateInfo = Initializers::FenceCreateInfo(flags);
@@ -177,6 +190,17 @@ namespace EvoVulkan::Tools {
         return fence;
     }
 
+    /**
+     * @brief Destroys a Vulkan fence handle and resets it to VK_NULL_HANDLE.
+     *
+     * Destroys the fence referenced by |fence| using |device| if |fence| is non-null
+     * and the handle is not VK_NULL_HANDLE. After destruction the caller's handle
+     * is set to VK_NULL_HANDLE. If |fence| is null or already VK_NULL_HANDLE, the
+     * function does nothing.
+     *
+     * @param device Vulkan device used to destroy the fence.
+     * @param fence Pointer to the VkFence handle to destroy and reset.
+     */
     void DestroyVulkanFence(const VkDevice& device, VkFence* fence) {
         if (fence && *fence != VK_NULL_HANDLE) {
             vkDestroyFence(device, *fence, nullptr);
@@ -184,6 +208,13 @@ namespace EvoVulkan::Tools {
         }
     }
 
+    /**
+     * @brief Destroy a Vulkan semaphore and reset its handle.
+     *
+     * If `semaphore` is null or already `VK_NULL_HANDLE`, the function does nothing.
+     *
+     * @param semaphore Pointer to the VkSemaphore handle to destroy; on success the value pointed to will be set to `VK_NULL_HANDLE`.
+     */
     void DestroyVulkanSemaphore(const VkDevice& device, VkSemaphore* semaphore) {
         if (semaphore && *semaphore != VK_NULL_HANDLE) {
             vkDestroySemaphore(device, *semaphore, nullptr);
