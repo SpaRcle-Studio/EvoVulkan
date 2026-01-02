@@ -10,7 +10,56 @@
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/MultisampleTarget.h>
 
-namespace EvoVulkan::Types {
+/**
+     * Lightweight wrapper for a Vulkan render pass handle and its attachment counts.
+     *
+     * Encapsulates a VkRenderPass handle and the total number of attachments and color attachments.
+     */
+    
+    /**
+     * Destroy a Vulkan render pass and reset the wrapper state.
+     *
+     * @param device Vulkan device used to destroy the render pass.
+     * @param renderPass Pointer to the RenderPass wrapper to destroy; ignored if null or not ready.
+     */
+    
+    /**
+     * Create a legacy (VkRenderPass) render pass from modern attachment/subpass/dependency descriptions.
+     *
+     * Converts provided VkAttachmentDescription2, VkAttachmentReference2 and VkSubpassDependency2 inputs
+     * into legacy Vulkan structures and calls vkCreateRenderPass. On failure returns VK_NULL_HANDLE.
+     *
+     * @param device Vulkan device to create the render pass on.
+     * @param attachments Vector of attachment descriptions (VkAttachmentDescription2).
+     * @param inputAttachments Vector of input attachment references (VkAttachmentReference2).
+     * @param colorReferences Vector of color attachment references (VkAttachmentReference2).
+     * @param resolveReferences Vector of resolve attachment references (VkAttachmentReference2).
+     * @param depthReference Depth attachment reference (VkAttachmentReference2).
+     * @param dependencies Vector of subpass dependencies (VkSubpassDependency2).
+     * @param multisampling True if multisampling is used.
+     * @param depth True if a depth attachment is used.
+     * @param subpassDescription Subpass description (VkSubpassDescription2) to use for the single subpass.
+     * @returns A VkRenderPass handle on success, or VK_NULL_HANDLE on failure.
+     */
+    
+    /**
+     * Create a RenderPass object configured for the provided swapchain, attachments and sampling.
+     *
+     * Builds attachments, subpass description, and subpass dependencies appropriate for the requested
+     * sample count and depth usage, attempts to use vkCreateRenderPass2KHR (falling back to an older
+     * creation path if unavailable), and returns a RenderPass wrapper containing the created handle
+     * and attachment counts. On failure returns an empty RenderPass (IsReady() will be false).
+     *
+     * @param device Vulkan device used to create the render pass.
+     * @param swapchain Swapchain providing the color format for default attachment creation.
+     * @param attachments Attachment descriptions (VkAttachmentDescription2). May be empty to use the default swapchain path.
+     * @param inputAttachments Input attachment references (VkAttachmentReference2).
+     * @param sampleCount Number of samples per pixel (1 means no multisampling).
+     * @param depthAspect Image aspect flags indicating depth/stencil usage.
+     * @param depthFormat Format to use for depth attachments when applicable.
+     * @returns A RenderPass containing the created VkRenderPass and attachment counts, or an empty RenderPass on failure.
+     */
+    namespace EvoVulkan::Types {
     struct DLL_EVK_EXPORT RenderPass {
         VkRenderPass m_self;
         uint32_t m_countAttachments;

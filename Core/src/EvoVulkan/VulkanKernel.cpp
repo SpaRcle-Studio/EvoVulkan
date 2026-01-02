@@ -263,6 +263,15 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     return true;
 }
 
+/**
+ * @brief Performs post-initialization of the Vulkan kernel by allocating and creating runtime resources required for rendering.
+ *
+ * This configures and allocates compute and draw command buffers, an offscreen semaphore, multisample target (if a swapchain exists),
+ * synchronization primitives for frames, a pipeline cache, and framebuffers. On success the kernel is marked as post-initialized,
+ * the OnComplete() callback is invoked, and the kernel dirty flag is cleared.
+ *
+ * @return true if all post-initialization steps completed successfully; `false` if any allocation or creation failed.
+ */
 bool EvoVulkan::Core::VulkanKernel::PostInit() {
     VK_INFO("VulkanKernel::PostInit() : post initializing Evo Vulkan kernel...");
 
@@ -377,6 +386,15 @@ bool EvoVulkan::Core::VulkanKernel::PostInit() {
     return true;
 }
 
+/**
+ * @brief Releases all Vulkan resources owned by the kernel and resets internal state.
+ *
+ * This cleans up device, swapchain, command pools, framebuffers, synchronization objects,
+ * descriptor manager, pipeline cache, allocator, validation debug messenger, and the Vulkan
+ * instance so the kernel holds no active Vulkan resources afterward.
+ *
+ * @return bool `true` if cleanup completed successfully.
+ */
 bool EvoVulkan::Core::VulkanKernel::Destroy() {
     VK_LOG("VulkanKernel::Destroy() : freeing Evo Vulkan kernel memory...");
 
@@ -520,6 +538,13 @@ void EvoVulkan::Core::VulkanKernel::DestroyFrameBuffers() {
     m_frameBuffers.clear();
 }
 
+/**
+ * @brief Advances the renderer to the next frame or skips rendering when paused.
+ *
+ * If the kernel is paused, no rendering is performed and the call completes successfully.
+ *
+ * @return EvoVulkan::Core::RenderResult `Success` if rendering was skipped due to pause, otherwise the result returned by `Render()`.
+ */
 EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
     if (m_paused) {
         return EvoVulkan::Core::RenderResult::Success;
@@ -528,6 +553,11 @@ EvoVulkan::Core::RenderResult EvoVulkan::Core::VulkanKernel::NextFrame() {
     return Render();
 }
 
+/**
+ * @brief No-op placeholder for waiting on the current frame's in-flight fence.
+ *
+ * Currently disabled; this function does not wait on any Vulkan fences.
+ */
 void EvoVulkan::Core::VulkanKernel::WaitFences() {
     //if (m_device && !m_waitFences.empty()) {
     //    vkWaitForFences(*m_device, 1, &m_waitFences[m_currentBuffer], VK_TRUE, UINT64_MAX);
@@ -535,12 +565,23 @@ void EvoVulkan::Core::VulkanKernel::WaitFences() {
 }
 
 
+/**
+ * @brief Blocks until the logical Vulkan device becomes idle.
+ *
+ * If no logical device is available, this function returns immediately.
+ */
 void EvoVulkan::Core::VulkanKernel::WaitDeviceIdle() {
     if (m_device) {
         vkDeviceWaitIdle(*m_device);
     }
 }
 
+/**
+ * @brief Blocks until every per-frame in-flight fence becomes signaled.
+ *
+ * Waits indefinitely for each frame's in-flight fence to be signaled using the Vulkan device.
+ * If there are no frames or no fences, this function returns immediately.
+ */
 void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
     //if (m_device && !m_waitFences.empty()) {
     //    vkWaitForFences(*m_device, static_cast<uint32_t>(m_waitFences.size()), m_waitFences.data(), VK_TRUE, UINT64_MAX);
@@ -555,6 +596,19 @@ void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
     //}
 }
 
+/**
+ * @brief Prepares the next frame for rendering by acquiring a swapchain image and synchronizing per-frame fences.
+ *
+ * Waits for the current frame's in-flight fence to become free, acquires the next swapchain image, waits
+ * on the image's in-flight fence if that image is already in use, and associates the acquired image with
+ * the current frame's in-flight fence.
+ *
+ * @return FrameResult
+ * - FrameResult::Success if an image was acquired and is ready for rendering.
+ * - FrameResult::Suboptimal if the swapchain returned VK_SUBOPTIMAL_KHR (image acquired but presentation may need recreation).
+ * - FrameResult::OutOfDate if the swapchain is out of date (window resized) and must be recreated.
+ * - FrameResult::Error if acquiring the next image failed for another reason.
+ */
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     EVK_TRACY_ZONE;
 
@@ -598,6 +652,13 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     return result == VK_SUBOPTIMAL_KHR ? FrameResult::Suboptimal : FrameResult::Success;
 }
 
+/**
+ * @brief Waits until the graphics queue becomes idle.
+ *
+ * Blocks until the device's graphics queue is idle or an error occurs.
+ *
+ * @return FrameResult `Success` if the queue became idle, `DeviceLost` if the device was lost, `Error` for any other failure.
+ */
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::WaitIdle() {
     /// TODO: здесь может зависнуть, нужно придумать способ перехвата
     VkResult result = vkQueueWaitIdle(m_device->GetQueues()->GetGraphicsQueue());
@@ -615,6 +676,12 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::WaitIdle() {
     return EvoVulkan::Core::FrameResult::Success;
 }
 
+/**
+ * @brief Submits any allocated compute command buffers and blocks until the compute queue is idle.
+ *
+ * If no compute command buffers have been allocated, the function logs a warning and returns without
+ * submitting or waiting.
+ */
 void EvoVulkan::Core::VulkanKernel::WaitComputeIdle() {
     if (m_countCCB == 0) {
         VK_WARN("VulkanKernel::WaitComputeIdle() : no compute command buffers allocated!");
@@ -630,6 +697,19 @@ void EvoVulkan::Core::VulkanKernel::WaitComputeIdle() {
     vkQueueWaitIdle(m_device->GetQueues()->GetComputeQueue());
 }
 
+/**
+ * @brief Presents the currently acquired swapchain image to the display.
+ *
+ * Uses the current frame's presentation semaphore to submit the image to the graphics queue
+ * and handles common swapchain/results states.
+ *
+ * @return FrameResult
+ * - `Success` if the image was presented successfully.
+ * - `Suboptimal` if presentation succeeded but the swapchain is suboptimal and should be recreated soon.
+ * - `OutOfDate` if the swapchain is out of date (window resize) and must be recreated before further presentation.
+ * - `DeviceLost` if the Vulkan device was lost.
+ * - `Error` for other presentation failures.
+ */
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
     /// Use m_currentImage for semaphore to match the acquired image index
     //VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentImage, m_frameSyncs[m_currentImage].m_renderComplete);
@@ -673,6 +753,14 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
     return EvoVulkan::Core::FrameResult::Success;
 }
 
+/**
+ * @brief Presents the current frame to the display.
+ *
+ * @return FrameResult Presentation outcome: `Success` on successful presentation,
+ * `Suboptimal` when the swapchain is usable but not optimal, `OutOfDate` when the
+ * swapchain must be recreated, `DeviceLost` if the device was lost, or `Error`
+ * for other failures.
+ */
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
     //if (auto&& result = WaitIdle(); result != FrameResult::Success) {
     //    return result;
@@ -681,6 +769,17 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
     return QueuePresent();
 }
 
+/**
+ * @brief Recreates the swapchain and all dependent GPU resources to match the current surface state.
+ *
+ * When the provided @p reason indicates an out-of-date or suboptimal swapchain, this method waits
+ * for the host to supply a new window size before proceeding. It ensures device idleness and
+ * recreates the swapchain, draw command buffers, framebuffers, synchronization primitives,
+ * and rebuilds command buffers. Calls the overrideable OnResize() hook and clears the kernel dirty flag on success.
+ *
+ * @param reason The cause for recreation (e.g., OutOfDate or Suboptimal) which influences waiting and synchronization behavior.
+ * @return true if recreation completed successfully and the kernel state is consistent; `false` if any step failed.
+ */
 bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
     /// Reset the flag when recreating swapchain
   //  m_imageAcquiredThisFrame = false;
@@ -829,6 +928,14 @@ void EvoVulkan::Core::VulkanKernel::SetSwapchainImagesCount(uint32_t count) {
     m_dirty = true;
 }
 
+/**
+ * @brief Enable or disable the kernel's GUI.
+ *
+ * Sets the internal flag that controls whether GUI rendering and related
+ * behaviors are active.
+ *
+ * @param enabled `true` to enable the GUI, `false` to disable it.
+ */
 void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
 {
     if ((m_GUIEnabled = enabled)) {
@@ -839,6 +946,17 @@ void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
     }
 }
 
+/**
+ * @brief Destroys per-frame synchronization primitives and optionally clears frame records.
+ *
+ * Destroys each frame's image-available and render-finished semaphores. Destroys each frame's
+ * in-flight fence and clears the internal frame list unless the provided reason indicates a
+ * swapchain resize/out-of-date condition (FrameResult::OutOfDate or FrameResult::Suboptimal),
+ * in which case fences are kept and frame records are preserved for reuse during recreation.
+ *
+ * @param reason The context for destruction; if `FrameResult::OutOfDate` or `FrameResult::Suboptimal`,
+ *               in-flight fences are preserved and `m_frames` is not cleared to allow swapchain
+ *               recreation to reattach existing fences.
 void EvoVulkan::Core::VulkanKernel::DestroySynchronizations(FrameResult reason) {
     for (auto&& frame : m_frames) {
         Tools::DestroyVulkanSemaphore(*GetDevice(), &frame.imageAvailable);
@@ -865,6 +983,18 @@ void EvoVulkan::Core::VulkanKernel::DestroySynchronizations(FrameResult reason) 
     //m_imagesInFlight.clear();
 }
 
+/**
+ * @brief (Re)creates per-frame synchronization objects and initializes submission state.
+ *
+ * Recreates the per-frame semaphores and fences used for image acquisition and presentation,
+ * resizes the image-in-flight tracking array to match the current swapchain image count,
+ * resets the submit info structure, and clears the queued submissions.
+ *
+ * @param reason Controls fence recreation behavior during swapchain-related transitions
+ *               (e.g., when the swapchain is OutOfDate or Suboptimal, existing in-flight
+ *               fences may be preserved).
+ * @return true if all synchronization objects were created and submission state initialized successfully, false otherwise.
+ */
 bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations(FrameResult reason) {
     DestroySynchronizations(reason);
 
@@ -1025,6 +1155,14 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateDCBuffers() {
     return true;
 }
 
+/**
+ * @brief Frees and clears the per-swapchain-image draw command buffers.
+ *
+ * Releases any allocated draw command buffers using their corresponding per-frame
+ * command pools and clears the internal draw command buffer list.
+ *
+ * @return bool `true` after buffers have been freed and the list cleared.
+ */
 bool EvoVulkan::Core::VulkanKernel::DestroyDCBuffers() {
     for (uint32_t i = 0; i < m_drawCmdBuffs.size(); ++i) {
         if (m_drawCmdBuffs[i]) {
@@ -1035,6 +1173,11 @@ bool EvoVulkan::Core::VulkanKernel::DestroyDCBuffers() {
     return true;
 }
 
+/**
+ * @brief Returns the maximum number of frames that may be processed concurrently.
+ *
+ * @return uint8_t The maximum concurrent frames-in-flight (3).
+ */
 uint8_t EvoVulkan::Core::VulkanKernel::GetMaxFramesInFlight() const noexcept {
     return 3;
 }

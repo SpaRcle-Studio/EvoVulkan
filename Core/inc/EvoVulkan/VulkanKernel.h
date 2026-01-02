@@ -32,7 +32,18 @@ namespace EvoVulkan::Core {
         Suboptimal
     };
 
-    enum class RenderResult : uint8_t {
+    /**
+ * Perform a single render pass for the current frame.
+ *
+ * Implementations should execute rendering for the active frame and report the outcome.
+ *
+ * @returns `RenderResult::Success` if rendering completed successfully,
+ *          `RenderResult::Error` for a recoverable rendering error,
+ *          `RenderResult::Fatal` for an unrecoverable failure,
+ *          `RenderResult::DeviceLost` if the Vulkan device was lost,
+ *          `RenderResult::None` if rendering was skipped or not performed.
+ */
+enum class RenderResult : uint8_t {
         None,
         Success,
         Error,
