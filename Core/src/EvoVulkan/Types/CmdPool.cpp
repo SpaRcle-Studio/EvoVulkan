@@ -10,7 +10,9 @@
 #include <EvoVulkan/Tools/VulkanConverter.h>
 
 EvoVulkan::Types::CmdPool::~CmdPool() {
-    VK_LOG("CmdPool::Destroy() : destroy command pool...");
+    std::ostringstream oss;
+    oss << m_pool;
+    VK_LOG("CmdPool::Destroy() : destroy command pool \"" + oss.str() + "\"...");
 
     if (m_pool) {
         vkDestroyCommandPool(*m_device, m_pool, nullptr);

@@ -99,5 +99,6 @@
 #include <cstdio>
 #include <future>
 #include <cinttypes>
+#include <sstream>
 
 #endif //EVOVULKAN_MACROS_H
