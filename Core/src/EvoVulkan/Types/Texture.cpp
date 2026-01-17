@@ -230,6 +230,8 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
         VkFilter filter,
         bool cpuUsage)
 {
+    EVK_TRACY_ZONE;
+
     if (width == 0 || height == 0) {
         VK_ERROR("Texture::Load() : invalid texture! \n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height));
         return nullptr;
@@ -282,6 +284,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
 }
 
 bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffer) {
+    EVK_TRACY_ZONE;
     auto&& imageCI = Types::ImageCreateInfo(
         m_allocator, m_pool,
         m_width, m_height, 1,

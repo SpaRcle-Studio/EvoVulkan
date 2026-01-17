@@ -17,6 +17,7 @@ namespace EvoVulkan::Types {
             VkDeviceSize size,
             const void* data)
     {
+        EVK_TRACY_ZONE;
         auto buffer = new VmaBuffer(allocator, size);
         auto bufferCreateInfo = Tools::Initializers::BufferCreateInfo(bufferUsage, size);
 
@@ -59,6 +60,7 @@ namespace EvoVulkan::Types {
     }
 
     VmaBuffer* VmaBuffer::Create(EvoVulkan::Memory::Allocator* allocator, VkDeviceSize size, const void* data) {
+        EVK_TRACY_ZONE;
         return Create(allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, size, data);
     }
 
@@ -68,6 +70,8 @@ namespace EvoVulkan::Types {
     { }
 
     void EvoVulkan::Types::VmaBuffer::CopyToDevice(const void *data, uint64_t size, bool flush) {
+        EVK_TRACY_ZONE;
+
         Map();
 
         if (size == 0) {

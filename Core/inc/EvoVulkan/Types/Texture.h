@@ -77,6 +77,7 @@ namespace EvoVulkan::Types {
                 int32_t height, VkFilter filter,
                 bool cpuUsage = false)
         {
+            EVK_TRACY_ZONE;
             return Load(device, allocator, manager, pool, pixels, format, width, height,
                         static_cast<uint32_t>(std::floor(std::log2(EVK_MAX(width, height)))) + 1, filter, cpuUsage);
         }
@@ -91,6 +92,7 @@ namespace EvoVulkan::Types {
                 int32_t width, int32_t height, VkFilter filter,
                 bool cpuUsage = false)
         {
+            EVK_TRACY_ZONE;
             return Load(device, allocator, manager, pool, pixels, format, width, height, 1, filter, cpuUsage);
         }
 

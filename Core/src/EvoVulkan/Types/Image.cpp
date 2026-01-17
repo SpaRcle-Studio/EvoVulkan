@@ -52,6 +52,7 @@ namespace EvoVulkan::Types {
     }
 
     Image Image::Create(const ImageCreateInfo &info) {
+        EVK_TRACY_ZONE;
         if (!info.Valid()) {
             VK_ERROR("Image::Create() : create info is invalid!");
             return Image();

@@ -589,6 +589,8 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, bool isNeedEnd) {
+        EVK_TRACY_ZONE;
+
         if (!copyCmd->IsBegin())
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 

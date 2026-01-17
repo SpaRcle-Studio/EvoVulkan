@@ -45,6 +45,7 @@ bool EvoVulkan::Memory::Allocator::Init() {
 }
 
 EvoVulkan::Types::Image EvoVulkan::Memory::Allocator::AllocImage(const VkImageCreateInfo &info, bool CPUUsage) {
+    EVK_TRACY_ZONE;
     VmaAllocationCreateInfo allocCreateInfo = {};
     allocCreateInfo.flags = 0;
     allocCreateInfo.usage = CPUUsage ? VMA_MEMORY_USAGE_CPU_ONLY : VMA_MEMORY_USAGE_GPU_ONLY;
@@ -153,10 +154,12 @@ uint64_t EvoVulkan::Memory::Allocator::GetCPUMemoryUsage() const {
 }
 
 EvoVulkan::Memory::Buffer EvoVulkan::Memory::Allocator::AllocBuffer(const VkBufferCreateInfo &info, VmaMemoryUsage usage) {
+    EVK_TRACY_ZONE;
     return AllocBuffer(info, usage, static_cast<VmaAllocationCreateFlags>(0));
 }
 
 EvoVulkan::Memory::Buffer EvoVulkan::Memory::Allocator::AllocBuffer(const VkBufferCreateInfo &info, VmaMemoryUsage usage, VmaAllocationCreateFlags flags) {
+    EVK_TRACY_ZONE;
     EvoVulkan::Memory::Buffer buffer = {};
 
     VmaAllocationCreateInfo allocInfo;

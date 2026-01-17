@@ -291,6 +291,7 @@ namespace EvoVulkan::Types {
     }
 
     bool Device::IsSupportLinearBlitting(const VkFormat& imageFormat) const {
+        EVK_TRACY_ZONE;
         /// Check if image format supports linear blitting
         VkFormatProperties formatProperties;
         vkGetPhysicalDeviceFormatProperties(m_physicalDevice, imageFormat, &formatProperties);
