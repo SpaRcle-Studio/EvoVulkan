@@ -717,7 +717,7 @@ public:
             VkViewport viewport = Tools::Initializers::Viewport((float) m_width, (float) m_height, 0.0f, 1.0f);
             vkCmdSetViewport(m_drawCmdBuffs[i], 0, 1, &viewport);
 
-            VkRect2D scissor = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
+            VkRect2D scissor = Tools::Initializers::Rect2D(0, 0, m_width, m_height);
             vkCmdSetScissor(m_drawCmdBuffs[i], 0, 1, &scissor);
 
             vkCmdBindPipeline(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_geometry);
@@ -809,7 +809,7 @@ public:
             VkViewport viewport = Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f);
             vkCmdSetViewport(m_drawCmdBuffs[i], 0, 1, &viewport);
 
-            VkRect2D scissor = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
+            VkRect2D scissor = Tools::Initializers::Rect2D(0, 0, m_width, m_height);
             vkCmdSetScissor(m_drawCmdBuffs[i], 0, 1, &scissor);
 
             vkCmdBindPipeline(m_drawCmdBuffs[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_postProcessing);

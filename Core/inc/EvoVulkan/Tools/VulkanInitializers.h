@@ -42,11 +42,11 @@ namespace EvoVulkan::Tools::Initializers {
     }
 
     EVK_MAYBE_UNUSED static VkRect2D Rect2D(
-            int32_t width,
-            int32_t height,
-            int32_t offsetX,
-            int32_t offsetY)
-    {
+        int32_t offsetX,
+        int32_t offsetY,
+        int32_t width,
+        int32_t height
+    ) {
         VkRect2D rect2D {};
         rect2D.extent.width = width;
         rect2D.extent.height = height;

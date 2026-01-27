@@ -140,7 +140,7 @@ namespace EvoVulkan::Complexes {
         }
 
         m_viewport = Tools::Initializers::Viewport((float_t)m_width, (float_t)m_height, 0.0f, 1.0f);
-        m_scissor = Tools::Initializers::Rect2D(m_width, m_height, 0, 0);
+        m_scissor = Tools::Initializers::Rect2D(0, 0, m_width, m_height);
 
         if (!CreateAttachments()) {
             VK_ERROR("Framebuffer::ReCreate() : failed to create render pass!");

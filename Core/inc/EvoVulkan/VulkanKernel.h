@@ -96,7 +96,7 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE bool IsDirty() const noexcept { return m_dirty; }
         EVK_NODISCARD EVK_INLINE VkViewport GetViewport() const noexcept { return Tools::Initializers::Viewport((float)m_width, (float)m_height, 0.0f, 1.0f); }
         EVK_NODISCARD EVK_INLINE const SubmitInfo& GetSubmitInfo() const noexcept { return m_submitInfo; }
-        EVK_NODISCARD EVK_INLINE VkRect2D GetScissor()const noexcept { return Tools::Initializers::Rect2D(m_width, m_height, 0, 0); }
+        EVK_NODISCARD EVK_INLINE VkRect2D GetScissor()const noexcept { return Tools::Initializers::Rect2D(0, 0, m_width, m_height); }
         EVK_NODISCARD EVK_INLINE VkRect2D GetRenderArea() const noexcept { return { VkOffset2D(), { m_width, m_height } }; }
         EVK_NODISCARD EVK_INLINE Types::RenderPass GetRenderPass() const noexcept { return m_renderPass; }
         EVK_NODISCARD EVK_INLINE VkFramebuffer* GetFrameBuffers() { return m_frameBuffers.data(); }
