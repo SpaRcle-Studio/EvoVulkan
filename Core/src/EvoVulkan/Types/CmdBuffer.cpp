@@ -111,7 +111,7 @@ namespace EvoVulkan::Types {
         return pBuffer;
     }
 
-    bool CmdBuffer::End() {
+    bool CmdBuffer::End(bool doExecute) {
         EVK_TRACY_ZONE;
 
         if (!m_isBegin) {
@@ -126,16 +126,18 @@ namespace EvoVulkan::Types {
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_buffer;
 
-        {
-            EVK_TRACY_ZONE_N("vkQueueSubmit");
-            auto result = vkQueueSubmit(m_device->GetQueues()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-            if (result != VK_SUCCESS) {
-                VK_ERROR("CmdBuffer::End() : failed to queue submit!");
-                return false;
+        if (doExecute) {
+            {
+                EVK_TRACY_ZONE_N("vkQueueSubmit");
+                auto result = vkQueueSubmit(m_device->GetQueues()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+                if (result != VK_SUCCESS) {
+                    VK_ERROR("CmdBuffer::End() : failed to queue submit!");
+                    return false;
+                }
             }
-        }
 
-        m_device->WaitGraphicsQueueIdle();
+            m_device->WaitGraphicsQueueIdle();
+        }
 
         return true;
     }

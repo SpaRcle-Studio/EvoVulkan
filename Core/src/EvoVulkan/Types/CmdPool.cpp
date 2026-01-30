@@ -26,7 +26,7 @@ bool EvoVulkan::Types::CmdPool::IsReady() const {
     return m_device && m_pool != VK_NULL_HANDLE;
 }
 
-EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::Device *device, uint32_t queueFamilyIndex) {
+EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::Device *device, uint32_t queueFamilyIndex, bool allowResetBuffers) {
     VK_GRAPH("CmdPool::Create() : creating vulkan command pool...");
 
     if (!device->IsReady()) {
@@ -45,6 +45,9 @@ EvoVulkan::Types::CmdPool *EvoVulkan::Types::CmdPool::Create(EvoVulkan::Types::D
 
     /// Если буферы короткоживущие (один кадр), то можно оптимизировать память под это
     cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    if (allowResetBuffers) {
+        cmdPoolInfo.flags |= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    }
 
     VkResult vkRes = vkCreateCommandPool(*device, &cmdPoolInfo, nullptr, &cmdPool);
     if (vkRes != VK_SUCCESS) {

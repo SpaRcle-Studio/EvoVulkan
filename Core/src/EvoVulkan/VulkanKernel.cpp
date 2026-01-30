@@ -194,13 +194,19 @@ bool EvoVulkan::Core::VulkanKernel::Init(
 
     //!===========================================[Create command pool]=================================================
 
-    m_cmdPool = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetGraphicsIndex());
+    m_cmdPool = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetGraphicsIndex(), false);
     if (!m_cmdPool) {
         VK_ERROR("VulkanKernel::Init() : failed to create command pool!");
         return false;
     }
 
-    m_computeCmdPool = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetComputeIndex());
+    m_resettableCmdPool = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetGraphicsIndex(), true);
+    if (!m_resettableCmdPool) {
+        VK_ERROR("VulkanKernel::Init() : failed to create transient command pool!");
+        return false;
+    }
+
+    m_computeCmdPool = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetComputeIndex(), false);
     if (!m_computeCmdPool) {
         VK_ERROR("VulkanKernel::Init() : failed to create compute command pool!");
         return false;
@@ -245,7 +251,7 @@ bool EvoVulkan::Core::VulkanKernel::Init(
     m_frameCmdPools.resize(m_swapchainImages);
     VK_LOG("VulkanKernel::Init() : creating " + std::to_string(m_swapchainImages) + " frame command pools...");
     for (size_t i = 0; i < m_swapchainImages; ++i) {
-        m_frameCmdPools[i] = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetGraphicsIndex());
+        m_frameCmdPools[i] = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetGraphicsIndex(), false);
         if (!m_frameCmdPools[i]) {
             VK_ERROR("VulkanKernel::Init() : failed to create frame command pool for " + std::to_string(i + 1) + " frame!");
             return false;

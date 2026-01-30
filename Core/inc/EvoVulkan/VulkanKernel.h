@@ -88,6 +88,7 @@ namespace EvoVulkan::Core {
         EVK_NODISCARD EVK_INLINE Memory::Allocator* GetAllocator() const { return m_allocator; }
         EVK_NODISCARD EVK_INLINE Types::MultisampleTarget* GetMultisampleTarget() const { return m_multisample; }
         EVK_NODISCARD EVK_INLINE Types::CmdPool* GetCmdPool() const { return m_cmdPool; }
+        EVK_NODISCARD EVK_INLINE Types::CmdPool* GetResettableCmdPool() const { return m_resettableCmdPool; }
         EVK_NODISCARD EVK_INLINE const std::vector<Types::CmdPool*>& GetFrameCmdPools() const { return m_frameCmdPools; }
         EVK_NODISCARD EVK_INLINE Types::Swapchain* GetSwapchain() const { return m_swapchain; }
         EVK_NODISCARD EVK_INLINE Types::Surface* GetSurface() const { return m_surface; }
@@ -204,6 +205,7 @@ namespace EvoVulkan::Core {
         Types::Surface*            m_surface              = nullptr;
         Types::Swapchain*          m_swapchain            = nullptr;
         Types::CmdPool*            m_cmdPool              = nullptr;
+        Types::CmdPool*            m_resettableCmdPool    = nullptr;
         std::vector<Types::CmdPool*> m_frameCmdPools      = { };
         Types::CmdPool*            m_computeCmdPool       = nullptr;
         Types::MultisampleTarget*  m_multisample          = nullptr;

@@ -29,7 +29,7 @@ namespace EvoVulkan::Types {
 
     public:
         bool Begin(const VkCommandBufferUsageFlagBits& usage);
-        bool End();
+        bool End(bool doExecute = true);
 
         bool ReAlloc();
 

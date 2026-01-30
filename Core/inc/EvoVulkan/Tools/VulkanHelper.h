@@ -228,6 +228,7 @@ namespace EvoVulkan::Tools {
     {
         EVK_TRACY_ZONE;
 
+        static const std::string_view commandPoolResetWarn = "UNASSIGNED-BestPractices-vkCreateCommandPool-command-buffer-reset";
         static const std::string_view debugExtensionWarn = "UNASSIGNED-BestPractices-vkCreateInstance-specialuse-extension-debugging";
         static const std::string_view loaderGetJsonError = "loader_get_json: Failed to open JSON";
         static const std::string_view debugSurfReturn = "vkGetPhysicalDeviceSurfaceCapabilitiesKHR():  Returned error VK_ERROR_UNKNOWN";
@@ -246,6 +247,9 @@ namespace EvoVulkan::Tools {
                     VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
                 }
                 else if (std::string_view(pCallbackData->pMessage).find(debugSurfReturn) != std::string::npos) {
+                    VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
+                }
+                else if (std::string_view(pCallbackData->pMessage).find(commandPoolResetWarn) != std::string::npos) {
                     VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
                 }
                 else if (VkFunctionsHolder::Instance().ValidationMuteSmallMemoryAllocations) {
