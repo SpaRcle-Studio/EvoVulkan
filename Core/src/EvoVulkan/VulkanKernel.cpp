@@ -692,6 +692,10 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
   //  m_imageAcquiredThisFrame = false;
     VK_LOG("VulkanKernel::ReCreate() : re-creating vulkan kernel...");
 
+    for (auto& frame : m_imagesInFlight) {
+        frame = VK_NULL_HANDLE;
+    }
+
     if (reason == FrameResult::OutOfDate || reason == FrameResult::Suboptimal) {
         VK_INFO("VulkanKernel::ReCreate() : waiting for a change in the size of the client window...");
 

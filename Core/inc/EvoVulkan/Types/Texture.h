@@ -30,6 +30,20 @@ namespace EvoVulkan::Types {
     class Device;
     class CmdPool;
 
+    struct TextureLoadInfo {
+        Device* pDevice = nullptr;
+        Memory::Allocator* pAllocator = nullptr;
+        Core::DescriptorManager* pDescriptorManager = nullptr;
+        CmdPool* pPool = nullptr;
+        VkFormat format = VK_FORMAT_UNDEFINED;
+        int32_t width = 0;
+        int32_t height = 0;
+        uint32_t mipLevels = 0;
+        VkFilter filter = VK_FILTER_MAX_ENUM;
+        VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        bool cpuUsage = false;
+    };
+
     class DLL_EVK_EXPORT Texture : public Tools::NonCopyable {
         friend class EvoVulkan::Complexes::FrameBuffer;
     public:
@@ -44,56 +58,19 @@ namespace EvoVulkan::Types {
 
         static bool GenerateMipmaps(Texture* texture, Types::CmdBuffer* singleBuffer);
 
-        static Texture* LoadCubeMap(
-                Device* device,
-                Memory::Allocator *allocator,
-                CmdPool* pool,
-                VkFormat format,
-                int32_t width,
-                int32_t height,
-                const std::array<const uint8_t*, 6>& sides,
-                uint32_t mipLevels = 0,
-                bool cpuUsage = false);
+        static Texture* LoadCubeMap(TextureLoadInfo info, const std::array<const uint8_t*, 6>& sides);
+        static Texture* Load(TextureLoadInfo info, const uint8_t* pixels);
 
-        static Texture* Load(
-                Device *device,
-                Memory::Allocator *allocator,
-                Core::DescriptorManager* manager,
-                CmdPool *pool,
-                const uint8_t* pixels,
-                VkFormat format,
-                int32_t width, int32_t height,
-                uint32_t mipLevels, VkFilter,
-                bool cpuUsage = false);
-
-        static Texture* LoadAutoMip(
-                Device *device,
-                Memory::Allocator *allocator,
-                Core::DescriptorManager* manager,
-                CmdPool *pool,
-                const uint8_t* pixels,
-                VkFormat format,
-                int32_t width,
-                int32_t height, VkFilter filter,
-                bool cpuUsage = false)
-        {
+        static Texture* LoadAutoMip(TextureLoadInfo info, const uint8_t* pixels) {
             EVK_TRACY_ZONE;
-            return Load(device, allocator, manager, pool, pixels, format, width, height,
-                        static_cast<uint32_t>(std::floor(std::log2(EVK_MAX(width, height)))) + 1, filter, cpuUsage);
+            info.mipLevels = static_cast<uint32_t>(std::floor(std::log2(EVK_MAX(info.width, info.height)))) + 1;
+            return Load(info, pixels);
         }
 
-        static Texture* LoadWithoutMip(
-                Device *device,
-                Memory::Allocator *allocator,
-                Core::DescriptorManager* manager,
-                CmdPool *pool,
-                const uint8_t* pixels,
-                VkFormat format,
-                int32_t width, int32_t height, VkFilter filter,
-                bool cpuUsage = false)
-        {
+        static Texture* LoadWithoutMip(TextureLoadInfo info, const uint8_t* pixels) {
             EVK_TRACY_ZONE;
-            return Load(device, allocator, manager, pool, pixels, format, width, height, 1, filter, cpuUsage);
+            info.mipLevels = 1;
+            return Load(info, pixels);
         }
 
     public:
@@ -104,8 +81,8 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD EVK_INLINE VkImageLayout GetLayout() const { return m_image.GetLayout(); }
         EVK_NODISCARD EVK_INLINE VkImageView GetImageView() const { return m_view; }
         EVK_NODISCARD EVK_INLINE const Types::Image& GetImage() const { return m_image; }
-        EVK_NODISCARD EVK_INLINE uint32_t GetWidth() const { return m_width; }
-        EVK_NODISCARD EVK_INLINE uint32_t GetHeight() const { return m_height; }
+        EVK_NODISCARD EVK_INLINE uint32_t GetWidth() const { return m_loadInfo.width; }
+        EVK_NODISCARD EVK_INLINE uint32_t GetHeight() const { return m_loadInfo.height; }
         Types::DescriptorSet GetDescriptorSet(VkDescriptorSetLayout layout);
 
     private:
@@ -117,24 +94,12 @@ namespace EvoVulkan::Types {
         VkSampler          m_sampler                 = VK_NULL_HANDLE;
         VkImageView        m_view                    = VK_NULL_HANDLE;
 
-        VkFormat           m_format                  = VK_FORMAT_UNDEFINED;
-        VkFilter           m_filter                  = VK_FILTER_MAX_ENUM;
-
-        uint32_t           m_width                   = 0;
-        uint32_t           m_height                  = 0;
-        uint32_t           m_mipLevels               = 0;
-
         bool               m_canBeDestroyed          = false;
         bool               m_cubeMap                 = false;
-        bool               m_cpuUsage                = false;
+        TextureLoadInfo  m_loadInfo                = {};
 
-        Types::Device*     m_device                  = nullptr;
-        Types::CmdPool*    m_pool                    = nullptr;
-        Memory::Allocator* m_allocator               = nullptr;
-        Core::DescriptorManager* m_descriptorManager = nullptr;
-
-        Types::DescriptorSet      m_descriptorSet     = {};
-        VkDescriptorImageInfo    m_descriptor        = {};
+        Types::DescriptorSet m_descriptorSet = {};
+        VkDescriptorImageInfo m_descriptor = {};
 
     };
 }

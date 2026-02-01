@@ -30,9 +30,9 @@ uint64_t GetImageSize(uint32_t w, uint32_t h, uint8_t level, uint8_t face) {
 }
 
 EvoVulkan::Types::Texture::~Texture() {
-    if (m_descriptorManager && (m_descriptorSet != VK_NULL_HANDLE)) {
-        m_descriptorManager->FreeDescriptorSet(&m_descriptorSet);
-        m_descriptorManager = nullptr;
+    if (m_loadInfo.pDescriptorManager && (m_descriptorSet != VK_NULL_HANDLE)) {
+        m_loadInfo.pDescriptorManager->FreeDescriptorSet(&m_descriptorSet);
+        m_loadInfo.pDescriptorManager = nullptr;
     }
 
     if (!m_canBeDestroyed) {
@@ -40,62 +40,46 @@ EvoVulkan::Types::Texture::~Texture() {
     }
 
     if (m_sampler != VK_NULL_HANDLE) {
-        vkDestroySampler(*m_device, m_sampler, nullptr);
+        vkDestroySampler(*m_loadInfo.pDevice, m_sampler, nullptr);
         m_sampler = VK_NULL_HANDLE;
     }
 
     if (m_view != VK_NULL_HANDLE) {
-        vkDestroyImageView(*m_device, m_view, nullptr);
+        vkDestroyImageView(*m_loadInfo.pDevice, m_view, nullptr);
         m_view = VK_NULL_HANDLE;
     }
 
     if (m_image.Valid()) {
-        m_allocator->FreeImage(m_image);
+        m_loadInfo.pAllocator->FreeImage(m_image);
     }
 }
 
-EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
-    Device *device,
-    Memory::Allocator *allocator,
-    CmdPool *pool,
-    VkFormat format,
-    int32_t width,
-    int32_t height,
-    const std::array<const uint8_t*, 6> &sides,
-    uint32_t mipLevels,
-    bool cpuUsage)
+EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(TextureLoadInfo info, const std::array<const uint8_t*, 6>& sides)
 {
-    if (width <= 0 || height <= 0) {
+    if (info.width <= 0 || info.height <= 0) {
         VK_ERROR("Texture::LoadCubeMap() : incorrect texture size!");
         return nullptr;
     }
 
-    if (mipLevels == 0) {
-        mipLevels = std::floor(std::log2(EVK_MAX(width, height))) + 1;
+    info.filter = VkFilter::VK_FILTER_LINEAR;
+
+    if (info.mipLevels == 0) {
+        info.mipLevels = std::floor(std::log2(EVK_MAX(info.width, info.height))) + 1;
     }
 
     VK_LOG("Texture::LoadCubeMap() : loading new cube map texture... \n\tWidth: " +
-           std::to_string(width) + "\n\tHeight: " + std::to_string(height));
+           std::to_string(info.width) + "\n\tHeight: " + std::to_string(info.height));
 
     auto&& texture = new Texture();
     {
-        texture->m_width             = width;
-        texture->m_height            = height;
-        texture->m_mipLevels         = mipLevels;
-        texture->m_format            = format;
-        texture->m_descriptorManager = nullptr;
-        texture->m_allocator         = allocator;
-        texture->m_device            = device;
         texture->m_canBeDestroyed    = true;
-        texture->m_pool              = pool;
-        texture->m_filter            = VkFilter::VK_FILTER_LINEAR;
+        texture->m_loadInfo          = info;
         texture->m_cubeMap           = true;
-        texture->m_cpuUsage          = cpuUsage;
     }
 
-    const VkDeviceSize imageSize = width * height * 4 * 6;
+    const VkDeviceSize imageSize = info.width * info.height * 4 * 6;
 
-    auto&& stagingBuffer = VmaBuffer::Create(allocator, imageSize * 2); // TODO: imageSize * 2? Check correctly or fix
+    auto&& stagingBuffer = VmaBuffer::Create(info.pAllocator, imageSize * 2); // TODO: imageSize * 2? Check correctly or fix
     if (void* data = stagingBuffer->MapData(); !data || !stagingBuffer) {
         VK_ERROR("Texture::LoadCubeMap() : failed to map memory!");
         return nullptr;
@@ -109,16 +93,16 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     }
 
     auto&& imageCI = Types::ImageCreateInfo(
-        texture->m_allocator,
-        pool,
-        texture->m_width, texture->m_height,
+        texture->m_loadInfo.pAllocator,
+        info.pPool,
+        texture->m_loadInfo.width, texture->m_loadInfo.height,
         1 /** depth */,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        texture->m_format,
+        texture->m_loadInfo.format,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
         1 /** sample count */,
         false /** cpu usage */,
-        texture->m_mipLevels,
+        texture->m_loadInfo.mipLevels,
         6 /** array layers */,
         VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT /** flags */
     );
@@ -130,11 +114,11 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
 
     std::vector<VkBufferImageCopy> bufferCopyRegions = { };
     for (uint8_t face = 0; face < 6; ++face) {
-        for (uint8_t level = 0; level < (uint8_t) mipLevels; ++level) {
-            uint64_t offset = GetDataSize(width, height, level);
+        for (uint8_t level = 0; level < (uint8_t) info.mipLevels; ++level) {
+            uint64_t offset = GetDataSize(info.width, info.height, level);
 
             if (face != 0) {
-                offset += GetImageSize(width, height, level, face);
+                offset += GetImageSize(info.width, info.height, level, face);
             }
 
             VkBufferImageCopy bufferCopyRegion = {};
@@ -145,15 +129,15 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
             bufferCopyRegion.imageOffset.x                   = 0;
             bufferCopyRegion.imageOffset.y                   = 0;
             bufferCopyRegion.imageOffset.z                   = 0;
-            bufferCopyRegion.imageExtent.width               = width >> level;
-            bufferCopyRegion.imageExtent.height              = height >> level;
+            bufferCopyRegion.imageExtent.width               = info.width >> level;
+            bufferCopyRegion.imageExtent.height              = info.height >> level;
             bufferCopyRegion.imageExtent.depth               = 1;
             bufferCopyRegion.bufferOffset                    = offset;
             bufferCopyRegions.emplace_back(bufferCopyRegion);
         }
     }
 
-    auto copyCmd = Types::CmdBuffer::BeginSingleTime(device, pool);
+    auto copyCmd = Types::CmdBuffer::BeginSingleTime(info.pDevice, info.pPool);
 
     texture->m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copyCmd);
 
@@ -193,10 +177,10 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     /// TODO: custom sampler address mode
 
     texture->m_sampler = Tools::CreateSampler(
-        texture->m_device,
-        texture->m_mipLevels,
-        texture->m_filter /** min filter */,
-        texture->m_filter /** mag filter */,
+        texture->m_loadInfo.pDevice,
+        texture->m_loadInfo.mipLevels,
+        texture->m_loadInfo.filter /** min filter */,
+        texture->m_loadInfo.filter /** mag filter */,
         VK_SAMPLER_ADDRESS_MODE_REPEAT,
         VK_COMPARE_OP_NEVER
     );
@@ -217,23 +201,12 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(
     return texture;
 }
 
-EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
-        EvoVulkan::Types::Device *device,
-        Memory::Allocator *allocator,
-        Core::DescriptorManager* manager,
-        EvoVulkan::Types::CmdPool *pool,
-        const unsigned char *pixels,
-        VkFormat format,
-        int32_t width,
-        int32_t height,
-        uint32_t mipLevels,
-        VkFilter filter,
-        bool cpuUsage)
+EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(TextureLoadInfo info, const uint8_t* pixels)
 {
     EVK_TRACY_ZONE;
 
-    if (width == 0 || height == 0) {
-        VK_ERROR("Texture::Load() : invalid texture! \n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height));
+    if (info.width == 0 || info.height == 0) {
+        VK_ERROR("Texture::Load() : invalid texture! \n\tWidth: " + std::to_string(info.width) + "\n\tHeight: " + std::to_string(info.height));
         return nullptr;
     }
 
@@ -242,39 +215,30 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
         return nullptr;
     }
 
-    if (!device->IsSupportLinearBlitting(format)) {
+    if (!info.pDevice->IsSupportLinearBlitting(info.format)) {
         VK_ERROR("Texture::Load() : device does not support linear blitting!");
         return nullptr;
     }
 
     VK_LOG("Texture::Load() : loading new texture... \n\tWidth: " +
-           std::to_string(width) + "\n\tHeight: " +
-           std::to_string(height) + "\n\tMip levels: " +
-           std::to_string(mipLevels) + "\n\tCPU usage: " + std::string(cpuUsage ? "True" : "False"));
+           std::to_string(info.width) + "\n\tHeight: " +
+           std::to_string(info.height) + "\n\tMip levels: " +
+           std::to_string(info.mipLevels) + "\n\tCPU usage: " + std::string(info.cpuUsage ? "True" : "False"));
 
-    const int32_t maxMip = static_cast<int32_t>(std::floor(std::log2(std::max(std::max(width, height), 1)))) + 1;
-    if (mipLevels > maxMip) {
-        VK_WARN("Texture::Load() : requested mip levels (" + std::to_string(mipLevels) + ") is greater than maximum possible (" + std::to_string(maxMip) + "). Setting mip levels to " + std::to_string(maxMip) + ".");
-        mipLevels = maxMip;
+    const int32_t maxMip = static_cast<int32_t>(std::floor(std::log2(std::max(std::max(info.width, info.height), 1)))) + 1;
+    if (info.mipLevels > maxMip) {
+        VK_WARN("Texture::Load() : requested mip levels (" + std::to_string(info.mipLevels) + ") is greater than maximum possible (" + std::to_string(maxMip) + "). Setting mip levels to " + std::to_string(maxMip) + ".");
+        info.mipLevels = maxMip;
     }
 
     auto&& pTexture = new Texture();
     {
-        pTexture->m_width             = width;
-        pTexture->m_height            = height;
-        pTexture->m_mipLevels         = mipLevels;
-        pTexture->m_format            = format;
-        pTexture->m_descriptorManager = manager;
-        pTexture->m_allocator         = allocator;
-        pTexture->m_device            = device;
         pTexture->m_canBeDestroyed    = true;
-        pTexture->m_pool              = pool;
-        pTexture->m_filter            = filter;
         pTexture->m_cubeMap           = false;
-        pTexture->m_cpuUsage          = cpuUsage;
+        pTexture->m_loadInfo         = info;
     }
 
-    auto&& stagingBuffer = VmaBuffer::Create(allocator, pTexture->m_width * pTexture->m_height * 4, (void*)pixels);
+    auto&& stagingBuffer = VmaBuffer::Create(info.pAllocator, info.width * info.height * 4, (void*)pixels);
     if (!pTexture->Create(stagingBuffer)) {
         VK_ERROR("Texture::Load() : failed to create!");
         return nullptr;
@@ -286,14 +250,14 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(
 bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffer) {
     EVK_TRACY_ZONE;
     auto&& imageCI = Types::ImageCreateInfo(
-        m_allocator, m_pool,
-        m_width, m_height, 1,
+        m_loadInfo.pAllocator, m_loadInfo.pPool,
+        m_loadInfo.width, m_loadInfo.height, 1,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        m_format,
+        m_loadInfo.format,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT /** usage */,
         1 /** sample count */,
-        m_cpuUsage /** cpu usage */,
-        m_mipLevels,
+        m_loadInfo.cpuUsage /** cpu usage */,
+        m_loadInfo.mipLevels,
         1 /** layers count */
     );
 
@@ -302,13 +266,13 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
         return false;
     }
 
-    auto&& copyCmd = Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
+    auto&& copyCmd = Types::CmdBuffer::BeginSingleTime(m_loadInfo.pDevice, m_loadInfo.pPool);
 
     m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copyCmd);
 
-    Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_width, m_height, false);
+    Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_loadInfo.width, m_loadInfo.height, false);
 
-    if (m_mipLevels == 1) {
+    if (m_loadInfo.mipLevels == 1) {
         m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, copyCmd);
     }
     else if (!GenerateMipmaps(this, copyCmd)) {
@@ -333,12 +297,11 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
     //!=================================================================================================================
 
     m_sampler = Tools::CreateSampler(
-        m_device,
-        m_mipLevels,
-        m_filter /** min filter */,
-        m_filter /** mag filter */,
-        //VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-        VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        m_loadInfo.pDevice,
+        m_loadInfo.mipLevels,
+        m_loadInfo.filter /** min filter */,
+        m_loadInfo.filter /** mag filter */,
+        m_loadInfo.addressMode,
         VK_COMPARE_OP_NEVER
     );
 
@@ -368,8 +331,8 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
         return false;
     }
 
-    int32_t mipWidth  = texture->m_width;
-    int32_t mipHeight = texture->m_height;
+    int32_t mipWidth  = texture->m_loadInfo.width;
+    int32_t mipHeight = texture->m_loadInfo.height;
 
     VkImageSubresourceRange subresourceRange = {
         .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -379,7 +342,7 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
         .layerCount     = 1
     };
 
-    for (uint32_t i = 1; i < texture->m_mipLevels; i++) {
+    for (uint32_t i = 1; i < texture->m_loadInfo.mipLevels; i++) {
         subresourceRange.baseMipLevel = i - 1;
 
         Tools::Insert::ImageMemoryBarrier(
@@ -426,7 +389,7 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
         if (mipHeight > 1) mipHeight /= 2;
     }
 
-    subresourceRange.baseMipLevel = texture->m_mipLevels - 1;
+    subresourceRange.baseMipLevel = texture->m_loadInfo.mipLevels - 1;
     Tools::Insert::ImageMemoryBarrier(
         *singleBuffer,
         texture->m_image,
@@ -444,7 +407,7 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
 EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDescriptorSetLayout layout) {
     SR_TRACY_ENABLE;
 
-    if (!m_descriptorManager) {
+    if (!m_loadInfo.pDescriptorManager) {
         VK_HALT("Texture::GetDescriptorSet() : texture have not descriptor manager!");
         return Types::DescriptorSet();
     }
@@ -458,14 +421,14 @@ EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDe
                 VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
         };
 
-        m_descriptorSet = m_descriptorManager->AllocateDescriptorSet(layout, type);
+        m_descriptorSet = m_loadInfo.pDescriptorManager->AllocateDescriptorSet(layout, type);
 
         auto writer = EvoVulkan::Tools::Initializers::WriteDescriptorSet(
                 m_descriptorSet,
                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 0, this->GetDescriptorRef());
 
-        vkUpdateDescriptorSets(*m_device, 1, &writer, 0, nullptr);
+        vkUpdateDescriptorSets(*m_loadInfo.pDevice, 1, &writer, 0, nullptr);
     }
 
     return m_descriptorSet;
@@ -474,10 +437,10 @@ EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDe
 EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_t x, uint32_t y, uint32_t z) const {
     EVK_TRACY_ZONE;
 
-    const uint8_t channels = Tools::GetPixelChannelsCount(m_format);
-    const uint8_t pixelTypeSize = Tools::GetPixelTypeSize(m_format);
+    const uint8_t channels = Tools::GetPixelChannelsCount(m_loadInfo.format);
+    const uint8_t pixelTypeSize = Tools::GetPixelTypeSize(m_loadInfo.format);
     if (channels * pixelTypeSize == 0) {
-        VK_ERROR("Texture::GetPixel() : unsupported format! Format: " + Tools::Convert::format_to_string(m_format));
+        VK_ERROR("Texture::GetPixel() : unsupported format! Format: " + Tools::Convert::format_to_string(m_loadInfo.format));
         return {};
     }
 
@@ -492,10 +455,10 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
         return {};
     }
 
-    auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
+    auto&& copyCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_loadInfo.pDevice, m_loadInfo.pPool);
 
     auto&& pBuffer = VmaBuffer::Create(
-        m_allocator,
+        m_loadInfo.pAllocator,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VMA_MEMORY_USAGE_CPU_ONLY,
         pixelTypeSize * channels

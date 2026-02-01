@@ -449,16 +449,16 @@ namespace EvoVulkan::Complexes {
             }
         }
 
-        texture->m_format            = m_depthFormat;
-        texture->m_descriptorManager = m_descriptorManager;
-        texture->m_sampler           = m_colorSampler;
-        texture->m_device            = m_device;
-        texture->m_pool              = m_cmdPool;
-        texture->m_allocator         = m_allocator;
-        texture->m_width             = m_width;
-        texture->m_height            = m_height;
-        texture->m_canBeDestroyed    = false;
-        texture->m_mipLevels         = 1;
+        texture->m_canBeDestroyed              = false;
+        texture->m_sampler                     = m_colorSampler;
+        texture->m_loadInfo.format             = m_depthFormat;
+        texture->m_loadInfo.pDescriptorManager = m_descriptorManager;
+        texture->m_loadInfo.pDevice            = m_device;
+        texture->m_loadInfo.pPool              = m_cmdPool;
+        texture->m_loadInfo.pAllocator         = m_allocator;
+        texture->m_loadInfo.width              = m_width;
+        texture->m_loadInfo.height             = m_height;
+        texture->m_loadInfo.mipLevels          = 1;
 
         /// make a texture descriptor
         texture->m_descriptor = {
@@ -479,18 +479,18 @@ namespace EvoVulkan::Complexes {
             for (uint32_t attachmentIndex = 0; attachmentIndex < m_attachFormats.size(); ++attachmentIndex) {
                 auto&& pTexture = new EvoVulkan::Types::Texture();
 
-                pTexture->m_view              = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetView();
-                pTexture->m_image             = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetImage().Copy();
-                pTexture->m_format            = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetFormat();
-                pTexture->m_descriptorManager = m_descriptorManager;
-                pTexture->m_sampler           = m_colorSampler;
-                pTexture->m_device            = m_device;
-                pTexture->m_pool              = m_cmdPool;
-                pTexture->m_allocator         = m_allocator;
-                pTexture->m_width             = m_width;
-                pTexture->m_height            = m_height;
-                pTexture->m_canBeDestroyed    = false;
-                pTexture->m_mipLevels         = 1;
+                pTexture->m_canBeDestroyed              = false;
+                pTexture->m_sampler                     = m_colorSampler;
+                pTexture->m_view                        = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetView();
+                pTexture->m_image                       = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetImage().Copy();
+                pTexture->m_loadInfo.format             = m_layers[layerIndex]->GetResolveAttachments()[attachmentIndex]->GetFormat();
+                pTexture->m_loadInfo.pDescriptorManager = m_descriptorManager;
+                pTexture->m_loadInfo.pDevice            = m_device;
+                pTexture->m_loadInfo.pPool              = m_cmdPool;
+                pTexture->m_loadInfo.pAllocator         = m_allocator;
+                pTexture->m_loadInfo.width              = m_width;
+                pTexture->m_loadInfo.height             = m_height;
+                pTexture->m_loadInfo.mipLevels          = 1;
 
                 //! make a texture descriptor
                 pTexture->m_descriptor = {
@@ -512,18 +512,18 @@ namespace EvoVulkan::Complexes {
             for (uint32_t attachmentIndex = 0; attachmentIndex < m_attachFormats.size(); ++attachmentIndex) {
                 auto&& pTexture = new EvoVulkan::Types::Texture();
 
-                pTexture->m_view              = m_layers[layerIndex]->GetColorAttachments()[attachmentIndex]->GetView();
-                pTexture->m_image             = m_layers[layerIndex]->GetColorAttachments()[attachmentIndex]->GetImage().Copy();
-                pTexture->m_format            = m_layers[layerIndex]->GetColorAttachments()[attachmentIndex]->GetFormat();
-                pTexture->m_descriptorManager = m_descriptorManager;
-                pTexture->m_sampler           = m_colorSampler;
-                pTexture->m_device            = m_device;
-                pTexture->m_pool              = m_cmdPool;
-                pTexture->m_allocator         = m_allocator;
-                pTexture->m_width             = m_width;
-                pTexture->m_height            = m_height;
-                pTexture->m_canBeDestroyed    = false;
-                pTexture->m_mipLevels         = 1;
+                pTexture->m_canBeDestroyed              = false;
+                pTexture->m_sampler                     = m_colorSampler;
+                pTexture->m_view                        = m_layers[layerIndex]->GetColorAttachments()[attachmentIndex]->GetView();
+                pTexture->m_image                       = m_layers[layerIndex]->GetColorAttachments()[attachmentIndex]->GetImage().Copy();
+                pTexture->m_loadInfo.format             = m_layers[layerIndex]->GetColorAttachments()[attachmentIndex]->GetFormat();
+                pTexture->m_loadInfo.pDescriptorManager = m_descriptorManager;
+                pTexture->m_loadInfo.pDevice            = m_device;
+                pTexture->m_loadInfo.pPool              = m_cmdPool;
+                pTexture->m_loadInfo.pAllocator         = m_allocator;
+                pTexture->m_loadInfo.width              = m_width;
+                pTexture->m_loadInfo.height             = m_height;
+                pTexture->m_loadInfo.mipLevels          = 1;
 
                 //! make a texture descriptor
                 pTexture->m_descriptor = {
