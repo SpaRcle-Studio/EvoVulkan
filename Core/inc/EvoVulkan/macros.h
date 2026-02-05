@@ -64,6 +64,11 @@
 
 #include <vulkan/vulkan.h>
 
+#ifdef EVK_LINUX
+    #define VK_USE_PLATFORM_WAYLAND_KHR
+    #include <vulkan/vulkan_wayland.h>
+#endif
+
 #ifdef EVK_ANDROID
     #include <vulkan/vulkan_android.h>
 #endif

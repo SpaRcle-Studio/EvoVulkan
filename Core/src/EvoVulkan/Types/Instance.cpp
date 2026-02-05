@@ -37,8 +37,7 @@ namespace EvoVulkan::Types {
         VK_GRAPH("Instance::Create() : creating vulkan instance..." + log);
 
         if (extensions.empty()) {
-            VK_ERROR("Instance::Create() : extensions are empty!");
-            return nullptr;
+            VK_LOG("Instance::Create() : extensions are empty");
         }
 
         auto* instance = new Instance(VK_API_VERSION_1_2);

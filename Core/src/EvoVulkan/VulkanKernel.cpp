@@ -427,6 +427,7 @@ bool EvoVulkan::Core::VulkanKernel::Destroy() {
     EVSafeFreeObject(m_surface);
     EVSafeFreeObject(m_cmdPool);
     EVSafeFreeObject(m_computeCmdPool);
+    EVSafeFreeObject(m_resettableCmdPool);
 
     for (auto& pCmdPool : m_frameCmdPools) {
         EVSafeFreeObject(pCmdPool);

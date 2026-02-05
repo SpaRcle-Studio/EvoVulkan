@@ -20,6 +20,7 @@ EvoVulkan::Types::Swapchain::~Swapchain() {
     DestroyBuffers();
 
     if (m_swapchain) {
+        vkDeviceWaitIdle(*m_device);
         vkDestroySwapchainKHR(*m_device, m_swapchain, nullptr);
         m_swapchain = VK_NULL_HANDLE;
     }
