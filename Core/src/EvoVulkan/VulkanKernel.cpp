@@ -565,6 +565,10 @@ void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     EVK_TRACY_ZONE;
 
+    if (!m_swapchain) {
+        return FrameResult::Success;
+    }
+
     if (m_swapchain->IsDirty()) {
         VK_LOG("VulkanKernel::PrepareFrame() : swapchain is dirty!");
     }
@@ -641,8 +645,8 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
     /// Use m_currentImage for semaphore to match the acquired image index
     //VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_currentImage, m_frameSyncs[m_currentImage].m_renderComplete);
 
-    FrameSync& frame = m_frames[m_frameIndex];
-    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_imageIndex, frame.renderFinished);
+    //FrameSync& frame = m_frames[m_frameIndex];
+    VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_imageIndex, m_renderFinished[m_imageIndex]);
 
     if (result == VK_SUBOPTIMAL_KHR) {
         /// Reset the flag for the next frame
@@ -853,10 +857,18 @@ void EvoVulkan::Core::VulkanKernel::SetGUIEnabled(bool enabled)
 void EvoVulkan::Core::VulkanKernel::DestroySynchronizations(FrameResult reason) {
     for (auto&& frame : m_frames) {
         Tools::DestroyVulkanSemaphore(*GetDevice(), &frame.imageAvailable);
-        Tools::DestroyVulkanSemaphore(*GetDevice(), &frame.renderFinished);
+        //Tools::DestroyVulkanSemaphore(*GetDevice(), &frame.renderFinished);
         if (reason != FrameResult::OutOfDate && reason != FrameResult::Suboptimal) {
             Tools::DestroyVulkanFence(*GetDevice(), &frame.inFlightFence);
         }
+    }
+
+    //for (auto&& semaphore : m_imageAvailable) {
+    //    Tools::DestroyVulkanSemaphore(*GetDevice(), &semaphore);
+    //}
+
+    for (auto&& semaphore : m_renderFinished) {
+        Tools::DestroyVulkanSemaphore(*GetDevice(), &semaphore);
     }
 
     if (reason != FrameResult::OutOfDate && reason != FrameResult::Suboptimal) {
@@ -880,20 +892,39 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateSynchronizations(FrameResult reason)
     DestroySynchronizations(reason);
 
     m_frames.resize(GetMaxFramesInFlight());
+    //m_imageAvailable.resize(m_swapchain ? m_swapchain->GetCountImages() : 0);
+    m_renderFinished.resize(m_swapchain ? m_swapchain->GetCountImages() : 0);
+
     for (auto& frame : m_frames) {
         frame.imageAvailable = Tools::CreateVulkanSemaphore(*m_device);
-        frame.renderFinished = Tools::CreateVulkanSemaphore(*m_device);
+        //frame.renderFinished = Tools::CreateVulkanSemaphore(*m_device);
 
         if (reason != FrameResult::OutOfDate && reason != FrameResult::Suboptimal || frame.inFlightFence == VK_NULL_HANDLE) {
             frame.inFlightFence = Tools::CreateVulkanFence(*m_device, VK_FENCE_CREATE_SIGNALED_BIT);
         }
 
-        if (!frame.imageAvailable || !frame.renderFinished || !frame.inFlightFence) {
+        //if (!frame.imageAvailable || !frame.renderFinished || !frame.inFlightFence) {
+        if (!frame.inFlightFence) {
             VK_ERROR("VulkanKernel::ReCreateSynchronizations() : failed to create frame synchronization objects!");
             return false;
         }
     }
 
+    //for (auto& semaphore : m_imageAvailable) {
+    //    semaphore = Tools::CreateVulkanSemaphore(*m_device);
+    //    if (!semaphore) {
+    //        VK_ERROR("VulkanKernel::ReCreateSynchronizations() : failed to create image available semaphore!");
+    //        return false;
+    //    }
+    //}
+
+    for (auto& semaphore : m_renderFinished) {
+        semaphore = Tools::CreateVulkanSemaphore(*m_device);
+        if (!semaphore) {
+            VK_ERROR("VulkanKernel::ReCreateSynchronizations() : failed to create render finished semaphore!");
+            return false;
+        }
+    }
 
     m_imagesInFlight.resize(m_swapchain ? m_swapchain->GetCountImages() : 0, VK_NULL_HANDLE);
     //for (auto& imageFence : m_imagesInFlight) {

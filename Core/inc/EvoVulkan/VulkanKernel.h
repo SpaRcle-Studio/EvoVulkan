@@ -44,7 +44,7 @@ namespace EvoVulkan::Core {
     protected:
         struct FrameSync {
             VkSemaphore imageAvailable; // signal: acquire
-            VkSemaphore renderFinished; // signal: submit
+            //VkSemaphore renderFinished; // signal: submit
             VkFence     inFlightFence;  // signal: submit done
         };
     protected:
@@ -219,6 +219,10 @@ namespace EvoVulkan::Core {
         //std::vector<Types::Synchronization> m_frameSyncs  = { };
 
         std::vector<FrameSync>     m_frames;                 // size = MAX_FRAMES_IN_FLIGHT
+        //std::vector<VkSemaphore>   m_imageAvailable;         // size = swapchainImageCount
+        std::vector<VkSemaphore>   m_renderFinished;         // size = swapchainImageCount
+
+        // защита от записи в занятое image
         std::vector<VkFence>       m_imagesInFlight;         // size = swapchainImageCount
 
         std::vector<VkFence>       m_waitFences           = std::vector<VkFence>();
