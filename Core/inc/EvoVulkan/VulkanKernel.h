@@ -82,6 +82,10 @@ namespace EvoVulkan::Core {
         virtual FrameResult QueuePresent();
         virtual void WaitComputeIdle();
 
+        void SetAutoSwapChainResize(bool enabled) {
+            m_autoSwapChainResize = enabled;
+        }
+
     public:
         EVK_NODISCARD EVK_INLINE VkPipelineCache GetPipelineCache() const noexcept { return m_pipelineCache; }
         EVK_NODISCARD EVK_INLINE Types::Device* GetDevice() const { return m_device; }
@@ -182,6 +186,7 @@ namespace EvoVulkan::Core {
 
         std::recursive_mutex       m_mutex                = std::recursive_mutex();
 
+        bool                       m_autoSwapChainResize  = false;
         bool                       m_hasErrors            = false;
         bool                       m_paused               = false;
         bool                       m_dirty                = false;

@@ -77,6 +77,11 @@ EvoVulkan::Types::Swapchain* EvoVulkan::Types::Swapchain::Create(
 bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint32_t countImages) {
     EVK_TRACY_ZONE;
 
+    if (width == 0 || height == 0 || width == std::numeric_limits<uint32_t>::max() || height == std::numeric_limits<uint32_t>::max()) {
+        VK_HALT("Swapchain::ReSetup() : invalid surface size: " + std::to_string(width) + "x" + std::to_string(height));
+        return false;
+    }
+
     VK_GRAPH("Swapchain::ReSetup() : re-setting up vulkan swapchain..."
          "\n\tWidth: " + std::to_string(width) + "\n\tHeight: " + std::to_string(height) + "\n\tImages count: " + std::to_string(countImages)
      );

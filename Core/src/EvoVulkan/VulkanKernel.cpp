@@ -565,6 +565,13 @@ void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
 EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     EVK_TRACY_ZONE;
 
+    if (m_autoSwapChainResize) {
+        if (m_newWidth > 0 && m_newHeight > 0) {
+            VK_LOG("VulkanKernel::PrepareFrame() : auto swapchain resize triggered!");
+            ReCreate(FrameResult::OutOfDate);
+        }
+    }
+
     if (!m_swapchain) {
         return FrameResult::Success;
     }
@@ -704,19 +711,21 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
     if (reason == FrameResult::OutOfDate || reason == FrameResult::Suboptimal) {
         VK_INFO("VulkanKernel::ReCreate() : waiting for a change in the size of the client window...");
 
-        /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
-        while (true) {
-            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        if (!m_autoSwapChainResize) {
+            /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
+            while (true) {
+                std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-            PollWindowEvents();
+                PollWindowEvents();
 
-            if (!IsWindowValid()) {
-                VK_LOG("VulkanKernel::ReCreate() : window was closed.");
-                break;
-            }
+                if (!IsWindowValid()) {
+                    VK_LOG("VulkanKernel::ReCreate() : window was closed.");
+                    break;
+                }
 
-            if (m_newWidth != -1 && m_newHeight != -1) {
-                break;
+                if (m_newWidth != -1 && m_newHeight != -1) {
+                    break;
+                }
             }
         }
 
