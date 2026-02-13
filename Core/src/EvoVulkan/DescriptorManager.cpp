@@ -10,6 +10,8 @@
 
 namespace EvoVulkan::Core {
     Types::DescriptorSet DescriptorManager::AllocateDescriptorSet(VkDescriptorSetLayout layout, const RequestTypes& requestTypes, bool reallocate) {
+        EVK_TRACY_ZONE;
+
         auto&& pFound = reallocate ? nullptr : FindDescriptorPool(layout, requestTypes);
         Types::DescriptorPool* pPool = pFound;
 
@@ -109,12 +111,16 @@ namespace EvoVulkan::Core {
     }
 
     DescriptorManager *DescriptorManager::Create(const EvoVulkan::Types::Device *device) {
+        EVK_TRACY_ZONE;
+
         auto&& manager = new DescriptorManager();
         manager->m_device = device;
         return manager;
     }
 
     Types::DescriptorPool *DescriptorManager::AllocateDescriptorPool(VkDescriptorSetLayout layout, const RequestTypes &requestTypes) {
+        EVK_TRACY_ZONE;
+
         auto&& pool = Types::DescriptorPool::Create(*m_device, 1000, layout, requestTypes);
 
         if (pool) {
@@ -125,6 +131,8 @@ namespace EvoVulkan::Core {
     }
 
     Types::DescriptorPool *DescriptorManager::FindDescriptorPool(VkDescriptorSetLayout layout, const RequestTypes &requestTypes) {
+        EVK_TRACY_ZONE;
+
         for (auto&& pool : m_pools) {
             if (!pool->IsOutOfMemory() && layout == pool->GetLayout() && pool->Equal(requestTypes)) {
                 return pool;
