@@ -106,4 +106,12 @@
 #include <cinttypes>
 #include <sstream>
 
+#ifdef near
+    #undef near
+#endif
+
+#ifdef far
+    #undef far
+#endif
+
 #endif //EVOVULKAN_MACROS_H
