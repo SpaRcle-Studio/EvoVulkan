@@ -405,7 +405,7 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
 }
 
 EvoVulkan::Types::DescriptorSet EvoVulkan::Types::Texture::GetDescriptorSet(VkDescriptorSetLayout layout) {
-    SR_TRACY_ENABLE;
+    EVK_TRACY_ZONE;
 
     if (!m_loadInfo.pDescriptorManager) {
         VK_HALT("Texture::GetDescriptorSet() : texture have not descriptor manager!");
