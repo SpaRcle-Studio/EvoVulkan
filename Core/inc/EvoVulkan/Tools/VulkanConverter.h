@@ -44,9 +44,11 @@ namespace EvoVulkan::Tools::Convert {
             case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK: return "INLINE_UNIFORM_BLOCK";
             case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: return "ACCELERATION_STRUCTURE_KHR";
             case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV: return "ACCELERATION_STRUCTURE_NV";
+        #ifdef WIN32
             case VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM: return "SAMPLE_WEIGHT_IMAGE_QCOM";
             case VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM: return "BLOCK_MATCH_IMAGE_QCOM";
             case VK_DESCRIPTOR_TYPE_MUTABLE_EXT: return "MUTABLE_EXT";
+        #endif
             case VK_DESCRIPTOR_TYPE_MAX_ENUM: return "MAX_ENUM";
             default:
                 return "UNKNOWN_DESCRIPTIOR_TYPE";
