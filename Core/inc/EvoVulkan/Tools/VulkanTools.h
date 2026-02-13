@@ -404,8 +404,9 @@ namespace EvoVulkan::Tools {
             Types::FamilyQueues *pQueues,
             const std::vector<const char *> &extensions,
             const std::vector<const char *> &validLayers,
-            bool dynamicRendering)
-    {
+            bool dynamicRendering,
+            bool shaderViewportIndexLayerSupported
+    ) {
         VK_GRAPH("VulkanTools::CreateLogicalDevice() : creating vulkan logical device...");
 
         //!=============================================================================================================
@@ -526,10 +527,7 @@ namespace EvoVulkan::Tools {
         deviceVulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
         deviceVulkan12Features.pNext = (void*)&dynamicRenderingFeature;
 
-        /// С версии 1.2 эти фичи включены по умолчанию
-        const bool isExtensionEnabled = Tools::IsExtensionEnabled(extensions, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME) || pInstance->GetVersion() >= VK_API_VERSION_1_2;
-
-        if (isExtensionEnabled) {
+        if (shaderViewportIndexLayerSupported) {
             deviceVulkan12Features.shaderOutputViewportIndex = VK_TRUE;
             deviceVulkan12Features.shaderOutputLayer = VK_TRUE;
         }
@@ -553,6 +551,12 @@ namespace EvoVulkan::Tools {
         deviceFeatures2.features = deviceFeatures;
 
         //!=============================================================================================================
+
+        std::string extensionsLog = "VulkanTools::CreateLogicalDevice() : required device extensions: ";
+        for (const auto& ext : extensions) {
+            extensionsLog += "\n\t" + std::string(ext);
+        }
+        VK_GRAPH(extensionsLog);
 
         VkDeviceCreateInfo createInfo      = {};
         createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

@@ -104,10 +104,26 @@ namespace EvoVulkan::Types {
         bool shaderViewportIndexLayerSupported = true;
 
         /// Enabled by default in Vulkan 1.2+
-        if (info.pInstance->GetVersion() < VK_API_VERSION_1_2) {
-            if (Tools::IsExtensionSupported(physicalDevice, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME)) {
-                info.extensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
-                VK_LOG("Device::Create() : enabled extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME));
+        {
+            VkPhysicalDeviceVulkan12Features supported12Features = {};
+            supported12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+
+            VkPhysicalDeviceFeatures2 feat2 = {};
+            feat2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            feat2.pNext = &supported12Features;
+            vkGetPhysicalDeviceFeatures2(physicalDevice, &feat2);
+
+            const bool supportsShaderViewport = supported12Features.shaderOutputViewportIndex == VK_TRUE && supported12Features.shaderOutputLayer == VK_TRUE;
+            const bool isExtensionEnabled = info.pInstance->GetVersion() >= VK_API_VERSION_1_2 || Tools::IsExtensionSupported(physicalDevice, VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+
+            if (supportsShaderViewport && isExtensionEnabled) {
+                if (info.pInstance->GetVersion() < VK_API_VERSION_1_2) {
+                    info.extensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+                    VK_LOG("Device::Create() : enabled extension " + std::string(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME));
+                }
+                else {
+                    VK_LOG("Device::Create() : shader viewport index and layer features are supported and enabled by default in Vulkan 1.2+");
+                }
                 shaderViewportIndexLayerSupported = true;
             }
             else {
@@ -124,10 +140,14 @@ namespace EvoVulkan::Types {
 
         if (info.dynamicRendering && Tools::IsExtensionSupported(physicalDevice, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)) {
             info.extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+            VK_LOG("Device::Create() : dynamic rendering is supported and enabled!");
         }
         else if (info.dynamicRendering) {
             VK_INFO("Device::Create() : dynamic rendering is not supported but requested!");
             info.dynamicRendering = false;
+        }
+        else {
+            VK_LOG("Device::Create() : dynamic rendering is not requested.");
         }
 
         FamilyQueues* pQueues = FamilyQueues::Find(physicalDevice, info.pSurface);
@@ -178,7 +198,8 @@ namespace EvoVulkan::Types {
             pQueues,
             info.extensions,
             info.validationLayers,
-            info.dynamicRendering);
+            info.dynamicRendering,
+            shaderViewportIndexLayerSupported);
 
         if (logicalDevice == VK_NULL_HANDLE) {
             VK_ERROR("Device::Create() : failed create logical device!");

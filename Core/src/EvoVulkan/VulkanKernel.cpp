@@ -247,6 +247,9 @@ bool EvoVulkan::Core::VulkanKernel::Init(
             return false;
         }
     }
+    else {
+        VK_LOG("VulkanKernel::Init() : surface is not created! Can't create swapchain.");
+    }
 
     m_frameCmdPools.resize(m_swapchainImages);
     VK_LOG("VulkanKernel::Init() : creating " + std::to_string(m_swapchainImages) + " frame command pools...");
