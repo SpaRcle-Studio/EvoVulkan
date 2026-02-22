@@ -221,6 +221,9 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
         m_pipeline = VK_NULL_HANDLE;
     }
 
+    static std::atomic<uint64_t> pipelineIdCounter = 0;
+    m_handle = reinterpret_cast<void*>(static_cast<uintptr_t>(++pipelineIdCounter));
+
     m_renderPass = renderPass;
 
     std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {};
