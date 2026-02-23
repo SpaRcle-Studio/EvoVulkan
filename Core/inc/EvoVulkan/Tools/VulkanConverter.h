@@ -55,6 +55,20 @@ namespace EvoVulkan::Tools::Convert {
         }
     }
 
+    static std::string PresentModeToString(VkPresentModeKHR mode) {
+        switch (mode) {
+            case VK_PRESENT_MODE_IMMEDIATE_KHR: return "IMMEDIATE";
+            case VK_PRESENT_MODE_MAILBOX_KHR: return "MAILBOX";
+            case VK_PRESENT_MODE_FIFO_KHR: return "FIFO";
+            case VK_PRESENT_MODE_FIFO_RELAXED_KHR: return "FIFO_RELAXED";
+            case VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR: return "SHARED_DEMAND_REFRESH";
+            case VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR: return "SHARED_CONTINUOUS_REFRESH";
+            case VK_PRESENT_MODE_MAX_ENUM_KHR: return "MAX_ENUM";
+            default:
+                return "UNKNOWN_PRESENT_MODE";
+        }
+    }
+
     EVK_MAYBE_UNUSED static VkFormat CompressedFormatToDecodedFormat(VkFormat format) {
         switch (format) {
             case VK_FORMAT_BC1_RGB_SRGB_BLOCK:

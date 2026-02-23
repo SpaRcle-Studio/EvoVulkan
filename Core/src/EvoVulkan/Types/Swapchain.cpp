@@ -135,6 +135,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
 
     VK_GRAPH("Swapchain::ReSetup() : getting present mode...");
     m_presentMode = Tools::GetPresentMode(*m_device, *m_surface, m_vsync);
+    VK_GRAPH("Swapchain::ReSetup() : present mode: " + EvoVulkan::Tools::Convert::PresentModeToString(m_presentMode));
 
     /// Determine the number of images
     uint32_t desiredNumberOfSwapchainImages = EVK_MAX(surfCaps.minImageCount, countImages);
