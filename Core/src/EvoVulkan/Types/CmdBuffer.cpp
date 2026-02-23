@@ -131,7 +131,7 @@ namespace EvoVulkan::Types {
                 EVK_TRACY_ZONE_N("vkQueueSubmit");
                 auto result = vkQueueSubmit(m_device->GetQueues()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
                 if (result != VK_SUCCESS) {
-                    VK_ERROR("CmdBuffer::End() : failed to queue submit!");
+                    VK_HALT("CmdBuffer::End() : failed to queue submit!");
                     return false;
                 }
             }

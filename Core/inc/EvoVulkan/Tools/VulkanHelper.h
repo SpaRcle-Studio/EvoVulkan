@@ -172,6 +172,7 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static VkPresentModeKHR GetPresentMode(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, bool vsync) {
+        EVK_TRACY_ZONE;
         uint32_t presentModeCount = 0;
         if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL) != VK_SUCCESS) {
             VK_ERROR("VulkanTools::GetPresentMode() : failed to get physical device surface present modes! (count)");

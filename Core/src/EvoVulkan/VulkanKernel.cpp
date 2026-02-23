@@ -557,7 +557,10 @@ void EvoVulkan::Core::VulkanKernel::WaitAllFences() {
     //}
 
     for (auto& frame : m_frames) {
-        vkWaitForFences(*m_device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX);
+        VkResult result = vkWaitForFences(*m_device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX);
+        if (result != VK_SUCCESS) {
+            VK_HALT("VulkanKernel::WaitAllFences() : failed to wait for in-flight fence! Reason: " + Tools::Convert::result_to_description(result));
+        }
     }
 
     //if (!GetInFlightFences().empty()) {

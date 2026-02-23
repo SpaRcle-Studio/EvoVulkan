@@ -90,9 +90,12 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
 
     // Get physical device surface properties and formats
     VkSurfaceCapabilitiesKHR surfCaps = {};
-    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS) {
-        VK_ERROR("Swapchain::ReSetup() : failed to get physical device surface capabilities!");
-        return false;
+    {
+        EVK_TRACY_ZONE_N("vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
+        if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*m_device, *m_surface, &surfCaps) != VK_SUCCESS) {
+            VK_ERROR("Swapchain::ReSetup() : failed to get physical device surface capabilities!");
+            return false;
+        }
     }
 
     if (surfCaps.currentExtent.width == std::numeric_limits<uint32_t>::max() || surfCaps.currentExtent.height == std::numeric_limits<uint32_t>::max()) {
@@ -158,7 +161,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
     // Find a supported composite alpha format (not all devices support alpha opaque)
     VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     // Simply select the first composite alpha format available
-    const std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
+    static const std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
             VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
             VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
@@ -202,17 +205,22 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
 
     VK_GRAPH("Swapchain::ReSetup() : creating swapchain struct...");
 
-    if (vkCreateSwapchainKHR(*m_device, &swapchainCI, nullptr, &m_swapchain) != VK_SUCCESS) {
-        VK_ERROR("Swapchain::ReSetup() : failed to create swapchain!");
-        return false;
+    {
+        EVK_TRACY_ZONE_N("vkCreateSwapchainKHR");
+        if (vkCreateSwapchainKHR(*m_device, &swapchainCI, nullptr, &m_swapchain) != VK_SUCCESS) {
+            VK_ERROR("Swapchain::ReSetup() : failed to create swapchain!");
+            return false;
+        }
     }
 
     // If we just re-created an existing swapchain, we should destroy the old
     // swapchain at this point.
     //! Note: destroying the swapchain also cleans up all its associated
     //! presentable images once the platform is done with them.
-    if (oldSwapchain != VK_NULL_HANDLE)
+    if (oldSwapchain != VK_NULL_HANDLE) {
+        EVK_TRACY_ZONE_N("vkDestroySwapchainKHR");
         vkDestroySwapchainKHR(*m_device, oldSwapchain, nullptr);
+    }
 
     //!=================================================================================================================
 
@@ -300,6 +308,7 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
 }
 
 void EvoVulkan::Types::Swapchain::DestroyBuffers() {
+    EVK_TRACY_ZONE;
     if (m_countBuffers > 0 && m_device) {
         for (uint32_t i = 0; i < m_countBuffers; ++i)
             vkDestroyImageView(*m_device, m_buffers[i].m_view, nullptr);
@@ -315,6 +324,7 @@ void EvoVulkan::Types::Swapchain::DestroyBuffers() {
 }
 
 bool EvoVulkan::Types::Swapchain::CreateImages() {
+    EVK_TRACY_ZONE;
     m_swapchainImages.clear();
 
     uint32_t countImages = 0;
@@ -343,6 +353,7 @@ bool EvoVulkan::Types::Swapchain::CreateImages() {
     }
 
     for (VkImage image : m_swapchainImages) {
+        EVK_TRACY_ZONE_N("Swapchain::CreateImages() : transition image layout...");
         auto&& pCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -376,6 +387,7 @@ bool EvoVulkan::Types::Swapchain::CreateImages() {
 }
 
 bool EvoVulkan::Types::Swapchain::CreateBuffers() {
+    EVK_TRACY_ZONE;
     m_countBuffers = m_swapchainImages.size();
     m_buffers = (SwapChainBuffer*)malloc(sizeof(SwapChainBuffer) * m_swapchainImages.size());
     if (!m_buffers) {
