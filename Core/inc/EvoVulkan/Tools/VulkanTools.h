@@ -680,6 +680,7 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static std::set<std::string> GetSupportedInstanceExtensions() {
+        EVK_TRACY_ZONE;
         uint32_t count;
         vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr); //get number of extensions
         std::vector<VkExtensionProperties> extensions(count);

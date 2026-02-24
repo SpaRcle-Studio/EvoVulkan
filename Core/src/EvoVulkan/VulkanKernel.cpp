@@ -82,13 +82,14 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
     }
 
     m_instance = Types::Instance::Create(
-            m_appName,
-            m_engineName,
-            m_instExtensions,
-            m_validationLayers,
-            m_gpuAssistEnabled,
-            m_validationLayersEnabled,
-            m_validationDebugEnabled);
+        m_appName,
+        m_engineName,
+        std::move(supportedExtensions),
+        m_instExtensions,
+        m_validationLayers,
+        m_gpuAssistEnabled,
+        m_validationLayersEnabled,
+        m_validationDebugEnabled);
 
     if (m_instance == VK_NULL_HANDLE) {
         VK_ERROR("VulkanKernel::PreInit() : failed to create vulkan instance!");

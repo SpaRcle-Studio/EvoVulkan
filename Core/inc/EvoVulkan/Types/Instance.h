@@ -26,6 +26,7 @@ namespace EvoVulkan::Types {
         static Instance* Create(
                 const std::string& appName,
                 const std::string& engineName,
+                std::set<std::string> supportedExtensions,
                 StringVector extensions,
                 const StringVector& layers,
                 bool gpuAssistEnabled,
@@ -37,8 +38,12 @@ namespace EvoVulkan::Types {
     public:
         EVK_NODISCARD uint32_t GetVersion() const;
         EVK_NODISCARD bool IsReady() const override;
+        EVK_NODISCARD bool IsExtensionSupported(const std::string_view& extension) const;
+        EVK_NODISCARD bool IsExtensionEnabled(const std::string_view& extension) const;
 
     private:
+        std::set<std::string> m_supportedExtensions;
+        std::set<std::string> m_enabledExtensions;
         VkInstance m_instance;
         uint32_t m_version;
 

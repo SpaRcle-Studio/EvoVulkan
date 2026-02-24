@@ -16,12 +16,21 @@ namespace EvoVulkan::Types {
     Instance* Instance::Create(
             const std::string& appName,
             const std::string& engineName,
+            std::set<std::string> supportedExtensions,
             StringVector extensions,
             const StringVector& layers,
             bool gpuAssistEnabled,
             bool validationLayersEnabled,
             bool validationReportEnabled
     ) {
+        auto&& pInstance = new Instance(VK_API_VERSION_1_2);
+        pInstance->m_supportedExtensions = std::move(supportedExtensions);
+
+        /// enable VK_KHR_portability_enumeration if it is supported
+        if (pInstance->IsExtensionSupported(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 1) {
+            extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        }
+
         const auto&& logExtensions = Tools::Combine<const char*>(extensions, [](const char* str, int32_t i, bool last) -> std::string {
             return last ? std::string(str) : std::string(str).append(", ");
         });
@@ -40,23 +49,30 @@ namespace EvoVulkan::Types {
             VK_LOG("Instance::Create() : extensions are empty");
         }
 
-        auto* instance = new Instance(VK_API_VERSION_1_2);
-
         VkApplicationInfo appInfo  = {};
         appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName   = appName.c_str();
-        appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
+        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.engineVersion      = 1;
         appInfo.pEngineName        = engineName.c_str();
         //appInfo.apiVersion         = VK_API_VERSION_1_0;
-        appInfo.apiVersion         = instance->m_version;//VK_MAKE_VERSION(1, 0, 2);
+        appInfo.apiVersion         = pInstance->m_version;//VK_MAKE_VERSION(1, 0, 2);
 
         VkInstanceCreateInfo instInfo = {};
         instInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         instInfo.pApplicationInfo = &appInfo;
 
+        if (pInstance->IsExtensionSupported(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 1) {
+            VK_LOG("Instance::Create() : VK_KHR_portability_enumeration extension is supported, enabling it...");
+            instInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+        }
+
         instInfo.enabledExtensionCount   = (uint32_t)extensions.size();
         instInfo.ppEnabledExtensionNames = extensions.data();
+
+        for (const auto& ext : extensions) {
+            pInstance->m_enabledExtensions.insert(ext);
+        }
 
         static VkValidationFeaturesEXT validationFeatures = {};
         static VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
@@ -105,7 +121,7 @@ namespace EvoVulkan::Types {
             instInfo.pNext = nullptr;
         }
 
-        VkResult result = vkCreateInstance(&instInfo, NULL, &instance->m_instance);
+        VkResult result = vkCreateInstance(&instInfo, NULL, &pInstance->m_instance);
         if (result != VK_SUCCESS) {
             VK_ERROR("Instance::Create() : failed create vulkan instance! Reason: " + Tools::Convert::result_to_description(result));
             return nullptr;
@@ -113,7 +129,7 @@ namespace EvoVulkan::Types {
 
         VK_GRAPH("Instance::Create() : instance is created successfully!");
 
-        return instance;
+        return pInstance;
     }
 
     uint32_t Instance::GetVersion() const {
@@ -122,5 +138,13 @@ namespace EvoVulkan::Types {
     
     bool Instance::IsReady() const {
         return m_instance != VK_NULL_HANDLE;
+    }
+
+    bool Instance::IsExtensionSupported(const std::string_view& extension) const {
+        return m_supportedExtensions.count(extension.data()) == 1;
+    }
+
+    bool Instance::IsExtensionEnabled(const std::string_view& extension) const {
+        return m_enabledExtensions.count(extension.data()) == 1;
     }
 }
