@@ -215,9 +215,9 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(TextureLoadInfo info,
         return nullptr;
     }
 
-    if (!info.pDevice->IsSupportLinearBlitting(info.format)) {
-        VK_ERROR("Texture::Load() : device does not support linear blitting!");
-        return nullptr;
+    if (!info.pDevice->IsSupportLinearBlitting(info.format) && info.filter == VK_FILTER_LINEAR) {
+        VK_WARN("Texture::Load() : device does not support linear blitting!");
+        info.filter = VK_FILTER_NEAREST;
     }
 
     VK_LOG("Texture::Load() : loading new texture... \n\tWidth: " +

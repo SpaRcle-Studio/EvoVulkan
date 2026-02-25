@@ -276,33 +276,52 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
 
     auto formatCount = m_surface->GetCountSurfFmts();
     auto surfFormats = m_surface->GetSurfaceFormats();
+    if (formatCount == 0) {
+        VK_ERROR("Swapchain::InitFormats() : failed to get surface formats count!");
+        return false;
+    }
 
-    std::vector<VkFormat> availableFormats;
+    std::vector<std::pair<VkFormat, VkColorSpaceKHR>> availableFormats;
     availableFormats.resize(formatCount);
     for (uint32_t i = 0; i < formatCount; i++) {
-        availableFormats[i] = surfFormats[i].format;
+        availableFormats[i] = { surfFormats[i].format, surfFormats[i].colorSpace };
     }
 
-    VkFormat preferredFormat = VK_FORMAT_B8G8R8A8_UNORM; /// VK_FORMAT_B8G8R8A8_UNORM
+    static std::vector<VkFormat> preferredFormats = {
+        VK_FORMAT_A2B10G10R10_UNORM_PACK32,
+        VK_FORMAT_B8G8R8A8_UNORM
+    };
 
     if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED) {
-        m_colorFormat = preferredFormat;
+        m_colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
     }
     else {
-        if (std::ranges::find(availableFormats, preferredFormat) != availableFormats.end()) {
-            m_colorFormat = preferredFormat;
+        for (VkFormat preferredFormat : preferredFormats) {
+            auto&& pIt = std::find_if(availableFormats.begin(), availableFormats.end(), [preferredFormat](const std::pair<VkFormat, VkColorSpaceKHR>& format) {
+                return format.first == preferredFormat;
+            });
+
+            if (pIt != availableFormats.end()) {
+                m_colorFormat = pIt->first;
+                m_colorSpace = pIt->second;
+                break;
+            }
         }
-        else {
+
+        if (m_colorFormat == VK_FORMAT_UNDEFINED) {
             m_colorFormat = surfFormats[0].format;
+            m_colorSpace = surfFormats[0].colorSpace;
         }
     }
 
-    m_colorSpace = surfFormats[0].colorSpace;
-
-    if (m_colorFormat == VK_FORMAT_UNDEFINED) {
+    if (m_colorFormat == VK_FORMAT_UNDEFINED || m_colorSpace == VK_COLOR_SPACE_MAX_ENUM_KHR) {
         VK_ERROR("Swapchain::InitFormats() : color format undefined!");
         return false;
     }
+
+    VK_LOG("Swapchain::InitFormats() : color format: " + Tools::Convert::format_to_string(m_colorFormat) +
+        "\n\tcolor space: " + Tools::Convert::color_space_to_string(m_colorSpace)
+    );
 
     return true;
 }

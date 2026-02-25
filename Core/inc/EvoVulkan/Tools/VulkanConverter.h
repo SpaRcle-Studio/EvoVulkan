@@ -241,6 +241,38 @@ namespace EvoVulkan::Tools::Convert {
         return std::to_string(gpu_type);
     }
 
+    EVK_MAYBE_UNUSED static std::string color_space_to_string(const VkColorSpaceKHR color_space) {
+        switch (color_space) {
+            case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
+                return "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR";
+            case VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT:
+                return "VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT";
+            case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
+                return "VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT";
+            case VK_COLOR_SPACE_DCI_P3_LINEAR_EXT:
+                return "VK_COLOR_SPACE_DCI_P3_LINEAR_EXT";
+            case VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT:
+                return "VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT";
+            case VK_COLOR_SPACE_BT709_LINEAR_EXT:
+                return "VK_COLOR_SPACE_BT709_LINEAR_EXT";
+            case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
+                return "VK_COLOR_SPACE_BT709_NONLINEAR_EXT";
+            case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
+                return "VK_COLOR_SPACE_BT2020_LINEAR_EXT";
+            case VK_COLOR_SPACE_HDR10_ST2084_EXT:
+                return "VK_COLOR_SPACE_HDR10_ST2084_EXT";
+            case VK_COLOR_SPACE_DOLBYVISION_EXT:
+                return "VK_COLOR_SPACE_DOLBYVISION_EXT";
+            case VK_COLOR_SPACE_HDR10_HLG_EXT:
+                return "VK_COLOR_SPACE_HDR10_HLG_EXT";
+            default:
+                break;
+        }
+
+        // If no name can be found, convert the color space value to a std::string and return it.
+        return std::to_string(color_space);
+    }
+
     EVK_MAYBE_UNUSED static std::string format_to_string(const VkFormat format) {
         switch (format) {
             case VK_FORMAT_UNDEFINED:
