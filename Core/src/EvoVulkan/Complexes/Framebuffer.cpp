@@ -102,7 +102,7 @@ namespace EvoVulkan::Complexes {
             return nullptr;
         }
 
-        const uint8_t maxFrames = features.offscreen ? 1 : swapchain->GetCountImages();
+        const uint8_t maxFrames = swapchain->GetCountImages();
         for (uint32_t i = 0; i < maxFrames; ++i) {
             pFBO->m_cmdBuffers.emplace_back(Types::CmdBuffer::Create(device, pFBO->m_cmdPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY));
         }
@@ -674,10 +674,6 @@ namespace EvoVulkan::Complexes {
         if (!m_cmdBuffers.size()) {
             VK_HALT("Framebuffer::GetCommandBuffer() : no command buffers!");
             return VK_NULL_HANDLE;
-        }
-
-        if (m_features.offscreen) {
-            return *m_cmdBuffers[0];
         }
 
         if (frame >= m_cmdBuffers.size()) {

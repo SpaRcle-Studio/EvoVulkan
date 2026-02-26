@@ -288,8 +288,8 @@ bool EvoVulkan::Types::Swapchain::InitFormats() {
     }
 
     static std::vector<VkFormat> preferredFormats = {
-        VK_FORMAT_A2B10G10R10_UNORM_PACK32,
-        VK_FORMAT_B8G8R8A8_UNORM
+        VK_FORMAT_B8G8R8A8_UNORM,
+        VK_FORMAT_A2B10G10R10_UNORM_PACK32 /// broke imgui undocked viewports.
     };
 
     if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED) {

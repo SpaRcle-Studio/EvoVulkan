@@ -220,7 +220,7 @@ namespace EvoVulkan::Core {
         //Types::Synchronization     m_syncs                = { };
         VkSemaphore                m_offscreenSemaphore   = VK_NULL_HANDLE;
         SubmitInfo                 m_submitInfo           = { };
-        SubmitInfo                 m_offscreenSubmitInfo  = { };
+        //SubmitInfo                 m_offscreenSubmitInfo  = { };
         //std::vector<Types::Synchronization> m_frameSyncs  = { };
 
         std::vector<FrameSync>     m_frames;                 // size = MAX_FRAMES_IN_FLIGHT
