@@ -221,9 +221,6 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
         m_pipeline = VK_NULL_HANDLE;
     }
 
-    static std::atomic<uint64_t> pipelineIdCounter = 0;
-    m_handle = reinterpret_cast<void*>(static_cast<uintptr_t>(++pipelineIdCounter));
-
     m_renderPass = renderPass;
 
     std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates = {};
@@ -322,6 +319,9 @@ bool EvoVulkan::Complexes::Shader::Compile(
 }
 
 bool EvoVulkan::Complexes::Shader::BuildLayouts() {
+    static std::atomic<uint64_t> pipelineIdCounter = 0;
+    m_handle = reinterpret_cast<void*>(static_cast<uintptr_t>(++pipelineIdCounter));
+
     m_descriptorSetLayout = Tools::CreateDescriptorLayout(*m_device, m_layoutBindings);
     if (m_descriptorSetLayout == VK_NULL_HANDLE) {
         VK_ERROR("Shader::BuildLayouts() : failed to create descriptor layout!");
@@ -394,4 +394,9 @@ bool EvoVulkan::Complexes::Shader::CompileCompute() {
     }
 
     return true;
+}
+
+void* EvoVulkan::Complexes::Shader::GetHandle() const noexcept {
+    VK_ASSERT(m_handle);
+    return m_handle;
 }

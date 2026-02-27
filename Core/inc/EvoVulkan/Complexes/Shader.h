@@ -83,7 +83,7 @@ namespace EvoVulkan::Complexes {
         EVK_NODISCARD EVK_INLINE VkPipeline GetPipeline() const noexcept { return m_pipeline; }
         EVK_NODISCARD EVK_INLINE VkPipelineLayout GetPipelineLayout() const noexcept { return m_pipelineLayout; }
         EVK_NODISCARD EVK_INLINE const std::vector<VkPushConstantRange>& GetPushConstants() const noexcept { return m_pushConstants; }
-        EVK_NODISCARD EVK_INLINE void* GetHandle() const noexcept { return m_handle; }
+        EVK_NODISCARD EVK_INLINE void* GetHandle() const noexcept;
 
         void Bind(const VkCommandBuffer& cmd) const;
 
@@ -94,7 +94,7 @@ namespace EvoVulkan::Complexes {
 
     private:
         struct {
-            VkPipelineVertexInputStateCreateInfo           m_inputState;
+            VkPipelineVertexInputStateCreateInfo           m_inputState = { };
             std::vector<VkVertexInputBindingDescription>   m_bindingDescriptions;
             std::vector<VkVertexInputAttributeDescription> m_attributeDescriptions;
         } m_vertices;

@@ -72,7 +72,12 @@ namespace EvoVulkan::Types {
     void EvoVulkan::Types::VmaBuffer::CopyToDevice(const void *data, uint64_t size, bool flush) {
         EVK_TRACY_ZONE;
 
-        Map();
+        if (VkResult result = Map(); result != VK_SUCCESS || !m_mapped) {
+            VK_HALT("Buffer::CopyToDevice() : failed to map memory!\n\tError: " + Tools::Convert::result_to_string(result) +
+                 "\n\tDescription: " + Tools::Convert::result_to_description(result)
+            );
+            return;
+        }
 
         if (size == 0) {
             memcpy(m_mapped, data, m_size);
