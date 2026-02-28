@@ -58,6 +58,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
         EVK_NODISCARD VkDeviceSize GetSize() const noexcept { return m_size; }
 
+        void Reserve(VkDeviceSize newSize);
         void SetDebugInfo(const VmaBufferDebugInfo& debugInfo) { m_debugInfo = debugInfo; }
         void CopyToDevice(const void* data, uint64_t size = 0, bool flush = false);
         void CopyFromDevice(void* data, uint64_t size = 0);
@@ -71,6 +72,8 @@ namespace EvoVulkan::Types {
         void Unmap();
 
     private:
+        VkBufferCreateInfo     m_bufferCreateInfo = { };
+        VmaMemoryUsage         m_memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
         void*                  m_mapped     = nullptr;
         Memory::Allocator*     m_allocator  = nullptr;
         Memory::Buffer         m_buffer     = { };

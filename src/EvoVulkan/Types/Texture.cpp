@@ -79,8 +79,8 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(TextureLoadInf
 
     const VkDeviceSize imageSize = info.width * info.height * 4 * 6;
 
-    auto&& stagingBuffer = VmaBuffer::Create(info.pAllocator, imageSize * 2); // TODO: imageSize * 2? Check correctly or fix
-    if (void* data = stagingBuffer->MapData(); !data || !stagingBuffer) {
+    info.pStagingBuffer->Reserve(imageSize * 2);  // TODO: imageSize * 2? Check correctly or fix
+    if (void* data = info.pStagingBuffer->MapData(); !data || !info.pStagingBuffer) {
         VK_ERROR("Texture::LoadCubeMap() : failed to map memory!");
         return nullptr;
     }
@@ -89,7 +89,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(TextureLoadInf
         for (uint8_t i = 0; i < 6; ++i) {
             memcpy(static_cast<uint8_t *>(data) + (layerSize * i), sides[i], layerSize);
         }
-        stagingBuffer->Unmap();
+        info.pStagingBuffer->Unmap();
     }
 
     auto&& imageCI = Types::ImageCreateInfo(
@@ -148,7 +148,7 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(TextureLoadInf
         /// Copy the cube map faces from the staging buffer to the optimal tiled image
         vkCmdCopyBufferToImage(
                 *copyCmd,
-                *stagingBuffer,
+                *info.pStagingBuffer,
                 texture->m_image,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 static_cast<uint32_t>(bufferCopyRegions.size()),
@@ -161,7 +161,6 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::LoadCubeMap(TextureLoadInf
     //!=================================================================================================================
 
     delete copyCmd;
-    delete stagingBuffer;
 
     //!=================================================================================================================
 
@@ -238,8 +237,9 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(TextureLoadInfo info,
         pTexture->m_loadInfo         = info;
     }
 
-    auto&& stagingBuffer = VmaBuffer::Create(info.pAllocator, info.width * info.height * 4, (void*)pixels);
-    if (!pTexture->Create(stagingBuffer)) {
+    info.pStagingBuffer->Reserve(info.width * info.height * 4);
+    info.pStagingBuffer->CopyToDevice((void*)pixels, info.width * info.height * 4, true);
+    if (!pTexture->Create(info.pStagingBuffer)) {
         VK_ERROR("Texture::Load() : failed to create!");
         return nullptr;
     }
@@ -283,7 +283,6 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
     //!=================================================================================================================
 
     delete copyCmd;
-    delete stagingBuffer;
 
     //!=================================================================================================================
 

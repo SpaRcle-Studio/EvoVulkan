@@ -19,9 +19,9 @@ namespace EvoVulkan::Types {
     {
         EVK_TRACY_ZONE;
         auto buffer = new VmaBuffer(allocator, size);
-        auto bufferCreateInfo = Tools::Initializers::BufferCreateInfo(bufferUsage, size);
-
-        buffer->m_buffer = allocator->AllocBuffer(bufferCreateInfo, memoryUsage);
+        buffer->m_bufferCreateInfo = Tools::Initializers::BufferCreateInfo(bufferUsage, size);
+        buffer->m_memoryUsage = memoryUsage;
+        buffer->m_buffer = allocator->AllocBuffer(buffer->m_bufferCreateInfo, memoryUsage);
 
         if (data) {
             buffer->CopyToDevice(data, 0, memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY);
@@ -44,11 +44,12 @@ namespace EvoVulkan::Types {
     {
         auto&& buffer = new VmaBuffer(allocator, size);
 
-        auto&& bufferCreateInfo = Tools::Initializers::BufferCreateInfo(bufferUsage, size);
-        bufferCreateInfo.sharingMode = sharingMode;
-        bufferCreateInfo.flags = createFlags;
+        buffer->m_bufferCreateInfo = Tools::Initializers::BufferCreateInfo(bufferUsage, size);
+        buffer->m_bufferCreateInfo.sharingMode = sharingMode;
+        buffer->m_bufferCreateInfo.flags = createFlags;
+        buffer->m_memoryUsage = memoryUsage;
 
-        buffer->m_buffer = allocator->AllocBuffer(bufferCreateInfo, memoryUsage, allocateFlags);
+        buffer->m_buffer = allocator->AllocBuffer(buffer->m_bufferCreateInfo, memoryUsage, allocateFlags);
 
         if (data) {
             buffer->CopyToDevice(data, 0, memoryUsage == VMA_MEMORY_USAGE_CPU_ONLY);
@@ -115,6 +116,7 @@ namespace EvoVulkan::Types {
     }
 
     VkResult EvoVulkan::Types::VmaBuffer::Map() {
+        EVK_TRACY_ZONE;
         if (m_buffer.m_allocation == VK_NULL_HANDLE) {
             return VkResult::VK_INCOMPLETE;
         }
@@ -142,6 +144,7 @@ namespace EvoVulkan::Types {
     }
 
     void EvoVulkan::Types::VmaBuffer::Unmap() {
+        EVK_TRACY_ZONE;
         if (m_mapped) {
             vmaUnmapMemory(*m_allocator, m_buffer.m_allocation);
             m_mapped = nullptr;
@@ -153,6 +156,7 @@ namespace EvoVulkan::Types {
     }
 
     VkResult EvoVulkan::Types::VmaBuffer::Flush(uint64_t offset, uint64_t size) {
+        EVK_TRACY_ZONE;
         if (!m_mapped) {
             VK_ERROR("Buffer::Flush() : memory is not mapped!");
             return VkResult::VK_INCOMPLETE;
@@ -174,5 +178,15 @@ namespace EvoVulkan::Types {
 
     VkResult EvoVulkan::Types::VmaBuffer::Bind() {
         return vmaBindBufferMemory(*m_allocator, m_buffer.m_allocation, m_buffer.m_buffer);
+    }
+
+    void VmaBuffer::Reserve(VkDeviceSize newSize) {
+        EVK_TRACY_ZONE;
+        if (newSize > m_size) {
+            m_allocator->FreeBuffer(m_buffer);
+            m_size = newSize;
+            m_buffer = m_allocator->AllocBuffer(m_bufferCreateInfo, m_memoryUsage);
+            SetupDescriptor();
+        }
     }
 }

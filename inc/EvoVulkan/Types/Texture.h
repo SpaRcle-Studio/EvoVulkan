@@ -34,6 +34,7 @@ namespace EvoVulkan::Types {
         Device* pDevice = nullptr;
         Memory::Allocator* pAllocator = nullptr;
         Core::DescriptorManager* pDescriptorManager = nullptr;
+        VmaBuffer* pStagingBuffer = nullptr;
         CmdPool* pPool = nullptr;
         VkFormat format = VK_FORMAT_UNDEFINED;
         int32_t width = 0;
