@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(EvoVulkan)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(EVO_VULKAN_BUILD_VMA "Build Vulkan Memory Allocator" ON)
 
