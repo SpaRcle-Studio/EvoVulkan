@@ -592,28 +592,121 @@ namespace EvoVulkan::Tools {
         return device;
     }
 
-    EVK_MAYBE_UNUSED static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, bool isNeedEnd) {
+
+    EVK_MAYBE_UNUSED static bool IsBlockCompressedFormat(VkFormat format) {
+        switch (format) {
+            case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
+            case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
+            case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:
+            case VK_FORMAT_BC1_RGBA_SRGB_BLOCK:
+            case VK_FORMAT_BC2_UNORM_BLOCK:
+            case VK_FORMAT_BC2_SRGB_BLOCK:
+            case VK_FORMAT_BC3_UNORM_BLOCK:
+            case VK_FORMAT_BC3_SRGB_BLOCK:
+            case VK_FORMAT_BC4_UNORM_BLOCK:
+            case VK_FORMAT_BC4_SNORM_BLOCK:
+            case VK_FORMAT_BC5_UNORM_BLOCK:
+            case VK_FORMAT_BC5_SNORM_BLOCK:
+            case VK_FORMAT_BC6H_UFLOAT_BLOCK:
+            case VK_FORMAT_BC6H_SFLOAT_BLOCK:
+            case VK_FORMAT_BC7_UNORM_BLOCK:
+            case VK_FORMAT_BC7_SRGB_BLOCK:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    EVK_MAYBE_UNUSED static bool IsBC1(VkFormat format) {
+        return format == VK_FORMAT_BC1_RGB_UNORM_BLOCK || format == VK_FORMAT_BC1_RGB_SRGB_BLOCK || format == VK_FORMAT_BC1_RGBA_UNORM_BLOCK || format == VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+    }
+
+    EVK_MAYBE_UNUSED static bool IsBC4(VkFormat format) {
+        return format == VK_FORMAT_BC4_UNORM_BLOCK || format == VK_FORMAT_BC4_SNORM_BLOCK;
+    }
+
+    EVK_MAYBE_UNUSED static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t mips, VkFormat format, bool isNeedEnd) {
         EVK_TRACY_ZONE;
 
-        if (!copyCmd->IsBegin())
+        if (!copyCmd->IsBegin()) {
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        }
 
-        VkBufferImageCopy region = {};
-        region.bufferOffset      = 0;
-        region.bufferRowLength   = 0;
-        region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel = 0;
-        region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = 1;
-        region.imageOffset = {0, 0, 0};
-        region.imageExtent = {
-                width,
-                height,
-                1
-        };
+        if (Tools::IsBlockCompressedFormat(format)) {
+            const size_t bytesPerBlock = (IsBC1(format) || IsBC4(format)) ? 8 : 16;
 
-        vkCmdCopyBufferToImage(*copyCmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+            uint64_t offset = 0;
+
+            uint32_t mipWidth  = width;
+            uint32_t mipHeight = height;
+
+            for (uint32_t mip = 0; mip < mips; ++mip) {
+                const uint32_t blockCols = std::max(1u, (mipWidth  + 3) / 4);
+                const uint32_t blockRows = std::max(1u, (mipHeight + 3) / 4);
+                uint64_t mipSize = uint64_t(blockCols) * blockRows * bytesPerBlock;
+
+                VkBufferImageCopy copyRegion{};
+                copyRegion.bufferOffset = offset;
+                copyRegion.bufferRowLength = 0;   // tightly packed
+                copyRegion.bufferImageHeight = 0; // tightly packed
+
+                copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                copyRegion.imageSubresource.mipLevel = mip;
+                copyRegion.imageSubresource.baseArrayLayer = 0;
+                copyRegion.imageSubresource.layerCount = 1;
+
+                copyRegion.imageExtent.width  = mipWidth;
+                copyRegion.imageExtent.height = mipHeight;
+                copyRegion.imageExtent.depth  = 1;
+
+                vkCmdCopyBufferToImage(*copyCmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion );
+
+                offset += mipSize;
+
+                mipWidth  = std::max(1u, mipWidth  / 2);
+                mipHeight = std::max(1u, mipHeight / 2);
+            }
+
+            // Barrier для всех mip’ов после загрузки
+            VkImageSubresourceRange subresourceRange{};
+            subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            subresourceRange.baseMipLevel = 0;
+            subresourceRange.levelCount   = mips;
+            subresourceRange.baseArrayLayer = 0;
+            subresourceRange.layerCount     = 1;
+
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier.image = image;
+            barrier.subresourceRange = subresourceRange;
+
+            vkCmdPipelineBarrier(
+                *copyCmd,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+            );
+        }
+        else {
+            VkBufferImageCopy region = {};
+            region.bufferOffset = 0;
+            region.bufferRowLength = 0;
+            region.bufferImageHeight = 0;
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = 0;
+            region.imageSubresource.baseArrayLayer = 0;
+            region.imageSubresource.layerCount = 1;
+            region.imageOffset = {0, 0, 0};
+            region.imageExtent = { width, height, 1 };
+            vkCmdCopyBufferToImage(*copyCmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        }
 
         if (isNeedEnd) {
             copyCmd->End();

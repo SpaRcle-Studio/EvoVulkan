@@ -40,11 +40,13 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD bool IsReady() const override;
         EVK_NODISCARD bool IsExtensionSupported(const std::string_view& extension) const;
         EVK_NODISCARD bool IsExtensionEnabled(const std::string_view& extension) const;
+        EVK_NODISCARD bool IsValidationEnabled() const { return m_validationEnabled; }
 
     private:
         std::set<std::string> m_supportedExtensions;
         std::set<std::string> m_enabledExtensions;
         VkInstance m_instance;
+        bool m_validationEnabled = false;
         uint32_t m_version;
 
     };

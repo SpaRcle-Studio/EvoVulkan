@@ -8,7 +8,7 @@
 namespace EvoVulkan::Types {
     DescriptorPool::~DescriptorPool()  {
         if (m_pool != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(m_device, m_pool, nullptr);
+            vkDestroyDescriptorPool(*m_pDevice, m_pool, nullptr);
             m_pool = VK_NULL_HANDLE;
         }
     }
@@ -28,11 +28,11 @@ namespace EvoVulkan::Types {
         return false;
     }
 
-    DescriptorPool *DescriptorPool::Create(VkDevice device, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& sizes) {
+    DescriptorPool *DescriptorPool::Create(const Device* pDevice, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& sizes) {
         auto&& pool = new DescriptorPool(maxSets);
 
-        pool->m_layout       = VK_NULL_HANDLE;
-        pool->m_device       = device;
+        pool->m_layout = VK_NULL_HANDLE;
+        pool->m_pDevice = pDevice;
         pool->m_requestTypes = {};
 
         if (pool->Initialize(sizes)) {
@@ -45,7 +45,7 @@ namespace EvoVulkan::Types {
         return nullptr;
     }
 
-    DescriptorPool* DescriptorPool::Create(VkDevice device, uint32_t maxSets, VkDescriptorSetLayout layout, const RequestTypes& requestTypes) {
+    DescriptorPool* DescriptorPool::Create(const Device* pDevice, uint32_t maxSets, VkDescriptorSetLayout layout, const RequestTypes& requestTypes) {
         if (requestTypes.empty()) {
             VK_ERROR("DescriptorPool::Create() : request types is empty!");
             return nullptr;
@@ -54,7 +54,7 @@ namespace EvoVulkan::Types {
         auto &&pool = new DescriptorPool(maxSets);
 
         pool->m_layout = layout;
-        pool->m_device = device;
+        pool->m_pDevice = pDevice;
         pool->m_requestTypes = requestTypes;
 
         std::vector<VkDescriptorPoolSize> sizes = {};
@@ -93,7 +93,7 @@ namespace EvoVulkan::Types {
         /// этот флаг позволяет осовбождать сеты дескрипторов по отдельности
         descriptorPoolCI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
-        VkResult vkRes = vkCreateDescriptorPool(m_device, &descriptorPoolCI, nullptr, &m_pool);
+        VkResult vkRes = vkCreateDescriptorPool(*m_pDevice, &descriptorPoolCI, nullptr, &m_pool);
         if (vkRes != VK_SUCCESS) {
             VK_ERROR("DescriptorPool::Initialize() : failed to create vulkan descriptor pool!");
             return false;
@@ -107,7 +107,9 @@ namespace EvoVulkan::Types {
             logDescriptorSizes += "\n\t* " + Tools::Convert::DescriptorTypeToString(size.type) + ": " + std::to_string(size.descriptorCount);
         }
 
-        VK_LOG("DescriptorPool::Initialize() : descriptor pool " + std::string(buf) + " created successfully! Sizes:" + logDescriptorSizes);
+        if (m_pDevice->IsValidationEnabled()) {
+            VK_LOG("DescriptorPool::Initialize() : descriptor pool " + std::string(buf) + " created successfully! Sizes:" + logDescriptorSizes);
+        }
 
         return true;
     }
@@ -129,7 +131,7 @@ namespace EvoVulkan::Types {
             VK_ASSERT2(false, "usage count are zero!");
         }
 
-        return vkFreeDescriptorSets(m_device, m_pool, 1, &set);
+        return vkFreeDescriptorSets(*m_pDevice, m_pool, 1, &set);
     }
 
     std::pair<VkResult, DescriptorSet> DescriptorPool::Allocate() {
@@ -142,7 +144,7 @@ namespace EvoVulkan::Types {
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
         auto&& descriptorSetAllocInfo = Tools::Initializers::DescriptorSetAllocateInfo(m_pool, &m_layout, 1);
-        auto&& result = vkAllocateDescriptorSets(m_device, &descriptorSetAllocInfo, &descriptorSet);
+        auto&& result = vkAllocateDescriptorSets(*m_pDevice, &descriptorSetAllocInfo, &descriptorSet);
 
         switch (result) {
             case VK_SUCCESS: {

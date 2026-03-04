@@ -105,6 +105,8 @@ namespace EvoVulkan::Types {
             if (validationLayersEnabled && gpuAssistEnabled) {
                 VK_LOG("Instance::Create() : GPU Assisted Validation is enabled.");
 
+                pInstance->m_validationEnabled = true;
+
                 validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
                 validationFeatures.pNext = &debugCreateInfo;
                 validationFeatures.enabledValidationFeatureCount = uint32_t(std::size(enables));

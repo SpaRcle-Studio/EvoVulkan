@@ -41,8 +41,8 @@ namespace EvoVulkan::Types {
         operator VkDescriptorPool() const { return m_pool; }
 
     public:
-        static DescriptorPool* Create(VkDevice device, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& sizes);
-        static DescriptorPool* Create(VkDevice device, uint32_t maxSets, VkDescriptorSetLayout layout, const RequestTypes& requestTypes);
+        static DescriptorPool* Create(const Device* pDevice, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& sizes);
+        static DescriptorPool* Create(const Device* pDevice, uint32_t maxSets, VkDescriptorSetLayout layout, const RequestTypes& requestTypes);
         static bool Contains(const RequestTypes& types, const VkDescriptorType& type);
 
     public:
@@ -65,7 +65,7 @@ namespace EvoVulkan::Types {
         /// for check equal alloc request (reference)
         VkDescriptorSetLayout      m_layout         = VK_NULL_HANDLE;
 
-        VkDevice                   m_device         = VK_NULL_HANDLE;
+        const Device*              m_pDevice        = nullptr;
         VkDescriptorPool           m_pool           = VK_NULL_HANDLE;
 
         uint32_t                   m_used           = 0;

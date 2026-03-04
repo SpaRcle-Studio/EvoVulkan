@@ -39,6 +39,7 @@ namespace EvoVulkan::Types {
         VkFormat format = VK_FORMAT_UNDEFINED;
         int32_t width = 0;
         int32_t height = 0;
+        uint64_t imageSize = 0;
         uint32_t mipLevels = 0;
         VkFilter filter = VK_FILTER_MAX_ENUM;
         VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;

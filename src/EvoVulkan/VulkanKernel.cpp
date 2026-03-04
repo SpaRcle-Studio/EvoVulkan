@@ -707,6 +707,8 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::SubmitFrame() {
 }
 
 bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
+    EVK_TRACY_ZONE;
+
     /// Reset the flag when recreating swapchain
   //  m_imageAcquiredThisFrame = false;
     VK_LOG("VulkanKernel::ReCreate() : re-creating vulkan kernel...");
@@ -721,6 +723,8 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
         if (!m_autoSwapChainResize) {
             /// ждем пока управляющая сторона передаст размеры окна, иначе будет рассинхрон
             while (true) {
+                EVK_TRACY_ZONE_N("Wait for window resize");
+
                 std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
                 PollWindowEvents();

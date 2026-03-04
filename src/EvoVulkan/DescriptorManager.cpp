@@ -121,7 +121,7 @@ namespace EvoVulkan::Core {
     Types::DescriptorPool *DescriptorManager::AllocateDescriptorPool(VkDescriptorSetLayout layout, const RequestTypes &requestTypes) {
         EVK_TRACY_ZONE;
 
-        auto&& pool = Types::DescriptorPool::Create(*m_device, 1000, layout, requestTypes);
+        auto&& pool = Types::DescriptorPool::Create(m_device, 1000, layout, requestTypes);
 
         if (pool) {
             m_pools.insert(pool);

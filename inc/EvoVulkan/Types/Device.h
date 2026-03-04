@@ -64,6 +64,7 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD bool IsExtensionSupported(const std::string& extension) const;
         EVK_NODISCARD bool IsSupportLinearBlitting(const VkFormat& imageFormat) const;
         EVK_NODISCARD bool IsShaderViewportIndexLayerSupported() const noexcept { return m_shaderViewportIndexLayerSupported; }
+        EVK_NODISCARD bool IsValidationEnabled() const noexcept { return m_instance->IsValidationEnabled(); }
         EVK_NODISCARD VkCommandPool CreateCommandPool(VkCommandPoolCreateFlags flagBits) const;
 
         uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;

@@ -204,13 +204,18 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(TextureLoadInfo info,
 {
     EVK_TRACY_ZONE;
 
+    if (info.imageSize == 0) {
+        VK_HALT("Texture::Load() : image size is 0!");
+        return nullptr;
+    }
+
     if (info.width == 0 || info.height == 0) {
-        VK_ERROR("Texture::Load() : invalid texture! \n\tWidth: " + std::to_string(info.width) + "\n\tHeight: " + std::to_string(info.height));
+        VK_HALT("Texture::Load() : invalid texture! \n\tWidth: " + std::to_string(info.width) + "\n\tHeight: " + std::to_string(info.height));
         return nullptr;
     }
 
     if (!pixels) {
-        VK_ERROR("Texture::Load() : pixels is nullptr!");
+        VK_HALT("Texture::Load() : pixels is nullptr!");
         return nullptr;
     }
 
@@ -226,19 +231,19 @@ EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Load(TextureLoadInfo info,
 
     const int32_t maxMip = static_cast<int32_t>(std::floor(std::log2(std::max(std::max(info.width, info.height), 1)))) + 1;
     if (info.mipLevels > maxMip) {
-        VK_WARN("Texture::Load() : requested mip levels (" + std::to_string(info.mipLevels) + ") is greater than maximum possible (" + std::to_string(maxMip) + "). Setting mip levels to " + std::to_string(maxMip) + ".");
-        info.mipLevels = maxMip;
+        VK_ERROR("Texture::Load() : requested mip levels (" + std::to_string(info.mipLevels) + ") is greater than maximum possible (" + std::to_string(maxMip) + "). Setting mip levels to " + std::to_string(maxMip) + ".");
+        return nullptr;
     }
 
     auto&& pTexture = new Texture();
     {
         pTexture->m_canBeDestroyed    = true;
         pTexture->m_cubeMap           = false;
-        pTexture->m_loadInfo         = info;
+        pTexture->m_loadInfo          = info;
     }
 
-    info.pStagingBuffer->Reserve(info.width * info.height * 4);
-    info.pStagingBuffer->CopyToDevice((void*)pixels, info.width * info.height * 4, true);
+    info.pStagingBuffer->Reserve(info.imageSize);
+    info.pStagingBuffer->CopyToDevice((void*)pixels, info.imageSize, true);
     if (!pTexture->Create(info.pStagingBuffer)) {
         VK_ERROR("Texture::Load() : failed to create!");
         return nullptr;
@@ -270,15 +275,19 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
 
     m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copyCmd);
 
-    Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_loadInfo.width, m_loadInfo.height, false);
+    Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_loadInfo.width, m_loadInfo.height, m_loadInfo.mipLevels, m_image.GetFormat(), false);
 
-    if (m_loadInfo.mipLevels == 1) {
-        m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, copyCmd);
+    if (m_loadInfo.mipLevels != 1) {
+        if (Tools::IsBlockCompressedFormat(m_image.GetFormat())) {
+            /// do nothing
+        }
+        else if (!GenerateMipmaps(this, copyCmd)) {
+            VK_ERROR("Texture::Create() : failed to generate mip maps!");
+            return false;
+        }
     }
-    else if (!GenerateMipmaps(this, copyCmd)) {
-        VK_ERROR("Texture::Create() : failed to generate mip maps!");
-        return false;
-    }
+
+    m_image.SetLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     //!=================================================================================================================
 
@@ -397,8 +406,6 @@ bool EvoVulkan::Types::Texture::GenerateMipmaps(
         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         subresourceRange
     );
-
-    texture->m_image.SetLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     return singleBuffer->End();
 }
