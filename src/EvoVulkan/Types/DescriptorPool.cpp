@@ -93,21 +93,24 @@ namespace EvoVulkan::Types {
         /// этот флаг позволяет осовбождать сеты дескрипторов по отдельности
         descriptorPoolCI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
-        VkResult vkRes = vkCreateDescriptorPool(*m_pDevice, &descriptorPoolCI, nullptr, &m_pool);
-        if (vkRes != VK_SUCCESS) {
-            VK_ERROR("DescriptorPool::Initialize() : failed to create vulkan descriptor pool!");
-            return false;
-        }
-
-        char buf[64];
-        snprintf(buf, sizeof(buf), "0x%016" PRIxPTR, reinterpret_cast<uintptr_t>(m_pool));
-        std::string logDescriptorSizes;
-        logDescriptorSizes.reserve(sizes.size() * 32);
-        for (auto&& size : sizes) {
-            logDescriptorSizes += "\n\t* " + Tools::Convert::DescriptorTypeToString(size.type) + ": " + std::to_string(size.descriptorCount);
+        {
+            EVK_TRACY_ZONE_N("vkCreateDescriptorPool");
+            VkResult vkRes = vkCreateDescriptorPool(*m_pDevice, &descriptorPoolCI, nullptr, &m_pool);
+            if (vkRes != VK_SUCCESS) {
+                VK_ERROR("DescriptorPool::Initialize() : failed to create vulkan descriptor pool!");
+                return false;
+            }
         }
 
         if (m_pDevice->IsValidationEnabled()) {
+            char buf[64];
+            snprintf(buf, sizeof(buf), "0x%016" PRIxPTR, reinterpret_cast<uintptr_t>(m_pool));
+            std::string logDescriptorSizes;
+            logDescriptorSizes.reserve(sizes.size() * 32);
+            for (auto&& size : sizes) {
+                logDescriptorSizes += "\n\t* " + Tools::Convert::DescriptorTypeToString(size.type) + ": " + std::to_string(size.descriptorCount);
+            }
+
             VK_LOG("DescriptorPool::Initialize() : descriptor pool " + std::string(buf) + " created successfully! Sizes:" + logDescriptorSizes);
         }
 
