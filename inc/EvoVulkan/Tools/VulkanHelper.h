@@ -171,35 +171,57 @@ namespace EvoVulkan::Tools {
             func(instance, debugMessenger, pAllocator);
     }
 
-    EVK_MAYBE_UNUSED static VkPresentModeKHR GetPresentMode(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, bool vsync) {
+    EVK_MAYBE_UNUSED static VkPresentModeKHR GetPresentMode(
+            const VkPhysicalDevice& physicalDevice,
+            const VkSurfaceKHR& surface,
+            bool vsync)
+    {
         EVK_TRACY_ZONE;
         uint32_t presentModeCount = 0;
-        if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL) != VK_SUCCESS) {
+        if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr) != VK_SUCCESS) {
             VK_ERROR("VulkanTools::GetPresentMode() : failed to get physical device surface present modes! (count)");
             return VK_PRESENT_MODE_MAX_ENUM_KHR;
         }
 
         std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-        if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, &presentModes[0]) != VK_SUCCESS) {
+        if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()) != VK_SUCCESS) {
             VK_ERROR("VulkanTools::GetPresentMode() : failed to get physical device surface present modes! (data)");
             return VK_PRESENT_MODE_MAX_ENUM_KHR;
         }
 
-        // Try to use mailbox mode
-        // Low latency and non-tearing
-        VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-
-        // If v-sync is not requested, try to find a mailbox mode
-        // It's the lowest latency non-tearing present mode available
-        if (!vsync)
-            for (size_t i = 0; i < presentModeCount; i++) {
-                if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
-                    swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-                    break;
-                }
-                if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)
-                    swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        std::string presentModesStr;
+        for (uint8_t i = 0; i < presentModeCount; ++i) {
+            presentModesStr += EvoVulkan::Tools::Convert::PresentModeToString(presentModes[i]);
+            if (i < presentModeCount - 1) {
+                presentModesStr += ", ";
             }
+        }
+
+        VK_LOG("VulkanTools::GetPresentMode() : available present modes: " + presentModesStr);
+
+        VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR; // fallback
+
+        // Приоритет: MAILBOX > FIFO_RELAXED > FIFO
+        static const std::vector<VkPresentModeKHR> vsyncPriority = {
+                VK_PRESENT_MODE_MAILBOX_KHR,
+                VK_PRESENT_MODE_FIFO_RELAXED_KHR,
+                VK_PRESENT_MODE_FIFO_KHR
+        };
+
+        // Приоритет: IMMEDIATE > MAILBOX > FIFO_RELAXED > FIFO
+        static const std::vector<VkPresentModeKHR> noVsyncPriority = {
+                VK_PRESENT_MODE_IMMEDIATE_KHR,
+                VK_PRESENT_MODE_MAILBOX_KHR,
+                VK_PRESENT_MODE_FIFO_RELAXED_KHR,
+                VK_PRESENT_MODE_FIFO_KHR
+        };
+
+        for (auto modeWanted : (vsync ? vsyncPriority : noVsyncPriority)) {
+            if (std::find(presentModes.begin(), presentModes.end(), modeWanted) != presentModes.end()) {
+                swapchainPresentMode = modeWanted;
+                break;
+            }
+        }
 
         return swapchainPresentMode;
     }

@@ -1098,5 +1098,10 @@ bool EvoVulkan::Core::VulkanKernel::DestroyDCBuffers() {
 }
 
 uint8_t EvoVulkan::Core::VulkanKernel::GetMaxFramesInFlight() const noexcept {
-    return 3;
+    constexpr int defaultMaxFramesInFlight = 3;
+    if (!m_swapchain) {
+        return defaultMaxFramesInFlight;  ///< Default value when swapchain is not created yet
+    }
+    const int swapchainImageCount = static_cast<int>(m_swapchain->GetCountImages());
+    return std::min(defaultMaxFramesInFlight, swapchainImageCount);
 }

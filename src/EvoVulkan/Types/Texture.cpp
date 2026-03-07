@@ -287,7 +287,12 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
         }
     }
 
-    m_image.SetLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    if (m_loadInfo.mipLevels == 1 && !Tools::IsBlockCompressedFormat(m_image.GetFormat())) {
+        m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, copyCmd);
+    }
+    else {
+        m_image.SetLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
 
     //!=================================================================================================================
 
