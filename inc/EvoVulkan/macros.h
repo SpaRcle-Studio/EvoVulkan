@@ -105,6 +105,7 @@
 #include <future>
 #include <cinttypes>
 #include <sstream>
+#include <iomanip>
 
 #ifdef near
     #undef near

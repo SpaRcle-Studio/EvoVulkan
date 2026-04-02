@@ -71,6 +71,8 @@ namespace EvoVulkan::Types {
 
         void WaitQueuesIdle() const;
         void WaitGraphicsQueueIdle() const;
+        void OnDeviceLost() const;
+        void SimulateDeviceLost() const;
 
     private:
         bool Initialize(bool enableSampleShading, bool multisampling, uint32_t sampleCount);
@@ -102,6 +104,7 @@ namespace EvoVulkan::Types {
         bool m_multisampling           = false;
         bool m_rayTracingSupported     = false;
         bool m_shaderViewportIndexLayerSupported = false;
+        bool m_deviceFaultExtensionSupported = false;
         bool m_dynamicRenderingSupport = false;
 
     };

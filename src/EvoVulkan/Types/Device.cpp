@@ -101,6 +101,15 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
+        const bool deviceFaultExtensionSupported = Tools::IsExtensionSupported(physicalDevice, VK_EXT_DEVICE_FAULT_EXTENSION_NAME);
+        if (deviceFaultExtensionSupported) {
+            info.extensions.emplace_back(VK_EXT_DEVICE_FAULT_EXTENSION_NAME);
+            VK_LOG("Device::Create() : device fault extension is supported and enabled!");
+        }
+        else {
+            VK_LOG("Device::Create() : device fault extension is not supported!");
+        }
+
         bool shaderViewportIndexLayerSupported = true;
 
         /// Enabled by default in Vulkan 1.2+
@@ -217,6 +226,7 @@ namespace EvoVulkan::Types {
 
         pDevice->m_dynamicRenderingSupport = info.dynamicRendering;
         pDevice->m_shaderViewportIndexLayerSupported = shaderViewportIndexLayerSupported;
+        pDevice->m_deviceFaultExtensionSupported = deviceFaultExtensionSupported;
         pDevice->m_deviceFeatures2 = deviceFeatures2;
         pDevice->CheckRayTracing(info.rayTracing);
 
@@ -443,5 +453,187 @@ namespace EvoVulkan::Types {
         if (auto&& pQueue = m_familyQueues->GetPresentQueue()) {
             vkQueueWaitIdle(pQueue);
         }
+    }
+
+    void Device::OnDeviceLost() const {
+        VK_ERROR("Device::OnDeviceLost() : device is lost!");
+
+        if (!m_deviceFaultExtensionSupported) {
+            VK_LOG("Device::OnDeviceLost() : device fault extension is not supported, cannot get device fault info!");
+            return;
+        }
+
+        auto pVkGetDeviceFaultInfoEXT = (PFN_vkGetDeviceFaultInfoEXT)vkGetDeviceProcAddr(m_logicalDevice, "vkGetDeviceFaultInfoEXT");
+        if (!pVkGetDeviceFaultInfoEXT) {
+            VK_ERROR("Device::OnDeviceLost() : failed to get vkGetDeviceFaultInfoEXT function pointer!");
+            return;
+        }
+
+        VkDeviceFaultCountsEXT faultCounts = {};
+        faultCounts.sType = VK_STRUCTURE_TYPE_DEVICE_FAULT_COUNTS_EXT;
+        faultCounts.pNext = nullptr;
+
+        VkResult result = pVkGetDeviceFaultInfoEXT(m_logicalDevice, &faultCounts, nullptr);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Device::OnDeviceLost() : failed to get device fault counts! Reason: " + Tools::Convert::result_to_description(result));
+            return;
+        }
+
+        std::vector<VkDeviceFaultAddressInfoEXT> addressInfos(faultCounts.addressInfoCount);
+        std::vector<VkDeviceFaultVendorInfoEXT> vendorInfos(faultCounts.vendorInfoCount);
+
+        VkDeviceFaultInfoEXT faultInfo = {};
+        faultInfo.sType = VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT;
+        faultInfo.pNext = nullptr;
+        faultInfo.pAddressInfos = addressInfos.empty() ? nullptr : addressInfos.data();
+        faultInfo.pVendorInfos = vendorInfos.empty() ? nullptr : vendorInfos.data();
+
+        result = pVkGetDeviceFaultInfoEXT(m_logicalDevice, &faultCounts, &faultInfo);
+        if (result != VK_SUCCESS) {
+            VK_ERROR("Device::OnDeviceLost() : failed to get device fault info! Reason: " + Tools::Convert::result_to_description(result));
+            return;
+        }
+
+        std::string faultInfoMsg;
+        faultInfoMsg.reserve(2048);
+
+        faultInfoMsg += "Device::OnDeviceLost() : device fault info:";
+        faultInfoMsg += "\n\tDescription: " + std::string(faultInfo.description, strnlen(faultInfo.description, VK_MAX_DESCRIPTION_SIZE));
+        faultInfoMsg += "\n\tFault counts:";
+        faultInfoMsg += "\n\t\tAddress info count: " + std::to_string(faultCounts.addressInfoCount);
+        faultInfoMsg += "\n\t\tVendor info count: " + std::to_string(faultCounts.vendorInfoCount);
+
+        faultInfoMsg += "\n\tAddress infos:";
+        for (const auto& addressInfo : addressInfos) {
+            faultInfoMsg += "\n\t\tAddress type: " + Tools::Convert::address_type_to_string(addressInfo.addressType);
+            faultInfoMsg += "\n\t\tReported address: " + Tools::Convert::address_to_string(addressInfo.reportedAddress);
+            faultInfoMsg += "\n\t\tAddress precision: " + std::to_string(addressInfo.addressPrecision);
+        }
+
+        faultInfoMsg += "\n\tVendor infos:";
+        for (const auto& vendorInfo : vendorInfos) {
+            faultInfoMsg += "\n\t\tDescription: " + std::string(vendorInfo.description, strnlen(vendorInfo.description, VK_MAX_DESCRIPTION_SIZE));
+            faultInfoMsg += "\n\t\tVendor fault code: " + std::to_string(vendorInfo.vendorFaultCode) + " | " + Tools::Convert::address_to_string(vendorInfo.vendorFaultCode);
+            faultInfoMsg += "\n\t\tVendor fault data: " + std::to_string(vendorInfo.vendorFaultData) + " | " + Tools::Convert::address_to_string(vendorInfo.vendorFaultData);
+        }
+
+        VK_ERROR(faultInfoMsg);
+    }
+
+    void Device::SimulateDeviceLost() const {
+        VK_ERROR("Device::SimulateDeviceLost() : imitating device lost!");
+
+        WaitGraphicsQueueIdle();
+        WaitQueuesIdle();
+
+        /**
+            #version 450
+            void main() { while(true) {} }
+        */
+        const uint32_t crashShaderSPV[] = {
+            0x07230203, 0x00010000, 0x000d000a, 0x0000000d, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,
+            0x00000001, 0x4c534c47, 0x6474732e, 0x3035342e, 0x00000000, 0x0003000e, 0x00000000, 0x00000001,
+            0x0005000f, 0x00000005, 0x00000004, 0x6e69616d, 0x00000000, 0x00060010, 0x00000004, 0x00000011,
+            0x00000001, 0x00000001, 0x00000001, 0x00030003, 0x00000002, 0x000001c2, 0x000a0004, 0x475f4c47,
+            0x4c474f4f, 0x70635f45, 0x74735f70, 0x5f656c79, 0x656e696c, 0x7269645f, 0x69746365, 0x00006576,
+            0x00080004, 0x475f4c47, 0x4c474f4f, 0x6e695f45, 0x64756c63, 0x69645f65, 0x74636572, 0x00657669,
+            0x00040005, 0x00000004, 0x6e69616d, 0x00000000, 0x00020013, 0x00000002, 0x00030021, 0x00000003,
+            0x00000002, 0x00020014, 0x0000000b, 0x00030029, 0x0000000b, 0x0000000c, 0x00050036, 0x00000002,
+            0x00000004, 0x00000000, 0x00000003, 0x000200f8, 0x00000005, 0x000200f9, 0x00000006, 0x000200f8,
+            0x00000006, 0x000400f6, 0x00000008, 0x00000009, 0x00000000, 0x000200f9, 0x0000000a, 0x000200f8,
+            0x0000000a, 0x000400fa, 0x0000000c, 0x00000007, 0x00000008, 0x000200f8, 0x00000007, 0x000200f9,
+            0x00000009, 0x000200f8, 0x00000009, 0x000200f9, 0x00000006, 0x000200f8, 0x00000008, 0x000100fd,
+            0x00010038,
+        };
+
+        VkCommandPool cmdPool;
+        {
+            VkCommandPoolCreateInfo poolInfo{};
+            poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+            poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+            poolInfo.queueFamilyIndex = GetQueues()->GetGraphicsIndex();
+            vkCreateCommandPool(m_logicalDevice, &poolInfo, nullptr, &cmdPool);
+        }
+
+        VkCommandBuffer cmd;
+        {
+            VkCommandBufferAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            allocInfo.commandPool = cmdPool;
+            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocInfo.commandBufferCount = 1;
+
+            vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, &cmd);
+        }
+
+        VkShaderModule shaderModule;
+        {
+            VkShaderModuleCreateInfo modInfo{};
+            modInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            modInfo.codeSize = sizeof(crashShaderSPV);
+            modInfo.pCode = crashShaderSPV;
+            vkCreateShaderModule(m_logicalDevice, &modInfo, nullptr, &shaderModule);
+        }
+
+        VkPipelineLayout pipelineLayout;
+        {
+            VkPipelineLayoutCreateInfo layoutInfo{};
+            layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+            vkCreatePipelineLayout(m_logicalDevice, &layoutInfo, nullptr, &pipelineLayout);
+        }
+
+        VkPipeline pipeline;
+        {
+            VkComputePipelineCreateInfo pipelineInfo{};
+            pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+            pipelineInfo.layout = pipelineLayout;
+            VkPipelineShaderStageCreateInfo stage{};
+            stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+            stage.module = shaderModule;
+            stage.pName = "main";
+            pipelineInfo.stage = stage;
+            vkCreateComputePipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline);
+        }
+
+        {
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            vkBeginCommandBuffer(cmd, &beginInfo);
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+            // 🔥 огромный dispatch, бесконечный цикл в shader
+            vkCmdDispatch(cmd, 1024, 1024, 1);
+            vkEndCommandBuffer(cmd);
+        }
+
+        VkFence fence;
+        {
+            VkFenceCreateInfo fenceInfo{};
+            fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &fence);
+
+            VkSubmitInfo submit{};
+            submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit.commandBufferCount = 1;
+            submit.pCommandBuffers = &cmd;
+
+            vkQueueSubmit(GetQueues()->GetGraphicsQueue(), 1, &submit, fence);
+
+            VkResult result = vkWaitForFences(m_logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX);
+            if (result == VK_ERROR_DEVICE_LOST) {
+                VK_ERROR("Device::SimulateDeviceLost() : device lost detected as expected!");
+                OnDeviceLost();
+            }
+            else {
+                VK_ERROR("Device::SimulateDeviceLost() : expected device lost, but got: " + Tools::Convert::result_to_description(result));
+            }
+
+            vkDestroyFence(m_logicalDevice, fence, nullptr);
+        }
+
+        vkDestroyPipeline(m_logicalDevice, pipeline, nullptr);
+        vkDestroyPipelineLayout(m_logicalDevice, pipelineLayout, nullptr);
+        vkDestroyShaderModule(m_logicalDevice, shaderModule, nullptr);
+        vkDestroyCommandPool(m_logicalDevice, cmdPool, nullptr);
     }
 }

@@ -241,6 +241,29 @@ namespace EvoVulkan::Tools::Convert {
         return std::to_string(gpu_type);
     }
 
+    EVK_MAYBE_UNUSED static std::string address_to_string(const uint64_t address) {
+        std::stringstream ss;
+        ss << "0x"
+           << std::hex << std::uppercase
+           << std::setw(16) << std::setfill('0')
+           << address;
+        return ss.str();
+    }
+
+    EVK_MAYBE_UNUSED static std::string address_type_to_string(VkDeviceFaultAddressTypeEXT type) {
+        switch (type) {
+            case VK_DEVICE_FAULT_ADDRESS_TYPE_NONE_EXT: return "NONE";
+            case VK_DEVICE_FAULT_ADDRESS_TYPE_READ_INVALID_EXT: return "READ_INVALID";
+            case VK_DEVICE_FAULT_ADDRESS_TYPE_WRITE_INVALID_EXT: return "WRITE_INVALID";
+            case VK_DEVICE_FAULT_ADDRESS_TYPE_EXECUTE_INVALID_EXT: return "EXECUTE_INVALID";
+            case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_UNKNOWN_EXT: return "INSTRUCTION_POINTER_UNKNOWN";
+            case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_INVALID_EXT: return "INSTRUCTION_POINTER_INVALID";
+            case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT: return "INSTRUCTION_POINTER_FAULT";
+            case VK_DEVICE_FAULT_ADDRESS_TYPE_MAX_ENUM_EXT: return "MAX_ENUM";
+            default: return "UNKNOWN";
+        }
+    }
+
     EVK_MAYBE_UNUSED static std::string color_space_to_string(const VkColorSpaceKHR color_space) {
         switch (color_space) {
             case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
