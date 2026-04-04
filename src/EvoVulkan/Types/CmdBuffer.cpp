@@ -130,7 +130,12 @@ namespace EvoVulkan::Types {
             {
                 EVK_TRACY_ZONE_N("vkQueueSubmit");
                 auto result = vkQueueSubmit(m_device->GetQueues()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-                if (result != VK_SUCCESS) {
+                if (result == VK_ERROR_DEVICE_LOST) {
+                    VK_ERROR("CmdBuffer::End() : device lost during queue submit!");
+                    m_device->OnDeviceLost();
+                    return false;
+                }
+                else if (result != VK_SUCCESS) {
                     VK_HALT("CmdBuffer::End() : failed to queue submit!");
                     return false;
                 }
