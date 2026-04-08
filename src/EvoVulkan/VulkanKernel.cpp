@@ -607,6 +607,9 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
     }
     else if (result != VK_SUCCESS) {
         VK_ERROR("VulkanKernel::PrepareFrame() : failed to acquire next image! Reason: " + Tools::Convert::result_to_description(result));
+        if (result == VK_ERROR_DEVICE_LOST) {
+            return FrameResult::DeviceLost;
+        }
         return FrameResult::Error;
     }
 

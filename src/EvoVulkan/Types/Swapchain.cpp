@@ -207,8 +207,12 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
 
     {
         EVK_TRACY_ZONE_N("vkCreateSwapchainKHR");
-        if (vkCreateSwapchainKHR(*m_device, &swapchainCI, nullptr, &m_swapchain) != VK_SUCCESS) {
-            VK_ERROR("Swapchain::ReSetup() : failed to create swapchain!");
+        if (VkResult result = vkCreateSwapchainKHR(*m_device, &swapchainCI, nullptr, &m_swapchain); result != VK_SUCCESS) {
+            VK_ERROR("Swapchain::ReSetup() : failed to create swapchain!\n\tResult: " +
+                Tools::Convert::result_to_string(result) + "\n\tReason: " + Tools::Convert::result_to_description(result));
+            if (result == VK_ERROR_DEVICE_LOST) {
+                m_device->OnDeviceLost();
+            }
             return false;
         }
     }
