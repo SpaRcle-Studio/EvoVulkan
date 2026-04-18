@@ -258,22 +258,22 @@ namespace EvoVulkan::Tools {
 
         switch (messageSeverity) {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
-                VK_LOG("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+                VK_LOG("DebugReportCallback(SEVERITY_VERBOSE) : " + std::string(pCallbackData->pMessage));
                 break;
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: {
-                VK_INFO("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+                VK_INFO("DebugReportCallback(SEVERITY_INFO) : " + std::string(pCallbackData->pMessage));
                 break;
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
                 if (std::string_view(pCallbackData->pMessage).find(debugExtensionWarn) != std::string::npos) {
-                    VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
+                    VK_LOG("DebugReportCallback(SEVERITY_WARNING) : [MUTED] " + std::string(pCallbackData->pMessage));
                 }
                 else if (std::string_view(pCallbackData->pMessage).find(debugSurfReturn) != std::string::npos) {
-                    VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
+                    VK_LOG("DebugReportCallback(SEVERITY_WARNING) : [MUTED] " + std::string(pCallbackData->pMessage));
                 }
                 else if (std::string_view(pCallbackData->pMessage).find(commandPoolResetWarn) != std::string::npos) {
-                    VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
+                    VK_LOG("DebugReportCallback(SEVERITY_WARNING) : [MUTED] " + std::string(pCallbackData->pMessage));
                 }
                 else if (VkFunctionsHolder::Instance().ValidationMuteSmallMemoryAllocations) {
                     static const std::string_view debugMemoryAllocWarn = "BestPractices-vkAllocateMemory-small-allocation";
@@ -282,23 +282,23 @@ namespace EvoVulkan::Tools {
                     if (std::string_view(pCallbackData->pMessage).find(debugMemoryAllocWarn) != std::string::npos &&
                         std::string_view(pCallbackData->pMessage).find(debugMemoryBindWarn) != std::string::npos
                     ) {
-                        VK_WARN("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+                        VK_WARN("DebugReportCallback(SEVERITY_WARNING) : " + std::string(pCallbackData->pMessage));
                     }
                 }
                 else {
-                    VK_WARN("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+                    VK_WARN("DebugReportCallback(SEVERITY_WARNING) : " + std::string(pCallbackData->pMessage));
                 }
                 break;
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
                 if (std::string_view(pCallbackData->pMessage).find(loaderGetJsonError) != std::string::npos) {
-                    VK_LOG("DebugReportCallback() : [MUTED] " + std::string(pCallbackData->pMessage));
+                    VK_LOG("DebugReportCallback(SEVERITY_ERROR) : [MUTED] " + std::string(pCallbackData->pMessage));
                 }
                 else if (VkFunctionsHolder::Instance().ValidationErrorAsAssert) {
-                    VK_HALT("DebugReportCallback() : " + std::string(pCallbackData->pMessage) + "\nA validation error caused execution to stop because \"ValidationErrorAsAssert\" is set to \"true\".");
+                    VK_HALT("DebugReportCallback(SEVERITY_ERROR) : " + std::string(pCallbackData->pMessage) + "\nA validation error caused execution to stop because \"ValidationErrorAsAssert\" is set to \"true\".");
                 }
                 else {
-                    VK_ERROR("DebugReportCallback() : " + std::string(pCallbackData->pMessage));
+                    VK_ERROR("DebugReportCallback(SEVERITY_ERROR) : " + std::string(pCallbackData->pMessage));
                 }
                 break;
             }
