@@ -160,7 +160,7 @@ namespace EvoVulkan::Complexes {
 
         sampler.magFilter     = VK_FILTER_NEAREST;
         sampler.minFilter     = VK_FILTER_NEAREST;
-        sampler.mipmapMode    = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        sampler.mipmapMode    = VK_SAMPLER_MIPMAP_MODE_NEAREST;
         sampler.addressModeU  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         sampler.addressModeV  = sampler.addressModeU;
         sampler.addressModeW  = sampler.addressModeU;
