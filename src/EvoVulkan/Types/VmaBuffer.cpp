@@ -182,9 +182,11 @@ namespace EvoVulkan::Types {
 
     void VmaBuffer::Reserve(VkDeviceSize newSize) {
         EVK_TRACY_ZONE;
+
         if (newSize > m_size) {
             m_allocator->FreeBuffer(m_buffer);
             m_size = newSize;
+            m_bufferCreateInfo = Tools::Initializers::BufferCreateInfo(m_bufferCreateInfo.usage, m_size);
             m_buffer = m_allocator->AllocBuffer(m_bufferCreateInfo, m_memoryUsage);
             SetupDescriptor();
         }
