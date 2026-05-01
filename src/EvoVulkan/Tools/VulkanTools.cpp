@@ -63,6 +63,7 @@ namespace EvoVulkan::Tools {
     }
 
     VkPipelineLayout CreatePipelineLayout(const VkDevice& device, uint32_t setLayoutCount, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkPushConstantRange>& pushConstants) {
+        EVK_TRACY_ZONE;
         for (auto&& pushConstant : pushConstants) {
             if (pushConstant.stageFlags == 0) {
                 VK_ERROR("Tools::CreatePipelineLayout() : push constant does not contains any stages!");
@@ -253,6 +254,7 @@ namespace EvoVulkan::Tools {
     }
 
     VkDescriptorSetLayout CreateDescriptorLayout(VkDevice const &device, const std::vector<VkDescriptorSetLayoutBinding> &setLayoutBindings) {
+        EVK_TRACY_ZONE;
         auto descriptorSetLayoutCreateInfo = Initializers::DescriptorSetLayoutCreateInfo(
                 setLayoutBindings.data(),
                 static_cast<uint32_t>(setLayoutBindings.size()));

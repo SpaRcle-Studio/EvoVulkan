@@ -7,6 +7,7 @@
 
 #include <EvoVulkan/Tools/VulkanDebug.h>
 #include <EvoVulkan/Tools/FileSystem.h>
+#include <EvoVulkan/Profile.h>
 
 namespace EvoVulkan::Tools::Initializers {
     static constexpr VkImageAspectFlags EVK_IMAGE_ASPECT_NONE = VK_IMAGE_ASPECT_NONE_KHR;
@@ -320,6 +321,7 @@ namespace EvoVulkan::Tools::Initializers {
     }
 
     EVK_MAYBE_UNUSED static VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo() {
+        EVK_TRACY_ZONE;
         VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
         pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         return pipelineVertexInputStateCreateInfo;
@@ -330,6 +332,7 @@ namespace EvoVulkan::Tools::Initializers {
             const std::vector<VkVertexInputAttributeDescription> &vertexAttributeDescriptions
     )
     {
+        EVK_TRACY_ZONE;
         VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{};
         pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindingDescriptions.size());
@@ -344,6 +347,7 @@ namespace EvoVulkan::Tools::Initializers {
             VkPipelineInputAssemblyStateCreateFlags flags,
             VkBool32 primitiveRestartEnable)
     {
+        EVK_TRACY_ZONE;
         VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {};
         pipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         pipelineInputAssemblyStateCreateInfo.topology = topology;
@@ -358,6 +362,7 @@ namespace EvoVulkan::Tools::Initializers {
             VkFrontFace frontFace,
             VkPipelineRasterizationStateCreateFlags flags = 0)
     {
+        EVK_TRACY_ZONE;
         VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {};
         pipelineRasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         pipelineRasterizationStateCreateInfo.polygonMode = polygonMode;
@@ -377,6 +382,7 @@ namespace EvoVulkan::Tools::Initializers {
             VkColorComponentFlags colorWriteMask,
             VkBool32 blendEnable)
     {
+        EVK_TRACY_ZONE;
         VkPipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {};
         pipelineColorBlendAttachmentState.colorWriteMask = colorWriteMask;
         pipelineColorBlendAttachmentState.blendEnable = blendEnable;
@@ -393,6 +399,7 @@ namespace EvoVulkan::Tools::Initializers {
             uint32_t attachmentCount,
             const VkPipelineColorBlendAttachmentState * pAttachments)
     {
+        EVK_TRACY_ZONE;
         VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo {};
         pipelineColorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         pipelineColorBlendStateCreateInfo.attachmentCount = attachmentCount;
@@ -405,6 +412,7 @@ namespace EvoVulkan::Tools::Initializers {
             VkBool32 depthWriteEnable,
             VkCompareOp depthCompareOp)
     {
+        EVK_TRACY_ZONE;
         VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {};
         pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         pipelineDepthStencilStateCreateInfo.depthTestEnable = depthTestEnable;
@@ -419,6 +427,7 @@ namespace EvoVulkan::Tools::Initializers {
             uint32_t scissorCount,
             VkPipelineViewportStateCreateFlags flags = 0)
     {
+        EVK_TRACY_ZONE;
         VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {};
         pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         pipelineViewportStateCreateInfo.viewportCount = viewportCount;
@@ -432,6 +441,7 @@ namespace EvoVulkan::Tools::Initializers {
         VkBool32 alphaToCoverageEnable,
         VkPipelineMultisampleStateCreateFlags flags = 0)
     {
+        EVK_TRACY_ZONE;
         VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {};
         pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         pipelineMultisampleStateCreateInfo.rasterizationSamples = rasterizationSamples;
@@ -448,6 +458,7 @@ namespace EvoVulkan::Tools::Initializers {
             uint32_t dynamicStateCount,
             VkPipelineDynamicStateCreateFlags flags = 0)
     {
+        EVK_TRACY_ZONE;
         VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo {};
         pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates;
@@ -460,6 +471,7 @@ namespace EvoVulkan::Tools::Initializers {
             const std::vector<VkDynamicState>& pDynamicStates,
             VkPipelineDynamicStateCreateFlags flags = 0)
     {
+        EVK_TRACY_ZONE;
         VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
         pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates.data();
@@ -481,6 +493,7 @@ namespace EvoVulkan::Tools::Initializers {
             VkRenderPass renderPass,
             VkPipelineCreateFlags flags = 0)
     {
+        EVK_TRACY_ZONE;
         VkGraphicsPipelineCreateInfo pipelineCreateInfo {};
         pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineCreateInfo.layout = layout;

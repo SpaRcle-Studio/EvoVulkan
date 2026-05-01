@@ -216,6 +216,7 @@ bool EvoVulkan::Complexes::Shader::SetVertexDescriptions(
 }
 
 bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass) {
+    EVK_TRACY_ZONE;
     if (m_pipeline != VK_NULL_HANDLE) {
         vkDestroyPipeline(*m_device, m_pipeline, VK_NULL_HANDLE);
         m_pipeline = VK_NULL_HANDLE;
@@ -266,9 +267,12 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
     pipelineCreateInfo.stageCount          = static_cast<uint32_t>(m_shaderStages.size());
     pipelineCreateInfo.pStages             = m_shaderStages.data();
 
-    if (vkCreateGraphicsPipelines(*m_device, m_cache, 1, &pipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-        VK_ERROR("Shader::ReCreatePipeLine() : failed to create vulkan graphics pipeline!");
-        return false;
+    {
+        EVK_TRACY_ZONE_N("vkCreateGraphicsPipelines");
+        if (vkCreateGraphicsPipelines(*m_device, m_cache, 1, &pipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
+            VK_ERROR("Shader::ReCreatePipeLine() : failed to create vulkan graphics pipeline!");
+            return false;
+        }
     }
 
     return true;
@@ -285,6 +289,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
     VkPrimitiveTopology topology,
     VkSampleCountFlagBits rasterizationSamples
 ) {
+    EVK_TRACY_ZONE;
     if (!BuildLayouts()) {
         VK_ERROR("Shader::Compile() : failed to build layouts!");
         return false;
@@ -319,6 +324,7 @@ bool EvoVulkan::Complexes::Shader::Compile(
 }
 
 bool EvoVulkan::Complexes::Shader::BuildLayouts() {
+    EVK_TRACY_ZONE;
     static std::atomic<uint64_t> pipelineIdCounter = 0;
     m_handle = reinterpret_cast<void*>(static_cast<uintptr_t>(++pipelineIdCounter));
 
