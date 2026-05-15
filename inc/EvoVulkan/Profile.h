@@ -18,6 +18,7 @@
     #define EVK_TRACY_ZONE_TEXT_C(value) ZoneText(value, strlen(value))
     #define EVK_TRACY_ZONE_N(name) ZoneScopedN(name)
     #define EVK_TRACY_ZONE_S(name) ZoneTransientN(TracyConcat(__tracy_source_location, TracyLine), name, true)
+    #define EVK_TRACY_PLOT_CONFIG_MEMORY(name) TracyPlotConfig(name, tracy::PlotFormatType::Memory, false, false, 0)
     #define EVK_TRACY_PLOT(name, val) TracyPlot(name, val)
     #define EVK_TRACY_ZONE_COLOR(color) ZoneColor(color)
 
@@ -31,6 +32,7 @@
     #define EVK_TRACY_ZONE_TEXT_C(value) SR_NOOP
     #define EVK_TRACY_ZONE_N(name) SR_NOOP
     #define EVK_TRACY_ZONE_S(name) SR_NOOP
+    #define EVK_TRACY_PLOT_CONFIG_MEMORY(name) SR_NOOP
     #define EVK_TRACY_PLOT(name, val) SR_NOOP
     #define EVK_TRACY_ZONE_COLOR(color)
 

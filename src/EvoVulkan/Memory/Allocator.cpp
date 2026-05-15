@@ -196,6 +196,8 @@ void EvoVulkan::Memory::Allocator::FreeBuffer(EvoVulkan::Memory::Buffer &info) {
 void EvoVulkan::Memory::Allocator::OnMemoryAllocated(uint64_t size) {
     ++m_allocHeapsCount;
     m_deviceMemoryAllocSize += size;
+    EVK_TRACY_PLOT_CONFIG_MEMORY("VRAM Usage");
+    EVK_TRACY_PLOT("VRAM Usage", static_cast<int64_t>(m_deviceMemoryAllocSize));
 }
 
 void EvoVulkan::Memory::Allocator::OnMemoryFreed(uint64_t size) {
@@ -214,4 +216,6 @@ void EvoVulkan::Memory::Allocator::OnMemoryFreed(uint64_t size) {
 
     --m_allocHeapsCount;
     m_deviceMemoryAllocSize -= size;
+    EVK_TRACY_PLOT_CONFIG_MEMORY("VRAM Usage");
+    EVK_TRACY_PLOT("VRAM Usage", static_cast<int64_t>(m_deviceMemoryAllocSize));
 }
