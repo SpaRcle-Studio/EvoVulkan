@@ -21,7 +21,7 @@ namespace EvoVulkan::Types {
         operator VkRenderPass() const { return m_self; }
     };
 
-    static void DestroyRenderPass(EvoVulkan::Types::Device *device, RenderPass *renderPass) {
+    EVK_MAYBE_UNUSED static void DestroyRenderPass(EvoVulkan::Types::Device *device, RenderPass *renderPass) {
         VK_LOG("Tools::DestroyRenderPass() : destroy vulkan render pass...");
 
         if (renderPass && renderPass->IsReady()) {
@@ -132,7 +132,7 @@ namespace EvoVulkan::Types {
         return renderPass;
     }
 
-    static RenderPass CreateRenderPass(
+    EVK_MAYBE_UNUSED static RenderPass CreateRenderPass(
             const EvoVulkan::Types::Device* device,
             const Types::Swapchain *swapchain,
             std::vector<VkAttachmentDescription2> attachments,
