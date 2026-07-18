@@ -15,16 +15,6 @@ EvoVulkan::Complexes::Shader::Shader(const EvoVulkan::Types::Device* pDevice, Ty
     , m_cache(cache)
 { }
 
-/*
- *         if (EvoVulkan::Tools::VkFunctionsHolder::Instance().IsSupportGLSLang()) {
-            if (!EvoVulkan::Tools::VkFunctionsHolder::Instance().CompileGLSLtoSPIRV(inputFile)) {
-                VK_ERROR("Shader::Load() : failed to compile shader!\n\tPath: " + inputFile);
-                return { VK_NULL_HANDLE, {} };
-            }
-        }
-        else {
- */
-
 std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> CompileShaderModule(
     const std::string& path,
     const std::string& cache,
@@ -80,7 +70,8 @@ std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> GLSLLangCompileShader
     const std::string& path,
     const std::string& cache,
     VkShaderStageFlagBits stage,
-    const EvoVulkan::Types::Device* device
+    const EvoVulkan::Types::Device* device,
+    uint32_t threadIndex
 ) {
     const std::string inputFile  = std::string(cache + "/").append(path);
     const std::string hashFile   = inputFile + ".spv.hash";
@@ -91,7 +82,7 @@ std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> GLSLLangCompileShader
     std::vector<uint32_t> data;
 
     if (hash != EvoVulkan::Tools::VkFunctionsHolder::Instance().ReadHash(hashFile) || !EvoVulkan::Tools::VkFunctionsHolder::Instance().IsExists(outputFile)) {
-        data = EvoVulkan::Tools::VkFunctionsHolder::Instance().CompileGLSLtoSPIRV(inputFile);
+        data = EvoVulkan::Tools::VkFunctionsHolder::Instance().CompileGLSLtoSPIRV(inputFile, threadIndex);
         if (data.empty()) {
             VK_ERROR("GLSLLangCompileShaderModule() : failed to compile shader!\n\tPath: " + inputFile);
             return {VK_NULL_HANDLE, {}};
@@ -148,13 +139,15 @@ bool EvoVulkan::Complexes::Shader::Load(
 #ifdef EVK_USE_FUTURE_LOAD_SHADER
     std::vector<std::future<std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo>>> futures;
 
+    uint32_t threadIndex = 0;
     for (const auto& [path, stage] : modules) {
-        futures.push_back(std::async(std::launch::async, [&, shaderPath = path, shaderStage = stage]() -> std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> {
+        futures.push_back(std::async(std::launch::async, [&, index = threadIndex, shaderPath = path, shaderStage = stage]() -> std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> {
             if (Tools::VkFunctionsHolder::Instance().IsSupportGLSLang()) {
-                return GLSLLangCompileShaderModule(shaderPath, cache, shaderStage, m_device);
+                return GLSLLangCompileShaderModule(shaderPath, cache, shaderStage, m_device, index);
             }
             return CompileShaderModule(shaderPath, cache, shaderStage, m_device);
         }));
+        threadIndex++;
     }
 
     // собираем результаты
