@@ -30,6 +30,10 @@ uint64_t GetImageSize(uint32_t w, uint32_t h, uint8_t level, uint8_t face) {
 }
 
 EvoVulkan::Types::Texture::~Texture() {
+    if (m_isClone) {
+        return;
+    }
+
     if (m_loadInfo.pDescriptorManager && (m_descriptorSet != VK_NULL_HANDLE)) {
         m_loadInfo.pDescriptorManager->FreeDescriptorSet(&m_descriptorSet);
         m_loadInfo.pDescriptorManager = nullptr;
@@ -539,5 +543,24 @@ EvoVulkan::Types::Texture::RGBAPixel EvoVulkan::Types::Texture::GetPixel(uint32_
     delete pBuffer;
 
     return pixel;
+}
+
+EvoVulkan::Types::Texture* EvoVulkan::Types::Texture::Clone() const {
+    EVK_TRACY_ZONE;
+
+    auto&& pTexture = new Texture();
+    {
+        pTexture->m_canBeDestroyed    = false;
+        pTexture->m_isClone           = true;
+        pTexture->m_cubeMap           = m_cubeMap;
+        pTexture->m_loadInfo          = m_loadInfo;
+        pTexture->m_image             = m_image.Copy();
+        pTexture->m_sampler           = m_sampler;
+        pTexture->m_view              = m_view;
+        pTexture->m_descriptorSet     = m_descriptorSet;
+        pTexture->m_descriptor        = m_descriptor;
+    }
+
+    return pTexture;
 }
 

@@ -77,6 +77,7 @@ namespace EvoVulkan::Types {
 
     public:
         EVK_NODISCARD RGBAPixel GetPixel(uint32_t x, uint32_t y, uint32_t z) const;
+        EVK_NODISCARD Texture* Clone() const;
 
         EVK_NODISCARD EVK_INLINE VkDescriptorImageInfo* GetDescriptorRef() noexcept { return &m_descriptor; }
         EVK_NODISCARD EVK_INLINE VkSampler GetSampler() const { return m_sampler; }
@@ -97,8 +98,9 @@ namespace EvoVulkan::Types {
         VkImageView        m_view                    = VK_NULL_HANDLE;
 
         bool               m_canBeDestroyed          = false;
+        bool               m_isClone                 = false;
         bool               m_cubeMap                 = false;
-        TextureLoadInfo  m_loadInfo                = {};
+        TextureLoadInfo    m_loadInfo                = {};
 
         Types::DescriptorSet m_descriptorSet = {};
         VkDescriptorImageInfo m_descriptor = {};
