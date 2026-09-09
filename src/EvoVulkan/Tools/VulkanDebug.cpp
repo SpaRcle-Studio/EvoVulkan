@@ -10,7 +10,7 @@ namespace EvoVulkan::Tools {
         std::lock_guard lock(m_mutex);
 
         const bool debugFunctions = LogCallback && WarnCallback && ErrorCallback && GraphCallback && AssertCallback;
-        const bool fileSysFunctions = Delete && IsExists && Copy && CreateFolder && ExecuteCommand;
+        const bool fileSysFunctions = Delete && IsExists && CreateFolder && ExecuteCommand;
         const bool hashFunctions = GetFileHash && ReadHash && WriteHash;
         const bool shaderFunctions = CompileGLSLtoSPIRV && IsSupportGLSLang && WriteSPIRV && ReadSPIRV;
 
@@ -115,7 +115,6 @@ namespace EvoVulkan::Tools {
         IsSupportGLSLang = nullptr;
         Delete = nullptr;
         IsExists = nullptr;
-        Copy = nullptr;
         CreateFolder = nullptr;
         ExecuteCommand = nullptr;
         GetFileHash = nullptr;

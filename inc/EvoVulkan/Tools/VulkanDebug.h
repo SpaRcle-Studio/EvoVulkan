@@ -53,7 +53,6 @@ namespace EvoVulkan::Tools {
         std::function<std::vector<uint32_t>(const std::string& input, uint32_t threadIndex)> CompileGLSLtoSPIRV;
         std::function<void(const std::string& command)> ExecuteCommand;
         std::function<bool(const std::string& path)> CreateFolder;
-        std::function<bool(const std::string& from, const std::string& to)> Copy;
         std::function<bool(const std::string& path)> IsExists;
         std::function<bool(const std::string& path)> Delete;
 
