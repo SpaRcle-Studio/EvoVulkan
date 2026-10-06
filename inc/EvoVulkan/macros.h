@@ -107,6 +107,18 @@
 #include <sstream>
 #include <iomanip>
 
+#ifdef RGB
+    #undef RGB
+#endif
+
+#ifdef MIN
+    #undef MIN
+#endif
+
+#ifdef MAX
+    #undef MAX
+#endif
+
 #ifdef near
     #undef near
 #endif
