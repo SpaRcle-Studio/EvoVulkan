@@ -57,6 +57,8 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD const VkBuffer* GetCRef() const { return &m_buffer.m_buffer; }
         EVK_NODISCARD VkDescriptorBufferInfo* GetDescriptorRef() { return &m_descriptor; }
         EVK_NODISCARD VkDeviceSize GetSize() const noexcept { return m_size; }
+        EVK_NODISCARD VkBufferUsageFlags GetUsage() const noexcept { return m_bufferCreateInfo.usage; }
+        EVK_NODISCARD VmaMemoryUsage GetMemoryUsage() const noexcept { return m_memoryUsage; }
 
         void Reserve(VkDeviceSize newSize);
         void SetDebugInfo(const VmaBufferDebugInfo& debugInfo) { m_debugInfo = debugInfo; }
