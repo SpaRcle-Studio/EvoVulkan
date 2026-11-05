@@ -10,7 +10,6 @@
 
 #include <EvoVulkan/Types/Device.h>
 #include <EvoVulkan/Types/Surface.h>
-#include <EvoVulkan/Types/CmdBuffer.h>
 
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 
@@ -373,37 +372,6 @@ bool EvoVulkan::Types::Swapchain::CreateImages() {
                  "\n\tDesciption: " + Tools::Convert::result_to_description(result)
         );
         return false;
-    }
-
-    for (VkImage image : m_swapchainImages) {
-        EVK_TRACY_ZONE_N("Swapchain::CreateImages() : transition image layout...");
-        auto&& pCmd = EvoVulkan::Types::CmdBuffer::BeginSingleTime(m_device, m_pool);
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = image;
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
-
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = 0;
-
-        vkCmdPipelineBarrier(
-                *pCmd,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier
-        );
-
-        delete pCmd;
     }
 
     return true;
