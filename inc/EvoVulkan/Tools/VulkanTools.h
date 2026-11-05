@@ -570,15 +570,22 @@ namespace EvoVulkan::Tools {
         createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
 
-        if (validLayers.empty()) {
-            VK_GRAPH("VulkanTools::CreateLogicalDevice() : validation layers disabled.");
-            createInfo.enabledLayerCount = 0;
-        }
-        else {
-            VK_GRAPH("VulkanTools::CreateLogicalDevice() : validation layers are enabled.");
+        /**
+            vkCreateDevice(): pCreateInfo->enabledLayerCount is 1 (not zero).
+            Device Layers have never worked since Vulkan 1.0 and only Instance Layers should be used instead: https://docs.vulkan.org/spec/latest/appendices/legacy.html#legacy-devicelayers.
+            The Vulkan spec states: enabledLayerCount must be 0 (https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#VUID-VkDeviceCreateInfo-enabledLayerCount-12384)
+        */
+        if (VK_HEADER_VERSION < 363) {
+            if (validLayers.empty()) {
+                VK_GRAPH("VulkanTools::CreateLogicalDevice() : validation layers disabled.");
+                createInfo.enabledLayerCount = 0;
+            }
+            else {
+                VK_GRAPH("VulkanTools::CreateLogicalDevice() : validation layers are enabled.");
 
-            createInfo.enabledLayerCount   = static_cast<uint32_t>(validLayers.size());
-            createInfo.ppEnabledLayerNames = validLayers.data();
+                createInfo.enabledLayerCount   = static_cast<uint32_t>(validLayers.size());
+                createInfo.ppEnabledLayerNames = validLayers.data();
+            }
         }
 
         VkDevice device = VK_NULL_HANDLE;
