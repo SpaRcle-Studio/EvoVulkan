@@ -156,7 +156,7 @@ namespace EvoVulkan::Core {
         bool SetValidationDebugEnabled(bool value);
         bool SetGPUAssistEnabled(bool value);
         void SetSize(uint32_t width, uint32_t height);
-        bool ReCreate(FrameResult reason);
+        virtual bool ReCreate(FrameResult reason);
 
     public:
         virtual bool BuildCmdBuffers() = 0;

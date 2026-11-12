@@ -8,6 +8,21 @@
 #include <EvoVulkan/Types/Device.h>
 
 namespace EvoVulkan::Types {
+    bool Surface::Replace(VkSurfaceKHR surface, void* windowHandle, const Device* device) {
+        if (m_surfFormats) {
+            free(m_surfFormats);
+            m_surfFormats = nullptr;
+        }
+        if (m_surface) {
+            vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+        }
+        m_surface = surface;
+        m_windowHandle = windowHandle;
+        m_countSurfaceFormats = 0;
+        m_isInit = false;
+        return surface == VK_NULL_HANDLE || Init(device);
+    }
+
     Surface::~Surface() {
         VK_LOG("Surface::Destroy() : destroy vulkan surface...");
 

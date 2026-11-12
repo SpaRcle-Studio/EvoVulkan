@@ -13,10 +13,31 @@
 
 #include <EvoVulkan/Tools/VulkanInitializers.h>
 
+void EvoVulkan::Types::Swapchain::ReleaseSurface() {
+    if (m_countBuffers > 0) {
+        DestroyBuffers();
+    }
+    m_countBuffers = 0;
+    if (m_swapchain) {
+        vkDestroySwapchainKHR(*m_device, m_swapchain, nullptr);
+        m_swapchain = VK_NULL_HANDLE;
+    }
+    m_swapchainImages.clear();
+    m_surfaceWidth = 0;
+    m_surfaceHeight = 0;
+    m_dirty = false;
+}
+
+bool EvoVulkan::Types::Swapchain::ResumeSurface(uint32_t width, uint32_t height, uint32_t countImages) {
+    return InitFormats() && ReSetup(width, height, countImages);
+}
+
 EvoVulkan::Types::Swapchain::~Swapchain() {
     VK_LOG("Swapchain::Destroy() : destroy vulkan swapchain...");
 
-    DestroyBuffers();
+    if (m_countBuffers > 0) {
+        DestroyBuffers();
+    }
 
     if (m_swapchain) {
         vkDeviceWaitIdle(*m_device);
@@ -103,6 +124,12 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
         surfCaps.currentExtent.height = height;
     }
 
+    #ifdef EVK_ANDROID
+        // Android permits an image extent different from currentExtent (compositor scaling).
+        surfCaps.currentExtent.width = width;
+        surfCaps.currentExtent.height = height;
+    #endif
+
     if (width < surfCaps.minImageExtent.width || width > surfCaps.maxImageExtent.width ||
         height < surfCaps.minImageExtent.height || height > surfCaps.maxImageExtent.height
     ) {
@@ -160,7 +187,7 @@ bool EvoVulkan::Types::Swapchain::ReSetup(uint32_t width, uint32_t height, uint3
     // Find a supported composite alpha format (not all devices support alpha opaque)
     VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     // Simply select the first composite alpha format available
-    static const std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
+    static constexpr std::array<VkCompositeAlphaFlagBitsKHR, 4> compositeAlphaFlags = {
             VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
             VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
@@ -428,6 +455,9 @@ bool EvoVulkan::Types::Swapchain::CreateBuffers() {
 
 VkResult EvoVulkan::Types::Swapchain::AcquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex) const {
     EVK_TRACY_ZONE;
+    #ifdef EVK_ANDROID
+        return vkAcquireNextImageKHR(*m_device, m_swapchain, 100000000ULL, presentCompleteSemaphore, VK_NULL_HANDLE, imageIndex);
+    #endif
     /// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
     /// With that we don't have to handle VK_NOT_READY
     return vkAcquireNextImageKHR(*m_device, m_swapchain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);

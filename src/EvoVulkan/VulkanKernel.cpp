@@ -598,6 +598,14 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::PrepareFrame() {
 
     // 2. Получаем image от swapchain
     VkResult result = m_swapchain->AcquireNextImage(frame.imageAvailable, &m_imageIndex);
+    if (result == VK_TIMEOUT || result == VK_NOT_READY) {
+        return FrameResult::None;
+    }
+    #ifdef EVK_ANDROID
+        if (result == VK_ERROR_SURFACE_LOST_KHR) {
+            return FrameResult::OutOfDate;
+        }
+    #endif
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         VK_LOG("VulkanKernel::PrepareFrame() : window has been resized!");
         return FrameResult::OutOfDate;
@@ -664,6 +672,11 @@ EvoVulkan::Core::FrameResult EvoVulkan::Core::VulkanKernel::QueuePresent() {
 
     //FrameSync& frame = m_frames[m_frameIndex];
     VkResult result = m_swapchain->QueuePresent(m_device->GetQueues()->GetGraphicsQueue(), m_imageIndex, m_renderFinished[m_imageIndex]);
+    #ifdef EVK_ANDROID
+        if (result == VK_ERROR_SURFACE_LOST_KHR) {
+            return FrameResult::OutOfDate;
+        }
+    #endif
 
     if (result == VK_SUBOPTIMAL_KHR) {
         /// Reset the flag for the next frame
@@ -771,7 +784,7 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
         return true;
     }
 
-    if (!m_swapchain->ReSetup(m_width, m_height, m_swapchainImages)) {
+    if (!m_swapchain->ReSetup(m_width, m_height, m_requiredSwapchainImages)) {
         VK_ERROR("VulkanKernel::ReCreate() : failed to re-setup swapchain!");
         return false;
     }
@@ -1062,6 +1075,14 @@ bool EvoVulkan::Core::VulkanKernel::ReCreateDCBuffers() {
     DestroyDCBuffers();
 
     m_countDCB = m_swapchain ? m_swapchain->GetCountImages() : 0;
+    while (m_frameCmdPools.size() < m_countDCB) {
+        auto* pCmdPool = Types::CmdPool::Create(m_device, m_device->GetQueues()->GetGraphicsIndex(), false);
+        if (!pCmdPool) {
+            VK_ERROR("VulkanKernel::ReCreateDCBuffers() : failed to create frame command pool!");
+            return false;
+        }
+        m_frameCmdPools.emplace_back(pCmdPool);
+    }
     m_drawCmdBuffs.resize(m_countDCB);
 
     for (uint32_t i = 0; i < m_countDCB; ++i) {

@@ -39,6 +39,8 @@ namespace EvoVulkan::Types {
         bool SurfaceIsAvailable();
 
         bool ReSetup(uint32_t width, uint32_t height, uint32_t countImages);
+        void ReleaseSurface();
+        bool ResumeSurface(uint32_t width, uint32_t height, uint32_t countImages);
 
         void SetVSync(bool vsync);
 

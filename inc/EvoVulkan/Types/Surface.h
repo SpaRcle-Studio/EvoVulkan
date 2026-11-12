@@ -23,6 +23,7 @@ namespace EvoVulkan::Types {
 
     public:
         bool Init(const Types::Device* device);
+        bool Replace(VkSurfaceKHR surface, void* windowHandle, const Types::Device* device);
 
         EVK_NODISCARD bool IsReady() const override;
         EVK_NODISCARD bool IsInit() const noexcept { return m_isInit; }
