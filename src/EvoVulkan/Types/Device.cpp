@@ -21,6 +21,18 @@ namespace EvoVulkan::Types {
     Device::~Device() {
         VK_LOG("Device::Destroy() : destroying vulkan device...");
 
+	#if defined(EVO_VULKAN_TRACY_GPU_PROFILER)
+        if (m_logicalDevice) {
+            vkDeviceWaitIdle(m_logicalDevice);
+        }
+
+        if (m_tracyVulkanCommandPool) {
+            vkDestroyCommandPool(m_logicalDevice, m_tracyVulkanCommandPool, nullptr);
+            m_tracyVulkanCommandPool = VK_NULL_HANDLE;
+            m_tracyVulkanCommandBuffer = VK_NULL_HANDLE;
+        }
+	#endif
+
         if (m_familyQueues) {
             delete m_familyQueues;
             m_familyQueues = nullptr;
@@ -222,7 +234,43 @@ namespace EvoVulkan::Types {
             return nullptr;
         }
 
+	#if defined(EVO_VULKAN_TRACY_GPU_PROFILER) && defined(EVO_VULKAN_TRACY_PROFILER)
+        VkCommandPoolCreateInfo tracyCommandPoolInfo = {};
+        tracyCommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        tracyCommandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        tracyCommandPoolInfo.queueFamilyIndex = static_cast<uint32_t>(pQueues->GetGraphicsIndex());
+
+        VkCommandPool tracyCommandPool = VK_NULL_HANDLE;
+        VkCommandBuffer tracyCommandBuffer = VK_NULL_HANDLE;
+        VkCommandBufferAllocateInfo tracyCommandBufferInfo = {};
+        tracyCommandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        tracyCommandBufferInfo.commandPool = tracyCommandPool;
+        tracyCommandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        tracyCommandBufferInfo.commandBufferCount = 1;
+
+        if (vkCreateCommandPool(logicalDevice, &tracyCommandPoolInfo, nullptr, &tracyCommandPool) != VK_SUCCESS) {
+            VK_ERROR("Device::Create() : failed to create Tracy Vulkan command pool!");
+            vkDestroyDevice(logicalDevice, nullptr);
+            delete pQueues;
+            return nullptr;
+        }
+
+        tracyCommandBufferInfo.commandPool = tracyCommandPool;
+        if (vkAllocateCommandBuffers(logicalDevice, &tracyCommandBufferInfo, &tracyCommandBuffer) != VK_SUCCESS) {
+            VK_ERROR("Device::Create() : failed to allocate Tracy Vulkan command buffer!");
+            vkDestroyCommandPool(logicalDevice, tracyCommandPool, nullptr);
+            vkDestroyDevice(logicalDevice, nullptr);
+            delete pQueues;
+            return nullptr;
+        }
+
+	#endif
         auto&& pDevice = new Device(info.pInstance, pQueues, physicalDevice, logicalDevice);
+
+	#if defined(EVO_VULKAN_TRACY_GPU_PROFILER) && defined(EVO_VULKAN_TRACY_PROFILER)
+        pDevice->m_tracyVulkanCommandPool = tracyCommandPool;
+        pDevice->m_tracyVulkanCommandBuffer = tracyCommandBuffer;
+	#endif
 
         pDevice->m_dynamicRenderingSupport = info.dynamicRendering;
         pDevice->m_shaderViewportIndexLayerSupported = shaderViewportIndexLayerSupported;

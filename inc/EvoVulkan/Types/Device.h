@@ -66,7 +66,9 @@ namespace EvoVulkan::Types {
         EVK_NODISCARD bool IsShaderViewportIndexLayerSupported() const noexcept { return m_shaderViewportIndexLayerSupported; }
         EVK_NODISCARD bool IsValidationEnabled() const noexcept { return m_instance->IsValidationEnabled(); }
         EVK_NODISCARD VkCommandPool CreateCommandPool(VkCommandPoolCreateFlags flagBits) const;
-
+	#if defined(EVO_VULKAN_TRACY_GPU_PROFILER)
+        EVK_NODISCARD VkCommandBuffer GetTracyVulkanCommandBuffer() const { return m_tracyVulkanCommandBuffer; }
+	#endif
         uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;
 
         void WaitQueuesIdle() const;
@@ -83,6 +85,10 @@ namespace EvoVulkan::Types {
 
         VkPhysicalDevice                 m_physicalDevice          = VK_NULL_HANDLE;
         VkDevice                         m_logicalDevice           = VK_NULL_HANDLE;
+	#if defined(EVO_VULKAN_TRACY_GPU_PROFILER)
+        VkCommandPool                    m_tracyVulkanCommandPool   = VK_NULL_HANDLE;
+        VkCommandBuffer                  m_tracyVulkanCommandBuffer = VK_NULL_HANDLE;
+	#endif
         Types::Instance*                 m_instance                = nullptr;
 
         bool                             m_enableSamplerAnisotropy = false;
