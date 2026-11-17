@@ -367,6 +367,7 @@ namespace EvoVulkan::Tools {
     }
 
     EVK_MAYBE_UNUSED static VkDebugUtilsMessengerEXT SetupDebugMessenger(const VkInstance& instance) {
+        EVK_TRACY_ZONE;
         VK_GRAPH("VulkanTools::SetupDebugMessenger() : setting up vulkan debug messenger...");
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;

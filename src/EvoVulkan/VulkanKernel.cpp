@@ -14,6 +14,7 @@ bool EvoVulkan::Core::VulkanKernel::PreInit(
         const std::vector<const char*>& instExtensions,
         const std::vector<const char*>& validationLayers)
 {
+    EVK_TRACY_ZONE;
     VK_GRAPH("VulkanKernel::PreInit() : pre-initializing Evo Vulkan kernel...");
 
     uint32_t instanceVersion = VK_API_VERSION_1_0;

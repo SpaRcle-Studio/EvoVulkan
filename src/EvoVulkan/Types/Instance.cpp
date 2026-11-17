@@ -23,6 +23,7 @@ namespace EvoVulkan::Types {
             bool validationLayersEnabled,
             bool validationReportEnabled
     ) {
+        EVK_TRACY_ZONE;
         auto&& pInstance = new Instance(VK_API_VERSION_1_2);
         pInstance->m_supportedExtensions = std::move(supportedExtensions);
 
