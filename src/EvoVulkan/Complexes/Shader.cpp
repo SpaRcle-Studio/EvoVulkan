@@ -21,6 +21,7 @@ std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> CompileShaderModule(
     VkShaderStageFlagBits stage,
     const EvoVulkan::Types::Device* device
 ) {
+    EVK_TRACY_ZONE;
     const std::string inputFile  = std::string(cache + "/").append(path);
     const std::string hashFile   = inputFile + ".spv.hash";
     const std::string outputFile = inputFile + ".spv";
@@ -73,6 +74,7 @@ std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> GLSLLangCompileShader
     const EvoVulkan::Types::Device* device,
     uint32_t threadIndex
 ) {
+    EVK_TRACY_ZONE;
     const std::string inputFile  = std::string(cache + "/").append(path);
     const std::string hashFile   = inputFile + ".spv.hash";
     const std::string outputFile = inputFile + ".spv";
@@ -117,6 +119,7 @@ bool EvoVulkan::Complexes::Shader::Load(
     const std::vector<VkDescriptorSetLayoutBinding>& descriptorLayoutBindings,
     const std::vector<VkPushConstantRange>& pushConstants
 ) {
+    EVK_TRACY_ZONE;
     if (modules.empty()) {
         VK_ERROR("Shader::Load() : empty modules list!");
         return false;
@@ -124,15 +127,24 @@ bool EvoVulkan::Complexes::Shader::Load(
 
     /// just a log
     {
-        auto modulePatches = std::string();
+        std::string modulePatches;
+        uint32_t reserveSize = 2 * modules.size();
         for (auto&& module : modules) {
-            modulePatches += "\n\t" + module.m_path;
+            reserveSize += module.m_path.size();
+        }
+        modulePatches.reserve(reserveSize);
+        for (auto&& module : modules) {
+            modulePatches += "\n\t";
+            modulePatches += module.m_path;
         }
         VK_LOG("Shader::Load() : load new shader! Modules:" + modulePatches);
     }
 
     m_layoutBindings = descriptorLayoutBindings;
     m_pushConstants = pushConstants;
+
+    m_shaderModules.reserve(modules.size());
+    m_shaderStages.reserve(modules.size());
 
 #define EVK_USE_FUTURE_LOAD_SHADER
 
@@ -142,6 +154,7 @@ bool EvoVulkan::Complexes::Shader::Load(
     uint32_t threadIndex = 0;
     for (const auto& [path, stage] : modules) {
         futures.push_back(std::async(std::launch::async, [&, index = threadIndex, shaderPath = path, shaderStage = stage]() -> std::pair<VkShaderModule, VkPipelineShaderStageCreateInfo> {
+            EVK_TRACY_ZONE;
             if (Tools::VkFunctionsHolder::Instance().IsSupportGLSLang()) {
                 return GLSLLangCompileShaderModule(shaderPath, cache, shaderStage, m_device, index);
             }
