@@ -116,6 +116,7 @@ namespace EvoVulkan::Complexes {
     }
 
     bool FrameBuffer::ReCreate(uint32_t width, uint32_t height)  {
+        EVK_TRACY_ZONE;
         DeInitialize();
 
         m_baseWidth  = width;
@@ -156,6 +157,7 @@ namespace EvoVulkan::Complexes {
     }
 
     bool FrameBuffer::CreateSampler()  {
+        EVK_TRACY_ZONE;
         VkSamplerCreateInfo sampler = Tools::Initializers::SamplerCreateInfo();
 
         sampler.magFilter     = VK_FILTER_NEAREST;
@@ -179,6 +181,7 @@ namespace EvoVulkan::Complexes {
     }
 
     bool EvoVulkan::Complexes::FrameBuffer::CreateFramebuffer() {
+        EVK_TRACY_ZONE;
         VK_GRAPH("Framebuffer::CreateFramebuffer() : create vulkan framebuffer...");
 
         for (uint32_t layerIndex = 0; layerIndex < m_layersCount; ++layerIndex) {
@@ -229,7 +232,12 @@ namespace EvoVulkan::Complexes {
             FBO_CI.layers                  = m_arrayLayersCount;
 
             VkFramebuffer vkFramebuffer = VK_NULL_HANDLE;
-            const bool isSuccess = vkCreateFramebuffer(*m_device, &FBO_CI, nullptr, &vkFramebuffer) == VK_SUCCESS;
+
+            bool isSuccess = false;
+            {
+                EVK_TRACY_ZONE_N("vkCreateFramebuffer");
+                isSuccess = vkCreateFramebuffer(*m_device, &FBO_CI, nullptr, &vkFramebuffer) == VK_SUCCESS;
+            }
             m_layers[layerIndex]->SetFrameBuffer(vkFramebuffer);
 
             if (!isSuccess || vkFramebuffer == VK_NULL_HANDLE) {
@@ -242,6 +250,8 @@ namespace EvoVulkan::Complexes {
     }
 
     bool FrameBuffer::CreateRenderPass() {
+        EVK_TRACY_ZONE;
+
         m_currentSampleCount = m_sampleCount;
 
         if (m_renderPass.IsReady()) {
@@ -380,6 +390,7 @@ namespace EvoVulkan::Complexes {
     }
 
     bool FrameBuffer::CreateAttachments() {
+        EVK_TRACY_ZONE;
         if (IsDepthEnabled() && m_layersCount > 1) {
             m_depthAttachment = FrameBufferAttachment::CreateDepthAttachment(
                 this,
@@ -608,6 +619,7 @@ namespace EvoVulkan::Complexes {
     }
 
     void FrameBuffer::DeInitialize() {
+        EVK_TRACY_ZONE;
         m_layers.clear();
         m_depthAttachment.reset();
 

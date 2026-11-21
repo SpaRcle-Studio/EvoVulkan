@@ -22,6 +22,7 @@ namespace EvoVulkan::Types {
     };
 
     EVK_MAYBE_UNUSED static void DestroyRenderPass(EvoVulkan::Types::Device *device, RenderPass *renderPass) {
+        EVK_TRACY_ZONE;
         VK_LOG("Tools::DestroyRenderPass() : destroy vulkan render pass...");
 
         if (renderPass && renderPass->IsReady()) {
@@ -141,6 +142,7 @@ namespace EvoVulkan::Types {
             VkImageAspectFlags depthAspect,
             VkFormat depthFormat
     ) {
+        EVK_TRACY_ZONE;
         VK_GRAPH("Types::CreateRenderPass() : create vulkan render pass...");
 
         std::vector<VkAttachmentReference2> colorReferences = {};
