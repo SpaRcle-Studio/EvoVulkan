@@ -10,11 +10,11 @@ if (EVO_VULKAN_BUILD_VMA)
     add_compile_definitions(EVO_VULKAN_BUILD_VMA)
 endif()
 
-message("[SpaRcle Engine] [EvoVulkan] Vulkan SDK path: $ENV{VULKAN_SDK}")
+message(STATUS "[SpaRcle Engine] [EvoVulkan] Vulkan SDK path: $ENV{VULKAN_SDK}")
 
 find_package(Vulkan REQUIRED)
 
-message("[SpaRcle Engine] [EvoVulkan] Vulkan SDK Version: ${Vulkan_VERSION}")
+message(STATUS "[SpaRcle Engine] [EvoVulkan] Vulkan SDK Version: ${Vulkan_VERSION}")
 
 if (EVO_VULKAN_STATIC_LIBRARY)
     add_library(EvoVulkan STATIC cxx/EvoVulkan.cxx)
@@ -24,7 +24,7 @@ if (EVO_VULKAN_STATIC_LIBRARY)
     else()
         target_link_libraries(EvoVulkan PRIVATE ${Vulkan_LIBRARY})
         target_include_directories(EvoVulkan PRIVATE ${Vulkan_INCLUDE_DIRS})
-        message("[SpaRcle Engine] [EvoVulkan] Vulkan include directories (static): ${Vulkan_INCLUDE_DIRS}")
+        message(STATUS "[SpaRcle Engine] [EvoVulkan] Vulkan include directories (static): ${Vulkan_INCLUDE_DIRS}")
     endif()
 else()
     add_library(EvoVulkan SHARED EvoVulkan.cxx)

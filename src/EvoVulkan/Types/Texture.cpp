@@ -279,10 +279,10 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
 
     m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copyCmd);
 
-    Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_loadInfo.width, m_loadInfo.height, m_loadInfo.mipLevels, m_image.GetFormat(), false);
+    Tools::CopyBufferToImage(copyCmd, *stagingBuffer, m_image, m_loadInfo.width, m_loadInfo.height, m_loadInfo.mipLevels, m_image.GetFormat(), false, m_loadInfo.preparedMipChain);
 
     if (m_loadInfo.mipLevels != 1) {
-        if (Tools::IsBlockCompressedFormat(m_image.GetFormat())) {
+        if (m_loadInfo.preparedMipChain || Tools::IsBlockCompressedFormat(m_image.GetFormat())) {
             /// do nothing
         }
         else if (!GenerateMipmaps(this, copyCmd)) {
@@ -291,7 +291,7 @@ bool EvoVulkan::Types::Texture::Create(EvoVulkan::Types::VmaBuffer *stagingBuffe
         }
     }
 
-    if (m_loadInfo.mipLevels == 1 && !Tools::IsBlockCompressedFormat(m_image.GetFormat())) {
+    if (!m_loadInfo.preparedMipChain && m_loadInfo.mipLevels == 1 && !Tools::IsBlockCompressedFormat(m_image.GetFormat())) {
         m_image.TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, copyCmd);
     }
     else {

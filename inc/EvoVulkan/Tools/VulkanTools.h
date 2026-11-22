@@ -602,6 +602,9 @@ namespace EvoVulkan::Tools {
 
 
     EVK_MAYBE_UNUSED static bool IsBlockCompressedFormat(VkFormat format) {
+        if (format >= VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK && format <= VK_FORMAT_ASTC_12x12_SRGB_BLOCK) {
+            return true;
+        }
         switch (format) {
             case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
             case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
@@ -633,15 +636,32 @@ namespace EvoVulkan::Tools {
         return format == VK_FORMAT_BC4_UNORM_BLOCK || format == VK_FORMAT_BC4_SNORM_BLOCK;
     }
 
-    EVK_MAYBE_UNUSED static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t mips, VkFormat format, bool isNeedEnd) {
+    EVK_MAYBE_UNUSED static bool CopyBufferToImage(Types::CmdBuffer* copyCmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t mips, VkFormat format, bool isNeedEnd, bool preparedMipChain = false) {
         EVK_TRACY_ZONE;
 
         if (!copyCmd->IsBegin()) {
             copyCmd->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         }
 
-        if (Tools::IsBlockCompressedFormat(format)) {
-            const size_t bytesPerBlock = (IsBC1(format) || IsBC4(format)) ? 8 : 16;
+        if (preparedMipChain || Tools::IsBlockCompressedFormat(format)) {
+            uint32_t blockWidth = 4;
+            uint32_t blockHeight = 4;
+            uint32_t bytesPerBlock = (IsBC1(format) || IsBC4(format)) ? 8 : 16;
+            if (!Tools::IsBlockCompressedFormat(format)) {
+                blockWidth = 1;
+                blockHeight = 1;
+                bytesPerBlock = format == VK_FORMAT_R16G16B16A16_SFLOAT ? 8 : 4;
+            }
+            else if (format >= VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK && format <= VK_FORMAT_EAC_R11G11_SNORM_BLOCK) {
+                bytesPerBlock = (format <= VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK
+                    || format == VK_FORMAT_EAC_R11_UNORM_BLOCK || format == VK_FORMAT_EAC_R11_SNORM_BLOCK) ? 8 : 16;
+            }
+            else if (format == VK_FORMAT_ASTC_6x6_UNORM_BLOCK || format == VK_FORMAT_ASTC_6x6_SRGB_BLOCK) {
+                blockWidth = blockHeight = 6;
+            }
+            else if (format == VK_FORMAT_ASTC_8x8_UNORM_BLOCK || format == VK_FORMAT_ASTC_8x8_SRGB_BLOCK) {
+                blockWidth = blockHeight = 8;
+            }
 
             uint64_t offset = 0;
 
@@ -649,8 +669,8 @@ namespace EvoVulkan::Tools {
             uint32_t mipHeight = height;
 
             for (uint32_t mip = 0; mip < mips; ++mip) {
-                const uint32_t blockCols = std::max(1u, (mipWidth  + 3) / 4);
-                const uint32_t blockRows = std::max(1u, (mipHeight + 3) / 4);
+                const uint32_t blockCols = std::max(1u, (mipWidth + blockWidth - 1) / blockWidth);
+                const uint32_t blockRows = std::max(1u, (mipHeight + blockHeight - 1) / blockHeight);
                 uint64_t mipSize = uint64_t(blockCols) * blockRows * bytesPerBlock;
 
                 VkBufferImageCopy copyRegion{};

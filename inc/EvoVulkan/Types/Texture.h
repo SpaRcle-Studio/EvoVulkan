@@ -44,6 +44,7 @@ namespace EvoVulkan::Types {
         VkFilter filter = VK_FILTER_MAX_ENUM;
         VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         bool cpuUsage = false;
+        bool preparedMipChain = false;
     };
 
     class DLL_EVK_EXPORT Texture : public Tools::NonCopyable {
