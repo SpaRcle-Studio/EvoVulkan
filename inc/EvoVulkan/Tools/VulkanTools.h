@@ -163,6 +163,8 @@ namespace EvoVulkan::Tools {
             case VK_FORMAT_R64G64B64A64_SINT:
             case VK_FORMAT_R64G64B64A64_SFLOAT:
                 return sizeof(int64_t);
+            case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
+                return sizeof(float_t);
             default:
                 VK_HALT("Unknown format!");
                 return 0;
@@ -260,6 +262,7 @@ namespace EvoVulkan::Tools {
             case VK_FORMAT_R32G32B32_UINT:
             case VK_FORMAT_R32G32B32_SINT:
             case VK_FORMAT_R32G32B32_SFLOAT:
+            case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
                 return 3;
             case VK_FORMAT_R32G32B32A32_UINT:
             case VK_FORMAT_R32G32B32A32_SINT:

@@ -93,7 +93,8 @@ namespace EvoVulkan::Complexes {
         auto&& imageCI = Types::ImageCreateInfo(
             pFrameBuffer->GetAllocator(), pFrameBuffer->GetCmdPool(), imageSize.width, imageSize.height, VK_IMAGE_ASPECT_COLOR_BIT, 1,
             format,
-            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT/** usage */,
+            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                (pFrameBuffer->GetFeatures().colorTransferSrc ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0),
             samplesCount,
             false /** cpu usage */,
             1 /** mip levels */,
