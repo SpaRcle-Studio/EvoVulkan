@@ -18,6 +18,7 @@ message(STATUS "[SpaRcle Engine] [EvoVulkan] Vulkan SDK Version: ${Vulkan_VERSIO
 
 if (EVO_VULKAN_STATIC_LIBRARY)
     add_library(EvoVulkan STATIC cxx/EvoVulkan.cxx)
+    target_compile_definitions(EvoVulkan PUBLIC EVO_VULKAN_STATIC_LIBRARY)
 
     if (CYGWIN)
 
@@ -29,6 +30,7 @@ if (EVO_VULKAN_STATIC_LIBRARY)
 else()
     add_library(EvoVulkan SHARED EvoVulkan.cxx)
     add_library(EvoVulkan::lib ALIAS EvoVulkan)
+    target_compile_definitions(EvoVulkan PRIVATE EVK_EXPORTS)
 
     #find_package(Vulkan REQUIRED FATAL_ERROR)
     target_link_libraries(EvoVulkan PUBLIC ${Vulkan_LIBRARY})

@@ -30,9 +30,7 @@
     #define EVK_WIN32
 #endif
 
-#define EVK_EXPORTS 1
-
-#ifndef EVK_LINUX
+#if !defined(EVK_LINUX) && !defined(EVO_VULKAN_STATIC_LIBRARY)
     #if defined(EVK_EXPORTS)
         #define DLL_EVK_EXPORT __declspec(dllexport)
     #else
