@@ -60,8 +60,17 @@ namespace EvoVulkan::Types {
         std::vector<VkDescriptorPoolSize> sizes = {};
         sizes.reserve(pool->m_poolSizes.sizes.size());
         for (auto&&[type, multiplier] : pool->m_poolSizes.sizes) {
-            if (Contains(requestTypes, type)) {
-                sizes.push_back({type, static_cast<uint32_t>(multiplier * maxSets)});
+            /// requestTypes содержит тип столько раз, сколько дескрипторов этого типа в одном сете
+            uint32_t perSet = 0;
+            for (auto&& requested : requestTypes) {
+                if (requested == static_cast<uint64_t>(type)) {
+                    ++perSet;
+                }
+            }
+
+            if (perSet > 0) {
+                const float descriptorsPerSet = std::max(multiplier, static_cast<float>(perSet));
+                sizes.push_back({type, static_cast<uint32_t>(descriptorsPerSet * static_cast<float>(maxSets))});
             }
         }
 
