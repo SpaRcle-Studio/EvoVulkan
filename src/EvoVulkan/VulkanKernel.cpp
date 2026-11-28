@@ -770,8 +770,16 @@ bool EvoVulkan::Core::VulkanKernel::ReCreate(FrameResult reason) {
         WaitAllFences();
         vkDeviceWaitIdle(*m_device);
 
-        m_width = m_newWidth;
-        m_height = m_newHeight;
+        /// OutOfDate/Suboptimal может прийти без нового размера окна (например, при авто-ресайзе размер
+        /// уже применен), тогда пересоздаем свопчейн с текущим размером
+        if (m_newWidth > 0 && m_newHeight > 0) {
+            m_width = m_newWidth;
+            m_height = m_newHeight;
+        }
+        else {
+            VK_LOG("VulkanKernel::ReCreate() : new window size is not set, using current size " +
+                   std::to_string(m_width) + "x" + std::to_string(m_height));
+        }
 
         m_newWidth = -1;
         m_newHeight = -1;

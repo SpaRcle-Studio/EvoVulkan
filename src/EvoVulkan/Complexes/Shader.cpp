@@ -275,9 +275,14 @@ bool EvoVulkan::Complexes::Shader::ReCreatePipeLine(Types::RenderPass renderPass
 
     {
         EVK_TRACY_ZONE_N("vkCreateGraphicsPipelines");
-        if (vkCreateGraphicsPipelines(*m_device, m_cache, 1, &pipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-            VK_ERROR("Shader::ReCreatePipeLine() : failed to create vulkan graphics pipeline!");
-            return false;
+        if (VkResult result = vkCreateGraphicsPipelines(*m_device, m_cache, 1, &pipelineCreateInfo, nullptr, &m_pipeline)) {
+            if (result != VK_SUCCESS) {
+                VK_ERROR("Shader::ReCreatePipeLine() : failed to create vulkan graphics pipeline!\n\tReason: " +
+                    Tools::Convert::result_to_string(result) + "\n\t" +
+                    Tools::Convert::result_to_description(result)
+                );
+                return false;
+            }
         }
     }
 
